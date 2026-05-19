@@ -197,8 +197,8 @@ public class AMHSMessageUI extends JFrame {
         gbc.weightx = 0.5;
         comboPriority = new JComboBox<>(new X400_Priority[]{
             X400_Priority.NORMAL_PRIORITY,
-            X400_Priority.NON_URGENT_PRIORITY,
-            X400_Priority.URGENT_PRIORITY
+            X400_Priority.LOW_PRIORITY,
+            X400_Priority.HIGH_PRIORITY
         });
         panel.add(comboPriority, gbc);
         
