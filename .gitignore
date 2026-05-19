@@ -1,0 +1,20 @@
+```
+# Dependencies
+lib/
+
+# Build artifacts
+target/
+build/
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+*.env.*
+```
