@@ -19,8 +19,98 @@
     </properties>
 
     <dependencies>
-        <!-- Isode X.400 Libraries - These need to be installed locally -->
-        <!-- Run: mvn install:install-file for each isode jar in lib/ folder -->
+        <!-- Isode X.400 Libraries -->
+        <dependency>
+            <groupId>com.isode.x400</groupId>
+            <artifactId>isode-x400</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.isode</groupId>
+            <artifactId>isode-lib</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.isode</groupId>
+            <artifactId>isode-asn</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.isode</groupId>
+            <artifactId>isode-crypto</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.isode</groupId>
+            <artifactId>isode-dsapi</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.isode</groupId>
+            <artifactId>isode-dsapigui</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.isode</groupId>
+            <artifactId>isode-emmash</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.isode</groupId>
+            <artifactId>isode-hlxja</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.isode</groupId>
+            <artifactId>isode-mvc</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.isode</groupId>
+            <artifactId>isode-nettrace</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.isode</groupId>
+            <artifactId>isode-rbac</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.isode</groupId>
+            <artifactId>isode-ca</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.isode</groupId>
+            <artifactId>jswrapper</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
+        <!-- ATTech UA Libraries -->
+        <dependency>
+            <groupId>com.attech.amhs.ua</groupId>
+            <artifactId>com.attech.amhs.ua.db</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.attech.amhs.ua</groupId>
+            <artifactId>com.attech.amhs.ua.common</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
+        <!-- JPA Persistence API -->
+        <dependency>
+            <groupId>javax.persistence</groupId>
+            <artifactId>javax.persistence-api</artifactId>
+            <version>2.2</version>
+        </dependency>
+
+        <!-- Hibernate Core -->
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <version>4.3.11.Final</version>
+        </dependency>
         
         <!-- SLF4J Logging -->
         <dependency>

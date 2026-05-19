@@ -146,6 +146,12 @@ install_jar "$LIB_DIR/commons-codec-1.4.jar" "commons-codec" "commons-codec" "1.
 install_jar "$LIB_DIR/commons-io-1.4.jar" "commons-io" "commons-io" "1.4" || INSTALL_FAILED=1
 install_jar "$LIB_DIR/activation.jar" "javax.activation" "activation" "1.1" || INSTALL_FAILED=1
 
+# Install ATTech UA database and common libraries
+echo ""
+echo "Installing ATTech UA core libraries..."
+install_jar "$LIB_DIR/com.attech.amhs.ua.db.jar" "com.attech.amhs.ua" "com.attech.amhs.ua.db" "1.0.0" || INSTALL_FAILED=1
+install_jar "$LIB_DIR/com.attech.amhs.ua.common.jar" "com.attech.amhs.ua" "com.attech.amhs.ua.common" "1.0.0" || INSTALL_FAILED=1
+
 echo ""
 echo "=========================================="
 if [ $INSTALL_FAILED -eq 0 ]; then
