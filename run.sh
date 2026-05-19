@@ -67,4 +67,11 @@ echo "=========================================="
 echo ""
 
 # Run the application
-java -jar "$JAR_FILE"
+ISODE_LIB_DIR="/opt/isode/lib"
+if [ -d "$ISODE_LIB_DIR" ]; then
+    echo "Found Isode native library path: $ISODE_LIB_DIR"
+    java -Djava.library.path="$ISODE_LIB_DIR" -jar "$JAR_FILE"
+else
+    echo "WARNING: Isode native library path ($ISODE_LIB_DIR) not found. Running with default JVM settings..."
+    java -jar "$JAR_FILE"
+fi

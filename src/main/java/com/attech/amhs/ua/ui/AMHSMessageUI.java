@@ -40,6 +40,7 @@ public class AMHSMessageUI extends JFrame {
     public AMHSMessageUI() {
         messageService = new AMHSMessageService();
         initUI();
+        loadConfigFromFile();
     }
     
     private void initUI() {
@@ -142,9 +143,23 @@ public class AMHSMessageUI extends JFrame {
         btnDisconnect.addActionListener(e -> disconnect());
         panel.add(btnDisconnect, gbc);
         
-        // Connection Status Label
+        // Save/Load Config Buttons
         gbc.gridx = 0;
         gbc.gridy = 4;
+        gbc.gridwidth = 2;
+        JButton btnLoadConfig = new JButton("Load Config File");
+        btnLoadConfig.addActionListener(e -> loadConfigFromFile());
+        panel.add(btnLoadConfig, gbc);
+        
+        gbc.gridx = 2;
+        gbc.gridwidth = 2;
+        JButton btnSaveConfig = new JButton("Save Config File");
+        btnSaveConfig.addActionListener(e -> saveConfigToFile());
+        panel.add(btnSaveConfig, gbc);
+        
+        // Connection Status Label
+        gbc.gridx = 0;
+        gbc.gridy = 5;
         gbc.gridwidth = 4;
         lblConnectionStatus = new JLabel("Status: Disconnected");
         lblConnectionStatus.setForeground(Color.RED);
@@ -386,6 +401,54 @@ public class AMHSMessageUI extends JFrame {
         }
     }
     
+    private static final String CONFIG_FILE = "connection.properties";
+
+    private void loadConfigFromFile() {
+        java.io.File file = new java.io.File(CONFIG_FILE);
+        if (!file.exists()) {
+            appendOutput("Configuration file (" + CONFIG_FILE + ") not found.\n");
+            return;
+        }
+        
+        java.util.Properties props = new java.util.Properties();
+        try (java.io.FileInputStream fis = new java.io.FileInputStream(file)) {
+            props.load(fis);
+            txtPresentationAddress.setText(props.getProperty("presentationAddress", ""));
+            txtUserOrAddress.setText(props.getProperty("userOrAddress", ""));
+            txtPassword.setText(props.getProperty("password", ""));
+            txtRecipient.setText(props.getProperty("recipient", ""));
+            txtSubject.setText(props.getProperty("subject", ""));
+            
+            String connType = props.getProperty("connectionType", "P7");
+            if ("P3".equalsIgnoreCase(connType)) {
+                radioP3.setSelected(true);
+            } else {
+                radioP7.setSelected(true);
+            }
+            
+            appendOutput("Loaded configuration from " + CONFIG_FILE + "\n");
+        } catch (java.io.IOException e) {
+            appendOutput("Failed to load configuration: " + e.getMessage() + "\n");
+        }
+    }
+
+    private void saveConfigToFile() {
+        java.util.Properties props = new java.util.Properties();
+        props.setProperty("presentationAddress", txtPresentationAddress.getText().trim());
+        props.setProperty("userOrAddress", txtUserOrAddress.getText().trim());
+        props.setProperty("password", new String(txtPassword.getPassword()));
+        props.setProperty("recipient", txtRecipient.getText().trim());
+        props.setProperty("subject", txtSubject.getText().trim());
+        props.setProperty("connectionType", radioP3.isSelected() ? "P3" : "P7");
+        
+        try (java.io.FileOutputStream fos = new java.io.FileOutputStream(CONFIG_FILE)) {
+            props.store(fos, "AMHS UA Test Tool Connection Settings");
+            appendOutput("Saved configuration to " + CONFIG_FILE + "\n");
+        } catch (java.io.IOException e) {
+            appendOutput("Failed to save configuration: " + e.getMessage() + "\n");
+        }
+    }
+
     private void appendOutput(String text) {
         txtOutput.append(text);
         txtOutput.setCaretPosition(txtOutput.getDocument().getLength());
