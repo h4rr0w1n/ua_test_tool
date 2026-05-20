@@ -307,7 +307,27 @@ public class AMHSMessageUI extends JFrame {
                 SwingUtilities.invokeLater(() -> {
                     lblConnectionStatus.setText("Status: Connection Failed");
                     lblConnectionStatus.setForeground(Color.RED);
-                    appendOutput("Connection failed: " + t.getMessage() + "\n");
+                    
+                    String errorMsg = t.getMessage();
+                    appendOutput("Connection failed: " + errorMsg + "\n\n");
+                    
+                    // Provide specific guidance for native library errors
+                    if (t instanceof java.lang.UnsatisfiedLinkError || 
+                        (errorMsg != null && errorMsg.contains("Native library") && errorMsg.contains("DLL"))) {
+                        appendOutput("=== NATIVE LIBRARY ERROR ===\n");
+                        appendOutput("The Isode X.400 native libraries are not properly installed.\n");
+                        appendOutput("Required files:\n");
+                        appendOutput("  - pthreadvc2.dll\n");
+                        appendOutput("  - CJavaInterface.dll\n");
+                        appendOutput("Installation location: lib/amd64/ or lib/ directory\n\n");
+                        appendOutput("Solution:\n");
+                        appendOutput("1. Locate your Isode X.400 SDK installation\n");
+                        appendOutput("2. Copy the above DLL files to: lib/amd64/\n");
+                        appendOutput("3. Rebuild: mvn clean package\n");
+                        appendOutput("4. Try connecting again\n\n");
+                        appendOutput("For more details, see: README.md\n\n");
+                    }
+                    
                     if (t instanceof X400APIException) {
                         appendOutput("Error code: " + ((X400APIException) t).getNativeErrorCode() + "\n");
                     } else {

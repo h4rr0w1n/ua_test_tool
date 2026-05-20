@@ -101,11 +101,31 @@ The UI provides fields for:
 
 ## Troubleshooting
 
+### Missing Native Libraries (pthreadvc2.dll, CJavaInterface.dll)
+If you get an `UnsatisfiedLinkError` about missing DLL files:
+
+**Error message example:**
+```
+Unable to load library C:\...\lib\pthreadvc2.dll ( Can't load library: pthreadvc2.dll)
+java.lang.UnsatisfiedLinkError: LibraryResolver loaded...
+```
+
+**Solution:**
+1. Locate your Isode X.400 SDK installation directory
+2. Copy the following DLL files from your SDK:
+   - `pthreadvc2.dll`
+   - `CJavaInterface.dll`
+3. Place them in: `lib/amd64/` or `lib/` directory
+4. Alternatively, run the setup script: `setup-native-libs.bat` (Windows)
+5. Rebuild: `mvn clean package`
+
+If you don't have the Isode X.400 SDK, you need to obtain it from Isode. The JAR files alone are not sufficient - the native libraries must be provided.
+
 ### Build fails with missing dependencies
 If the build fails due to missing Isode dependencies:
 1. Ensure you have the required JAR files
 2. Copy them to the `lib/` directory
-3. Run `./install-isode-libs.sh`
+3. Run `./install-isode-libs.sh` or `install-libs.bat`
 4. Try building again with `mvn clean package`
 
 ### No JAR files in lib directory
@@ -119,6 +139,14 @@ java -version
 
 ### Maven not found
 Install Maven from https://maven.apache.org/download.cgi and ensure it's in your PATH.
+
+### Connection timeout or fails to connect
+If connection to the X.400 system times out:
+1. Verify the Presentation Address in `connection.properties` is correct
+2. Ensure the X.400 server is running and accessible
+3. Check network connectivity to the server
+4. Verify username/password credentials
+5. Check the detailed error output in the UI
 
 ## License
 

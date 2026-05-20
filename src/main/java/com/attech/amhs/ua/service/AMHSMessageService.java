@@ -58,12 +58,18 @@ public class AMHSMessageService {
         }
         
         try {
+            System.out.println("DEBUG: Initializing X.400 system...");
+            System.out.println("DEBUG: Library path: " + System.getProperty("java.library.path"));
+            System.out.println("DEBUG: Working directory: " + System.getProperty("user.dir"));
+            
             if (useP3) {
                 System.out.println("Connecting to P3 Channel...");
+                System.out.println("DEBUG: Presentation Address: " + presentationAddress);
                 P3BindSession session = new P3BindSession(presentationAddress, userOrAddress, password);
                 session.bind();
             } else {
                 System.out.println("Connecting to P7 Message Store...");
+                System.out.println("DEBUG: Presentation Address: " + presentationAddress);
                 P7BindSession session = new P7BindSession(presentationAddress, userOrAddress, password);
                 session.SetSummarizeOnBind(false);
                 session.bind();
@@ -72,9 +78,23 @@ public class AMHSMessageService {
             isConnected = true;
             System.out.println("Connected successfully");
             return true;
+        } catch (UnsatisfiedLinkError e) {
+            String errorMsg = "Native library loading error: " + e.getMessage();
+            System.err.println("ERROR: " + errorMsg);
+            System.err.println("The Isode X.400 native libraries (DLLs) are not properly installed.");
+            System.err.println("Required files: pthreadvc2.dll, CJavaInterface.dll");
+            System.err.println("These files should be in: lib/amd64/ or lib/ directory");
+            System.err.println("Please ensure you have installed the Isode X.400 libraries correctly.");
+            throw new X400APIException(errorMsg);
         } catch (X400APIException e) {
             System.err.println("Connection failed: " + e.getMessage());
+            e.printStackTrace();
             throw e;
+        } catch (Throwable e) {
+            String errorMsg = "Unexpected error during connection: " + e.getClass().getName() + " - " + e.getMessage();
+            System.err.println("ERROR: " + errorMsg);
+            e.printStackTrace();
+            throw new X400APIException(errorMsg, e);
         }
     }
     
