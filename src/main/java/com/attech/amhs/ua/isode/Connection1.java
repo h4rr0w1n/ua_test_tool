@@ -78,7 +78,7 @@ public class Connection1 {
         }
 
         // this.onStatusChanged(ConnectionStatus.Connecting);
-        session = new P7BindSession(presentationAddress, user, password);
+        session = new P7BindSession(presentationAddress, user, password, false);
         session.SetSummarizeOnBind(false);
         session.bind();
 

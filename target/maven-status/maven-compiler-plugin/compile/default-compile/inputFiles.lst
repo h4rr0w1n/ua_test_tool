@@ -15,6 +15,7 @@ C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\is
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\isode\Recipient.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\common\enums\MsgClass.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\isode\ConnectionStatusChangedEventHandler.java
+C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\service\LocalAMHSMessageService.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\ui\AMHSMessageUI.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\isode\ReportRecipient.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\ui\components\TestCaseSelectorPanel.java

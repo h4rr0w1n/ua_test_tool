@@ -70,7 +70,7 @@ public class AMHSMessageService {
             } else {
                 System.out.println("Connecting to P7 Message Store...");
                 System.out.println("DEBUG: Presentation Address: " + presentationAddress);
-                P7BindSession session = new P7BindSession(presentationAddress, userOrAddress, password);
+                P7BindSession session = new P7BindSession(presentationAddress, userOrAddress, password, false);
                 session.SetSummarizeOnBind(false);
                 session.bind();
             }
@@ -94,7 +94,7 @@ public class AMHSMessageService {
             String errorMsg = "Unexpected error during connection: " + e.getClass().getName() + " - " + e.getMessage();
             System.err.println("ERROR: " + errorMsg);
             e.printStackTrace();
-            throw new X400APIException(errorMsg, e);
+            throw new X400APIException(errorMsg);
         }
     }
     
@@ -130,7 +130,7 @@ public class AMHSMessageService {
         P7BindSession bindSession = null;
         try {
             // Create bind session
-            bindSession = new P7BindSession(presentationAddress, userOrAddress, password);
+            bindSession = new P7BindSession(presentationAddress, userOrAddress, password, false);
             bindSession.bind();
             
             // Create message
@@ -201,7 +201,7 @@ public class AMHSMessageService {
         List<MessageSummary> messages = new ArrayList<>();
         
         try {
-            P7BindSession session = new P7BindSession(presentationAddress, userOrAddress, password);
+            P7BindSession session = new P7BindSession(presentationAddress, userOrAddress, password, false);
             session.bind();
             
             int numMsgs = session.getRefreshNumberOfMessages();
@@ -248,7 +248,7 @@ public class AMHSMessageService {
         }
         
         try {
-            P7BindSession session = new P7BindSession(presentationAddress, userOrAddress, password);
+            P7BindSession session = new P7BindSession(presentationAddress, userOrAddress, password, false);
             session.bind();
             
             System.out.println("Waiting for new message (" + timeoutSeconds + " seconds)...");
@@ -281,7 +281,7 @@ public class AMHSMessageService {
         List<MessageSummary> summaries = new ArrayList<>();
         
         try {
-            P7BindSession session = new P7BindSession(presentationAddress, userOrAddress, password);
+            P7BindSession session = new P7BindSession(presentationAddress, userOrAddress, password, false);
             session.bind();
             
             ArrayList<ListResult> listArray = session.listMailbox(null, 
