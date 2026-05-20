@@ -281,28 +281,43 @@ public class AMHSMessageUI extends JFrame {
     }
     
     private void connect() {
-        try {
-            String presentationAddress = txtPresentationAddress.getText().trim();
-            String userOrAddress = txtUserOrAddress.getText().trim();
-            String password = new String(txtPassword.getPassword());
-            
-            if (radioP3.isSelected()) {
-                messageService.configureP3(presentationAddress, userOrAddress, password);
-            } else {
-                messageService.configureP7(presentationAddress, userOrAddress, password);
-            }
-            
-            messageService.connect();
-            lblConnectionStatus.setText("Status: Connected");
-            lblConnectionStatus.setForeground(Color.GREEN);
-            appendOutput("Successfully connected to X.400 system\n");
-            
-        } catch (X400APIException e) {
-            lblConnectionStatus.setText("Status: Connection Failed");
-            lblConnectionStatus.setForeground(Color.RED);
-            appendOutput("Connection failed: " + e.getMessage() + "\n");
-            appendOutput("Error code: " + e.getNativeErrorCode() + "\n");
+        lblConnectionStatus.setText("Status: Connecting...");
+        lblConnectionStatus.setForeground(Color.BLUE);
+        appendOutput("Initiating connection to X.400 system...\n");
+        
+        String presentationAddress = txtPresentationAddress.getText().trim();
+        String userOrAddress = txtUserOrAddress.getText().trim();
+        String password = new String(txtPassword.getPassword());
+        
+        if (radioP3.isSelected()) {
+            messageService.configureP3(presentationAddress, userOrAddress, password);
+        } else {
+            messageService.configureP7(presentationAddress, userOrAddress, password);
         }
+        
+        new Thread(() -> {
+            try {
+                messageService.connect();
+                SwingUtilities.invokeLater(() -> {
+                    lblConnectionStatus.setText("Status: Connected");
+                    lblConnectionStatus.setForeground(Color.GREEN);
+                    appendOutput("Successfully connected to X.400 system\n");
+                });
+            } catch (Throwable t) {
+                SwingUtilities.invokeLater(() -> {
+                    lblConnectionStatus.setText("Status: Connection Failed");
+                    lblConnectionStatus.setForeground(Color.RED);
+                    appendOutput("Connection failed: " + t.getMessage() + "\n");
+                    if (t instanceof X400APIException) {
+                        appendOutput("Error code: " + ((X400APIException) t).getNativeErrorCode() + "\n");
+                    } else {
+                        java.io.StringWriter sw = new java.io.StringWriter();
+                        t.printStackTrace(new java.io.PrintWriter(sw));
+                        appendOutput(sw.toString() + "\n");
+                    }
+                });
+            }
+        }).start();
     }
     
     private void disconnect() {
@@ -318,26 +333,34 @@ public class AMHSMessageUI extends JFrame {
             return;
         }
         
-        try {
-            String recipient = txtRecipient.getText().trim();
-            String subject = txtSubject.getText().trim();
-            String content = txtContent.getText().trim();
-            X400_Priority priority = (X400_Priority) comboPriority.getSelectedItem();
-            
-            if (recipient.isEmpty() || subject.isEmpty() || content.isEmpty()) {
-                appendOutput("Error: Recipient, subject, and content are required.\n");
-                return;
-            }
-            
-            appendOutput("Sending message...\n");
-            String msgId = messageService.sendMessage(recipient, subject, content, priority);
-            appendOutput("Message sent successfully!\n");
-            appendOutput("Message ID: " + msgId + "\n");
-            
-        } catch (X400APIException e) {
-            appendOutput("Failed to send message: " + e.getMessage() + "\n");
-            appendOutput("Error code: " + e.getNativeErrorCode() + "\n");
+        String recipient = txtRecipient.getText().trim();
+        String subject = txtSubject.getText().trim();
+        String content = txtContent.getText().trim();
+        X400_Priority priority = (X400_Priority) comboPriority.getSelectedItem();
+        
+        if (recipient.isEmpty() || subject.isEmpty() || content.isEmpty()) {
+            appendOutput("Error: Recipient, subject, and content are required.\n");
+            return;
         }
+        
+        appendOutput("Sending message...\n");
+        
+        new Thread(() -> {
+            try {
+                String msgId = messageService.sendMessage(recipient, subject, content, priority);
+                SwingUtilities.invokeLater(() -> {
+                    appendOutput("Message sent successfully!\n");
+                    appendOutput("Message ID: " + msgId + "\n");
+                });
+            } catch (Throwable t) {
+                SwingUtilities.invokeLater(() -> {
+                    appendOutput("Failed to send message: " + t.getMessage() + "\n");
+                    if (t instanceof X400APIException) {
+                        appendOutput("Error code: " + ((X400APIException) t).getNativeErrorCode() + "\n");
+                    }
+                });
+            }
+        }).start();
     }
     
     private void receiveMessages() {
@@ -346,29 +369,36 @@ public class AMHSMessageUI extends JFrame {
             return;
         }
         
-        try {
-            appendOutput("Receiving messages...\n");
-            List<AMHSMessageService.MessageSummary> messages = messageService.receiveMessages(10);
-            
-            if (messages.isEmpty()) {
-                appendOutput("No messages found.\n");
-            } else {
-                appendOutput("Received " + messages.size() + " message(s):\n");
-                appendOutput("========================================\n");
-                for (AMHSMessageService.MessageSummary msg : messages) {
-                    appendOutput("From: " + msg.getSender() + "\n");
-                    appendOutput("Subject: " + msg.getSubject() + "\n");
-                    if (msg.getContent() != null && !msg.getContent().isEmpty()) {
-                        appendOutput("Content: " + msg.getContent() + "\n");
+        appendOutput("Receiving messages...\n");
+        
+        new Thread(() -> {
+            try {
+                List<AMHSMessageService.MessageSummary> messages = messageService.receiveMessages(10);
+                SwingUtilities.invokeLater(() -> {
+                    if (messages.isEmpty()) {
+                        appendOutput("No messages found.\n");
+                    } else {
+                        appendOutput("Received " + messages.size() + " message(s):\n");
+                        appendOutput("========================================\n");
+                        for (AMHSMessageService.MessageSummary msg : messages) {
+                            appendOutput("From: " + msg.getSender() + "\n");
+                            appendOutput("Subject: " + msg.getSubject() + "\n");
+                            if (msg.getContent() != null && !msg.getContent().isEmpty()) {
+                                appendOutput("Content: " + msg.getContent() + "\n");
+                            }
+                            appendOutput("----------------------------------------\n");
+                        }
                     }
-                    appendOutput("----------------------------------------\n");
-                }
+                });
+            } catch (Throwable t) {
+                SwingUtilities.invokeLater(() -> {
+                    appendOutput("Failed to receive messages: " + t.getMessage() + "\n");
+                    if (t instanceof X400APIException) {
+                        appendOutput("Error code: " + ((X400APIException) t).getNativeErrorCode() + "\n");
+                    }
+                });
             }
-            
-        } catch (X400APIException e) {
-            appendOutput("Failed to receive messages: " + e.getMessage() + "\n");
-            appendOutput("Error code: " + e.getNativeErrorCode() + "\n");
-        }
+        }).start();
     }
     
     private void getMailboxSummary() {
@@ -377,28 +407,35 @@ public class AMHSMessageUI extends JFrame {
             return;
         }
         
-        try {
-            appendOutput("Getting mailbox summary...\n");
-            List<AMHSMessageService.MessageSummary> messages = messageService.getMailboxSummary();
-            
-            if (messages.isEmpty()) {
-                appendOutput("Mailbox is empty.\n");
-            } else {
-                appendOutput("Mailbox contains " + messages.size() + " message(s):\n");
-                appendOutput("========================================\n");
-                for (AMHSMessageService.MessageSummary msg : messages) {
-                    appendOutput("From: " + msg.getSender() + "\n");
-                    appendOutput("Subject: " + msg.getSubject() + "\n");
-                    appendOutput("Time: " + msg.getSubmissionTime() + "\n");
-                    appendOutput("Size: " + msg.getContentLength() + " bytes\n");
-                    appendOutput("----------------------------------------\n");
-                }
+        appendOutput("Getting mailbox summary...\n");
+        
+        new Thread(() -> {
+            try {
+                List<AMHSMessageService.MessageSummary> messages = messageService.getMailboxSummary();
+                SwingUtilities.invokeLater(() -> {
+                    if (messages.isEmpty()) {
+                        appendOutput("Mailbox is empty.\n");
+                    } else {
+                        appendOutput("Mailbox contains " + messages.size() + " message(s):\n");
+                        appendOutput("========================================\n");
+                        for (AMHSMessageService.MessageSummary msg : messages) {
+                            appendOutput("From: " + msg.getSender() + "\n");
+                            appendOutput("Subject: " + msg.getSubject() + "\n");
+                            appendOutput("Time: " + msg.getSubmissionTime() + "\n");
+                            appendOutput("Size: " + msg.getContentLength() + " bytes\n");
+                            appendOutput("----------------------------------------\n");
+                        }
+                    }
+                });
+            } catch (Throwable t) {
+                SwingUtilities.invokeLater(() -> {
+                    appendOutput("Failed to get mailbox summary: " + t.getMessage() + "\n");
+                    if (t instanceof X400APIException) {
+                        appendOutput("Error code: " + ((X400APIException) t).getNativeErrorCode() + "\n");
+                    }
+                });
             }
-            
-        } catch (X400APIException e) {
-            appendOutput("Failed to get mailbox summary: " + e.getMessage() + "\n");
-            appendOutput("Error code: " + e.getNativeErrorCode() + "\n");
-        }
+        }).start();
     }
     
     private static final String CONFIG_FILE = "connection.properties";
