@@ -62,17 +62,58 @@ public class AMHSMessageService {
             System.out.println("DEBUG: Library path: " + System.getProperty("java.library.path"));
             System.out.println("DEBUG: Working directory: " + System.getProperty("user.dir"));
             
-            if (useP3) {
-                System.out.println("Connecting to P3 Channel...");
-                System.out.println("DEBUG: Presentation Address: " + presentationAddress);
-                P3BindSession session = new P3BindSession(presentationAddress, userOrAddress, password);
-                session.bind();
-            } else {
-                System.out.println("Connecting to P7 Message Store...");
-                System.out.println("DEBUG: Presentation Address: " + presentationAddress);
-                P7BindSession session = new P7BindSession(presentationAddress, userOrAddress, password, false);
-                session.SetSummarizeOnBind(false);
-                session.bind();
+            // Run bind in a separate thread with timeout to prevent indefinite hangs
+            final Exception[] bindException = {null};
+            final boolean[] bindSuccess = {false};
+            
+            Thread bindThread = new Thread(() -> {
+                try {
+                    if (useP3) {
+                        System.out.println("Connecting to P3 Channel...");
+                        System.out.println("DEBUG: Presentation Address: " + presentationAddress);
+                        P3BindSession session = new P3BindSession(presentationAddress, userOrAddress, password);
+                        session.bind();
+                    } else {
+                        System.out.println("Connecting to P7 Message Store...");
+                        System.out.println("DEBUG: Presentation Address: " + presentationAddress);
+                        P7BindSession session = new P7BindSession(presentationAddress, userOrAddress, password, false);
+                        session.SetSummarizeOnBind(false);
+                        session.bind();
+                    }
+                    bindSuccess[0] = true;
+                } catch (Exception e) {
+                    bindException[0] = e;
+                }
+            });
+            
+            bindThread.setName("AMHS-Bind-Thread");
+            bindThread.setDaemon(false);
+            bindThread.start();
+            
+            // Wait for bind with timeout (30 seconds)
+            long startTime = System.currentTimeMillis();
+            long timeout = 30000; // 30 seconds
+            
+            while (bindThread.isAlive() && (System.currentTimeMillis() - startTime) < timeout) {
+                Thread.sleep(100);
+                System.out.print(".");
+            }
+            System.out.println();
+            
+            if (bindThread.isAlive()) {
+                System.err.println("ERROR: Connection timeout after 30 seconds");
+                System.err.println("The server may be unresponsive or the presentation address is incorrect.");
+                System.err.println("DEBUG: Presentation Address used: " + presentationAddress);
+                bindThread.interrupt();
+                throw new X400APIException("Connection timeout - server did not respond within 30 seconds");
+            }
+            
+            if (bindException[0] != null) {
+                throw bindException[0];
+            }
+            
+            if (!bindSuccess[0]) {
+                throw new X400APIException("Bind operation failed - unknown error");
             }
             
             isConnected = true;
@@ -90,6 +131,11 @@ public class AMHSMessageService {
             System.err.println("Connection failed: " + e.getMessage());
             e.printStackTrace();
             throw e;
+        } catch (InterruptedException e) {
+            String errorMsg = "Connection interrupted: " + e.getMessage();
+            System.err.println("ERROR: " + errorMsg);
+            Thread.currentThread().interrupt();
+            throw new X400APIException(errorMsg);
         } catch (Throwable e) {
             String errorMsg = "Unexpected error during connection: " + e.getClass().getName() + " - " + e.getMessage();
             System.err.println("ERROR: " + errorMsg);
