@@ -68,7 +68,7 @@ echo ""
 
 # Run the application
 if [ -z "$ISODE_LIB_DIR" ]; then
-    ISODE_LIB_DIR="/opt/isode/lib"
+    ISODE_LIB_DIR="$SCRIPT_DIR/lib"
 fi
 
 if [ -d "$ISODE_LIB_DIR" ]; then
@@ -76,8 +76,7 @@ if [ -d "$ISODE_LIB_DIR" ]; then
     java -Djava.library.path="$ISODE_LIB_DIR" -jar "$JAR_FILE"
 else
     echo "WARNING: Isode native library path ($ISODE_LIB_DIR) not found."
-    echo "If you have Isode native libraries installed in a different location, set the ISODE_LIB_DIR environment variable."
-    echo "Example: export ISODE_LIB_DIR=/your/custom/path"
+    echo "Please ensure the Isode native libraries are placed in the project's lib directory."
     echo "Running with default JVM settings..."
     java -jar "$JAR_FILE"
 fi
