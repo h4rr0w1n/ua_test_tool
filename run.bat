@@ -121,7 +121,7 @@ echo.
 :: Run the application with appropriate library path if lib exists
 if exist "%ISODE_LIB_DIR%" (
     echo Found Isode native library path: "%ISODE_LIB_DIR%"
-    java -Djava.library.path="%ISODE_LIB_DIR%" -jar "%JAR_FILE%"
+    java -Disode.bindir="%SCRIPT_DIR%lib" -Djava.library.path="%ISODE_LIB_DIR%" -jar "%JAR_FILE%"
 ) else (
     echo WARNING: Isode native library path not found: "%ISODE_LIB_DIR%"
     echo Please ensure the native libraries are placed in the lib directory.
