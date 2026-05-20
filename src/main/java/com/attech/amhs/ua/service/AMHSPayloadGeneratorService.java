@@ -1,6 +1,8 @@
 package com.attech.amhs.ua.service;
 
 import com.attech.amhs.ua.model.TestSubcase;
+import com.isode.x400.highlevel.P3BindSession;
+import com.isode.x400.highlevel.X400APIException;
 import com.isode.x400.highlevel.X400Msg;
 import com.isode.x400.highlevel.X400Msg.X400_Priority;
 import java.util.HashMap;
@@ -59,31 +61,49 @@ public class AMHSPayloadGeneratorService {
      * @return Built X.400 message
      */
     public X400Msg buildX400Message(String recipient, String subject, String content, String priority) {
-        X400Msg message = new X400Msg();
+        return buildX400Message((P3BindSession) null, recipient, subject, content, priority);
+    }
+
+    /**
+     * Build X.400 message from parameters with a session
+     * 
+     * @param session P3BindSession
+     * @param recipient Recipient address
+     * @param subject Message subject
+     * @param content Message content
+     * @param priority Message priority (LOW, NORMAL, HIGH, URGENT)
+     * @return Built X.400 message
+     */
+    public X400Msg buildX400Message(P3BindSession session, String recipient, String subject, String content, String priority) {
+        X400Msg message = new X400Msg(session);
         
-        // Set recipient
-        if (recipient != null && !recipient.isEmpty()) {
-            message.setRecipient(recipient);
-        }
-        
-        // Set subject
-        if (subject != null && !subject.isEmpty()) {
-            message.setSubject(subject);
-        }
-        
-        // Set content
-        if (content != null && !content.isEmpty()) {
-            message.setContent(content);
-        }
-        
-        // Set priority
-        if (priority != null) {
-            try {
-                X400_Priority priorityLevel = X400_Priority.valueOf(priority.toUpperCase());
-                message.setPriority(priorityLevel);
-            } catch (IllegalArgumentException e) {
-                message.setPriority(X400_Priority.NORMAL);
+        try {
+            // Set recipient
+            if (recipient != null && !recipient.isEmpty()) {
+                message.setTo(recipient, X400Msg.DR_Request.DR_NON_DELIVERY_REPORT, X400Msg.IPN_NON_RECEIPT_NOTIFICATION);
             }
+            
+            // Set subject
+            if (subject != null && !subject.isEmpty()) {
+                message.setSubject(subject);
+            }
+            
+            // Set content
+            if (content != null && !content.isEmpty()) {
+                message.setTextBody(content);
+            }
+            
+            // Set priority
+            if (priority != null) {
+                try {
+                    X400_Priority priorityLevel = getPriorityFromString(priority);
+                    message.setPriority(priorityLevel);
+                } catch (IllegalArgumentException e) {
+                    message.setPriority(X400_Priority.NORMAL_PRIORITY);
+                }
+            }
+        } catch (X400APIException e) {
+            // Handle or log exception
         }
         
         return message;
@@ -97,13 +117,18 @@ public class AMHSPayloadGeneratorService {
      */
     public X400_Priority getPriorityFromString(String priorityString) {
         if (priorityString == null || priorityString.isEmpty()) {
-            return X400_Priority.NORMAL;
+            return X400_Priority.NORMAL_PRIORITY;
         }
         
+        String upper = priorityString.toUpperCase();
         try {
-            return X400_Priority.valueOf(priorityString.toUpperCase());
+            return X400_Priority.valueOf(upper);
         } catch (IllegalArgumentException e) {
-            return X400_Priority.NORMAL;
+            try {
+                return X400_Priority.valueOf(upper + "_PRIORITY");
+            } catch (IllegalArgumentException ex) {
+                return X400_Priority.NORMAL_PRIORITY;
+            }
         }
     }
 
