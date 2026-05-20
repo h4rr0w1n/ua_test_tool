@@ -23,6 +23,15 @@ This script will:
 2. Build the project if needed (creating the JAR with dependencies)
 3. Launch the UI application
 
+### Troubleshooting Connection Issues
+
+If you see "Connection timeout after 60 seconds":
+1. **Check the server address** in `connection.properties` (line 7)
+2. **Compare with working UA** - copy the exact format from `com.attech.amhs.ua\config\account.xml` in the new_ua codebase
+3. **Verify server is running** - test with: `telnet 192.168.22.186 3001`
+4. **Try P3 instead of P7** - toggle the connection type radio button
+5. **See TROUBLESHOOTING.md** for detailed diagnostics
+
 ### Installation (Optional - If you have Isode libraries)
 
 If you have the Isode X.400 library JAR files, run the installation script first:

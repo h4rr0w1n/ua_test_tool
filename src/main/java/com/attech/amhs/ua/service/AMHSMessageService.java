@@ -62,26 +62,32 @@ public class AMHSMessageService {
             System.out.println("DEBUG: Library path: " + System.getProperty("java.library.path"));
             System.out.println("DEBUG: Working directory: " + System.getProperty("user.dir"));
             
-            // Run bind in a separate thread with timeout to prevent indefinite hangs
+            // Attempt connection with timeout
             final Exception[] bindException = {null};
             final boolean[] bindSuccess = {false};
+            
+            String addressToUse = presentationAddress;
+            System.out.println("DEBUG: Original Presentation Address: " + addressToUse);
             
             Thread bindThread = new Thread(() -> {
                 try {
                     if (useP3) {
                         System.out.println("Connecting to P3 Channel...");
-                        System.out.println("DEBUG: Presentation Address: " + presentationAddress);
-                        P3BindSession session = new P3BindSession(presentationAddress, userOrAddress, password);
+                        System.out.println("DEBUG: Attempting P3 bind with address: " + addressToUse);
+                        P3BindSession session = new P3BindSession(addressToUse, userOrAddress, password);
                         session.bind();
                     } else {
                         System.out.println("Connecting to P7 Message Store...");
-                        System.out.println("DEBUG: Presentation Address: " + presentationAddress);
-                        P7BindSession session = new P7BindSession(presentationAddress, userOrAddress, password, false);
+                        System.out.println("DEBUG: Attempting P7 bind with address: " + addressToUse);
+                        P7BindSession session = new P7BindSession(addressToUse, userOrAddress, password, false);
                         session.SetSummarizeOnBind(false);
+                        System.out.println("DEBUG: P7BindSession created, calling bind()...");
                         session.bind();
+                        System.out.println("DEBUG: bind() completed successfully");
                     }
                     bindSuccess[0] = true;
                 } catch (Exception e) {
+                    System.err.println("DEBUG: Bind thread exception: " + e.getClass().getName() + " - " + e.getMessage());
                     bindException[0] = e;
                 }
             });
@@ -90,22 +96,44 @@ public class AMHSMessageService {
             bindThread.setDaemon(false);
             bindThread.start();
             
-            // Wait for bind with timeout (30 seconds)
+            // Wait for bind with 60 second timeout (increased from 30)
             long startTime = System.currentTimeMillis();
-            long timeout = 30000; // 30 seconds
+            long timeout = 60000; // 60 seconds
+            int dotCount = 0;
             
             while (bindThread.isAlive() && (System.currentTimeMillis() - startTime) < timeout) {
-                Thread.sleep(100);
+                Thread.sleep(500);
                 System.out.print(".");
+                dotCount++;
+                if (dotCount % 60 == 0) {
+                    System.out.println(" (" + (dotCount / 2) + "s)");
+                }
             }
             System.out.println();
             
             if (bindThread.isAlive()) {
-                System.err.println("ERROR: Connection timeout after 30 seconds");
-                System.err.println("The server may be unresponsive or the presentation address is incorrect.");
-                System.err.println("DEBUG: Presentation Address used: " + presentationAddress);
-                bindThread.interrupt();
-                throw new X400APIException("Connection timeout - server did not respond within 30 seconds");
+                System.err.println("ERROR: Connection timeout after 60 seconds");
+                System.err.println("The ISODE X.400 bind() call is not responding.");
+                System.err.println("\nPossible causes:");
+                System.err.println("1. Server is not running or unreachable at: " + addressToUse);
+                System.err.println("2. IP address/port is incorrect");
+                System.err.println("3. Firewall blocking the connection");
+                System.err.println("4. Server requires P3 instead of P7 (or vice versa)");
+                System.err.println("5. Native library compatibility issue");
+                System.err.println("\nSuggestions:");
+                System.err.println("- Check if the server is running: ping " + extractIP(addressToUse));
+                System.err.println("- Verify port 3001 is open: telnet " + extractIP(addressToUse) + " 3001");
+                System.err.println("- Try toggling between P7 and P3 connection types in the UI");
+                System.err.println("\nDebug: Address used: " + addressToUse);
+                
+                try {
+                    bindThread.interrupt();
+                    Thread.sleep(1000);
+                } catch (InterruptedException ex) {
+                    // Ignore
+                }
+                
+                throw new X400APIException("Connection timeout after 60 seconds - server not responding");
             }
             
             if (bindException[0] != null) {
@@ -142,6 +170,29 @@ public class AMHSMessageService {
             e.printStackTrace();
             throw new X400APIException(errorMsg);
         }
+    }
+    
+    /**
+     * Extract IP address from presentation address string
+     */
+    private String extractIP(String address) {
+        if (address == null) return "unknown";
+        // Try to extract IP from various formats
+        if (address.contains("://")) {
+            String[] parts = address.split("://");
+            if (parts.length > 1) {
+                String host = parts[1].split("[:/+|]")[0];
+                return host;
+            }
+        }
+        if (address.contains("=")) {
+            String[] parts = address.split("=");
+            if (parts.length > 1) {
+                String host = parts[1].split("[:/+|]")[0];
+                return host;
+            }
+        }
+        return address;
     }
     
     /**
