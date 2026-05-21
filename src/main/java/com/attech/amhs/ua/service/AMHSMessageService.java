@@ -16,7 +16,7 @@ import java.util.List;
 public class AMHSMessageService {
     
     private boolean isConnected;
-    private P7BindSession session;
+    private P3BindSession session;
     
     // Configuration
     private String presentationAddress;
@@ -147,7 +147,8 @@ public class AMHSMessageService {
         if (normalized.contains("URI+0000+URL+itot://") || normalized.contains("URI+0000+URL+tcp://") || normalized.contains("URI+0000+URL+http://")) {
             String[] parts = normalized.split("URI\\+0000\\+URL\\+");
             if (parts.length == 2) {
-                String prefix = parts[0];
+                // Strip any trailing / that survived the split so prefix + "/Internet=..." doesn't create //
+                String prefix = parts[0].replaceAll("/+$", "");
                 String uriPart = parts[1];
                 int schemeEnd = uriPart.indexOf("://");
                 if (schemeEnd >= 0) {
