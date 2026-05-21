@@ -16,6 +16,7 @@ import java.util.List;
 public class AMHSMessageService {
     
     private boolean isConnected;
+    private P7BindSession session;
     
     // Configuration
     private String presentationAddress;
@@ -62,94 +63,31 @@ public class AMHSMessageService {
             System.out.println("DEBUG: Library path: " + System.getProperty("java.library.path"));
             System.out.println("DEBUG: Working directory: " + System.getProperty("user.dir"));
             
-            // Attempt connection with timeout
-            final Exception[] bindException = {null};
-            final boolean[] bindSuccess = {false};
-            
             String addressToUse = normalizePresentationAddress(presentationAddress);
             System.out.println("DEBUG: Original Presentation Address: " + presentationAddress);
             if (!addressToUse.equals(presentationAddress)) {
                 System.out.println("DEBUG: Normalized Presentation Address: " + addressToUse);
             }
             
-            Thread bindThread = new Thread(() -> {
-                try {
-                    if (useP3) {
-                        System.out.println("Connecting to P3 Channel...");
-                        System.out.println("DEBUG: Attempting P3 bind with address: " + addressToUse);
-                        P3BindSession session = new P3BindSession(addressToUse, userOrAddress, password);
-                        session.bind();
-                    } else {
-                        System.out.println("Connecting to P7 Message Store...");
-                        System.out.println("DEBUG: Attempting P7 bind with address: " + addressToUse);
-                        P7BindSession session = new P7BindSession(addressToUse, userOrAddress, password, false);
-                        session.SetSummarizeOnBind(false);
-                        System.out.println("DEBUG: P7BindSession created, calling bind()...");
-                        session.bind();
-                        System.out.println("DEBUG: bind() completed successfully");
-                    }
-                    bindSuccess[0] = true;
-                } catch (Exception e) {
-                    System.err.println("DEBUG: Bind thread exception: " + e.getClass().getName() + " - " + e.getMessage());
-                    bindException[0] = e;
-                }
-            });
-            
-            bindThread.setName("AMHS-Bind-Thread");
-            bindThread.setDaemon(false);
-            bindThread.start();
-            
-            // Wait for bind with 60 second timeout (increased from 30)
-            long startTime = System.currentTimeMillis();
-            long timeout = 60000; // 60 seconds
-            int dotCount = 0;
-            
-            while (bindThread.isAlive() && (System.currentTimeMillis() - startTime) < timeout) {
-                Thread.sleep(500);
-                System.out.print(".");
-                dotCount++;
-                if (dotCount % 60 == 0) {
-                    System.out.println(" (" + (dotCount / 2) + "s)");
-                }
-            }
-            System.out.println();
-            
-            if (bindThread.isAlive()) {
-                System.err.println("ERROR: Connection timeout after 60 seconds");
-                System.err.println("The ISODE X.400 bind() call is not responding.");
-                System.err.println("\nPossible causes:");
-                System.err.println("1. Server is not running or unreachable at: " + addressToUse);
-                System.err.println("2. IP address/port is incorrect");
-                System.err.println("3. Firewall blocking the connection");
-                System.err.println("4. Server requires P3 instead of P7 (or vice versa)");
-                System.err.println("5. Native library compatibility issue");
-                System.err.println("\nSuggestions:");
-                System.err.println("- Check if the server is running: ping " + extractIP(addressToUse));
-                System.err.println("- Verify port 3001 is open: telnet " + extractIP(addressToUse) + " 3001");
-                System.err.println("- Try toggling between P7 and P3 connection types in the UI");
-                System.err.println("\nDebug: Address used: " + addressToUse);
-                
-                try {
-                    bindThread.interrupt();
-                    Thread.sleep(1000);
-                } catch (InterruptedException ex) {
-                    // Ignore
-                }
-                
-                throw new X400APIException("Connection timeout after 60 seconds - server not responding");
+            if (useP3) {
+                System.out.println("Connecting to P3 Channel...");
+                System.out.println("DEBUG: Attempting P3 bind with address: " + addressToUse);
+                P3BindSession p3Session = new P3BindSession(addressToUse, userOrAddress, password);
+                session = p3Session;
+            } else {
+                System.out.println("Connecting to P7 Message Store...");
+                System.out.println("DEBUG: Attempting P7 bind with address: " + addressToUse);
+                P7BindSession p7Session = new P7BindSession(addressToUse, userOrAddress, password);
+                session = p7Session;
             }
             
-            if (bindException[0] != null) {
-                throw bindException[0];
-            }
-            
-            if (!bindSuccess[0]) {
-                throw new X400APIException("Bind operation failed - unknown error");
-            }
+            session.SetSummarizeOnBind(false);
+            session.bind();
             
             isConnected = true;
             System.out.println("Connected successfully");
             return true;
+            
         } catch (UnsatisfiedLinkError e) {
             String errorMsg = "Native library loading error: " + e.getMessage();
             System.err.println("ERROR: " + errorMsg);
@@ -162,11 +100,6 @@ public class AMHSMessageService {
             System.err.println("Connection failed: " + e.getMessage());
             e.printStackTrace();
             throw e;
-        } catch (InterruptedException e) {
-            String errorMsg = "Connection interrupted: " + e.getMessage();
-            System.err.println("ERROR: " + errorMsg);
-            Thread.currentThread().interrupt();
-            throw new X400APIException(errorMsg);
         } catch (Throwable e) {
             String errorMsg = "Unexpected error during connection: " + e.getClass().getName() + " - " + e.getMessage();
             System.err.println("ERROR: " + errorMsg);
@@ -180,7 +113,6 @@ public class AMHSMessageService {
      */
     private String extractIP(String address) {
         if (address == null) return "unknown";
-        // Try to extract IP from various formats
         if (address.contains("://")) {
             String[] parts = address.split("://");
             if (parts.length > 1) {
@@ -213,7 +145,7 @@ public class AMHSMessageService {
 
         // Convert URI-based transport syntax to Internet transport syntax if needed
         if (normalized.contains("URI+0000+URL+itot://") || normalized.contains("URI+0000+URL+tcp://") || normalized.contains("URI+0000+URL+http://")) {
-            String[] parts = normalized.split("URI\+0000\+URL\+");
+            String[] parts = normalized.split("URI\\+0000\\+URL\\+");
             if (parts.length == 2) {
                 String prefix = parts[0];
                 String uriPart = parts[1];
@@ -238,6 +170,14 @@ public class AMHSMessageService {
      */
     public void disconnect() {
         isConnected = false;
+        if (session != null) {
+            try {
+                session.unbind();
+            } catch (X400APIException e) {
+                System.err.println("Disconnect error: " + e.getMessage());
+            }
+        }
+        session = null;
         System.out.println("Disconnected");
     }
     
@@ -265,7 +205,7 @@ public class AMHSMessageService {
         P7BindSession bindSession = null;
         try {
             // Create bind session
-            bindSession = new P7BindSession(presentationAddress, userOrAddress, password, false);
+            bindSession = new P7BindSession(presentationAddress, userOrAddress, password);
             bindSession.bind();
             
             // Create message
@@ -336,13 +276,13 @@ public class AMHSMessageService {
         List<MessageSummary> messages = new ArrayList<>();
         
         try {
-            P7BindSession session = new P7BindSession(presentationAddress, userOrAddress, password, false);
-            session.bind();
+            P7BindSession bindSession = new P7BindSession(presentationAddress, userOrAddress, password);
+            bindSession.bind();
             
-            int numMsgs = session.getRefreshNumberOfMessages();
+            int numMsgs = bindSession.getRefreshNumberOfMessages();
             if (numMsgs == 0) {
                 System.out.println("No messages in mailbox");
-                session.unbind();
+                bindSession.unbind();
                 return messages;
             }
             
@@ -350,7 +290,7 @@ public class AMHSMessageService {
             System.out.println("Found " + numMsgs + " messages, receiving " + toReceive);
             
             for (int i = 0; i < toReceive; i++) {
-                ReceiveMsg rm = session.receiveNextAvailableMessage();
+                ReceiveMsg rm = bindSession.receiveNextAvailableMessage();
                 
                 MessageSummary summary = new MessageSummary();
                 summary.setSubject(rm.getSubject());
@@ -362,7 +302,7 @@ public class AMHSMessageService {
                 rm.finishWithMessage(0, 0);
             }
             
-            session.unbind();
+            bindSession.unbind();
             
         } catch (X400APIException e) {
             System.err.println("Error receiving messages: " + e.getMessage());
@@ -383,13 +323,13 @@ public class AMHSMessageService {
         }
         
         try {
-            P7BindSession session = new P7BindSession(presentationAddress, userOrAddress, password, false);
-            session.bind();
+            P7BindSession bindSession = new P7BindSession(presentationAddress, userOrAddress, password);
+            bindSession.bind();
             
             System.out.println("Waiting for new message (" + timeoutSeconds + " seconds)...");
-            int status = session.waitForNewMessages(timeoutSeconds);
+            int status = bindSession.waitForNewMessages(timeoutSeconds);
             
-            session.unbind();
+            bindSession.unbind();
             
             if (status == X400_att.X400_E_NOERROR) {
                 System.out.println("New message received!");
@@ -416,10 +356,10 @@ public class AMHSMessageService {
         List<MessageSummary> summaries = new ArrayList<>();
         
         try {
-            P7BindSession session = new P7BindSession(presentationAddress, userOrAddress, password, false);
-            session.bind();
+            P7BindSession bindSession = new P7BindSession(presentationAddress, userOrAddress, password);
+            bindSession.bind();
             
-            ArrayList<ListResult> listArray = session.listMailbox(null, 
+            ArrayList<ListResult> listArray = bindSession.listMailbox(null, 
                 P7BindSession.Entry_Class.MS_ENTRY_CLASS_STORED_MESSAGES, false);
             
             for (int i = 1; i < listArray.size(); i++) {
@@ -433,7 +373,7 @@ public class AMHSMessageService {
                 summaries.add(summary);
             }
             
-            session.unbind();
+            bindSession.unbind();
             
         } catch (X400APIException e) {
             System.err.println("Error getting mailbox summary: " + e.getMessage());
