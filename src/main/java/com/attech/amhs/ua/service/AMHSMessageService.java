@@ -66,8 +66,11 @@ public class AMHSMessageService {
             final Exception[] bindException = {null};
             final boolean[] bindSuccess = {false};
             
-            String addressToUse = presentationAddress;
-            System.out.println("DEBUG: Original Presentation Address: " + addressToUse);
+            String addressToUse = normalizePresentationAddress(presentationAddress);
+            System.out.println("DEBUG: Original Presentation Address: " + presentationAddress);
+            if (!addressToUse.equals(presentationAddress)) {
+                System.out.println("DEBUG: Normalized Presentation Address: " + addressToUse);
+            }
             
             Thread bindThread = new Thread(() -> {
                 try {
@@ -194,7 +197,42 @@ public class AMHSMessageService {
         }
         return address;
     }
-    
+
+    /**
+     * Normalize presentation address formats for ISODE X.400 bind.
+     */
+    private String normalizePresentationAddress(String address) {
+        if (address == null) {
+            return null;
+        }
+
+        String normalized = address.trim();
+
+        // Collapse duplicated quote characters before the transport descriptor
+        normalized = normalized.replaceAll("\"{2,}/", "\"/");
+
+        // Convert URI-based transport syntax to Internet transport syntax if needed
+        if (normalized.contains("URI+0000+URL+itot://") || normalized.contains("URI+0000+URL+tcp://") || normalized.contains("URI+0000+URL+http://")) {
+            String[] parts = normalized.split("URI\+0000\+URL\+");
+            if (parts.length == 2) {
+                String prefix = parts[0];
+                String uriPart = parts[1];
+                int schemeEnd = uriPart.indexOf("://");
+                if (schemeEnd >= 0) {
+                    String hostPort = uriPart.substring(schemeEnd + 3);
+                    int colonIndex = hostPort.lastIndexOf(":");
+                    if (colonIndex > 0) {
+                        String host = hostPort.substring(0, colonIndex);
+                        String port = hostPort.substring(colonIndex + 1);
+                        normalized = prefix + "/Internet=" + host + "+" + port;
+                    }
+                }
+            }
+        }
+
+        return normalized;
+    }
+
     /**
      * Disconnect from the X.400 system
      */
