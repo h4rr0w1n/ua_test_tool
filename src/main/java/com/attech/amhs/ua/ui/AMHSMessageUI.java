@@ -58,7 +58,7 @@ public class AMHSMessageUI extends JFrame {
     public AMHSMessageUI() {
         messageService = new AMHSMessageService();
         repository = new TestCaseRepository();
-        recorder = new TestSessionRecorder(repository);
+        recorder = new TestSessionRecorder();
         
         // Initialize test cases
         initializeTestCases();
