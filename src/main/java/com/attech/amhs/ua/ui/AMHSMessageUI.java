@@ -4,21 +4,39 @@
  */
 package com.attech.amhs.ua.ui;
 
+import com.attech.amhs.ua.model.TestCase;
+import com.attech.amhs.ua.model.TestSubcase;
+import com.attech.amhs.ua.repository.TestCaseRepository;
 import com.attech.amhs.ua.service.AMHSMessageService;
+import com.attech.amhs.ua.service.TestCaseLoader;
+import com.attech.amhs.ua.service.TestSessionRecorder;
+import com.attech.amhs.ua.ui.components.TestCaseSelectorPanel;
+import com.attech.amhs.ua.ui.components.TestControlPanel;
+import com.attech.amhs.ua.ui.components.TestMarkingPanel;
+import com.attech.amhs.ua.ui.components.TimerPanel;
 import com.isode.x400.highlevel.X400APIException;
 import com.isode.x400.highlevel.X400Msg.X400_Priority;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
+import java.util.Map;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
 /**
- * Main UI for AMHS X.400 Message Tool
+ * Main UI for AMHS X.400 Message Tool with Test Case Management
  */
 public class AMHSMessageUI extends JFrame {
     
     private AMHSMessageService messageService;
+    private TestCaseRepository repository;
+    private TestSessionRecorder recorder;
+    
+    // UI Components
+    private TestCaseSelectorPanel selectorPanel;
+    private TestControlPanel controlPanel;
+    private TestMarkingPanel markingPanel;
+    private TimerPanel timerPanel;
     
     // Configuration fields
     private JTextField txtPresentationAddress;
@@ -39,13 +57,24 @@ public class AMHSMessageUI extends JFrame {
     
     public AMHSMessageUI() {
         messageService = new AMHSMessageService();
+        repository = new TestCaseRepository();
+        recorder = new TestSessionRecorder(repository);
+        
+        // Initialize test cases
+        initializeTestCases();
+        
         initUI();
         loadConfigFromFile();
     }
     
+    private void initializeTestCases() {
+        List<TestCase> testCases = TestCaseLoader.loadDefaultTestCases();
+        repository.initializeWithTestCases(testCases);
+    }
+    
     private void initUI() {
-        setTitle("AMHS X.400 Message Tool");
-        setSize(900, 700);
+        setTitle("AMHS X.400 Message Tool - Test Case Manager");
+        setSize(1200, 850);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         
@@ -53,15 +82,42 @@ public class AMHSMessageUI extends JFrame {
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
         mainPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
         
+        // Left Panel - Test Case Selection and Control
+        JPanel leftPanel = new JPanel(new BorderLayout(10, 10));
+        
+        // Test Case Selector Panel (top left)
+        selectorPanel = new TestCaseSelectorPanel(repository);
+        selectorPanel.addDefaultsLoadedListener("main", this::handleLoadDefaultsForSubcase);
+        leftPanel.add(selectorPanel, BorderLayout.NORTH);
+        
+        // Test Control Panel (middle left)
+        controlPanel = new TestControlPanel(repository, recorder);
+        leftPanel.add(controlPanel, BorderLayout.CENTER);
+        
+        // Timer Panel (bottom left)
+        timerPanel = new TimerPanel(recorder);
+        leftPanel.add(timerPanel, BorderLayout.SOUTH);
+        
+        mainPanel.add(leftPanel, BorderLayout.WEST);
+        
+        // Center Panel - Configuration and Message
+        JPanel centerPanel = new JPanel(new BorderLayout(10, 10));
+        
         // Configuration Panel
         JPanel configPanel = createConfigurationPanel();
-        mainPanel.add(configPanel, BorderLayout.NORTH);
+        centerPanel.add(configPanel, BorderLayout.NORTH);
         
         // Message Panel
         JPanel messagePanel = createMessagePanel();
-        mainPanel.add(messagePanel, BorderLayout.CENTER);
+        centerPanel.add(messagePanel, BorderLayout.CENTER);
         
-        // Output Panel
+        mainPanel.add(centerPanel, BorderLayout.CENTER);
+        
+        // Right Panel - Test Marking
+        markingPanel = new TestMarkingPanel(repository);
+        mainPanel.add(markingPanel, BorderLayout.EAST);
+        
+        // Output Panel (South)
         JPanel outputPanel = createOutputPanel();
         mainPanel.add(outputPanel, BorderLayout.SOUTH);
         
@@ -525,6 +581,49 @@ public class AMHSMessageUI extends JFrame {
     private void appendOutput(String text) {
         txtOutput.append(text);
         txtOutput.setCaretPosition(txtOutput.getDocument().getLength());
+    }
+    
+    /**
+     * Handle loading default configuration for selected subcase
+     */
+    private void handleLoadDefaultsForSubcase() {
+        TestSubcase selectedSubcase = selectorPanel.getSelectedSubcase();
+        if (selectedSubcase != null && !selectedSubcase.getAmhsDefaults().isEmpty()) {
+            Map<String, String> defaults = selectedSubcase.getAmhsDefaults();
+            
+            // Load recipient
+            if (defaults.containsKey("recipient")) {
+                txtRecipient.setText(defaults.get("recipient"));
+            }
+            
+            // Load subject
+            if (defaults.containsKey("subject")) {
+                txtSubject.setText(defaults.get("subject"));
+            }
+            
+            // Load priority
+            if (defaults.containsKey("priority")) {
+                String priorityStr = defaults.get("priority");
+                if ("LOW".equalsIgnoreCase(priorityStr)) {
+                    comboPriority.setSelectedItem(X400_Priority.LOW_PRIORITY);
+                } else if ("HIGH".equalsIgnoreCase(priorityStr)) {
+                    comboPriority.setSelectedItem(X400_Priority.HIGH_PRIORITY);
+                } else if ("URGENT".equalsIgnoreCase(priorityStr)) {
+                    comboPriority.setSelectedItem(X400_Priority.HIGH_PRIORITY);
+                } else {
+                    comboPriority.setSelectedItem(X400_Priority.NORMAL_PRIORITY);
+                }
+            }
+            
+            // Load content
+            if (defaults.containsKey("content")) {
+                txtContent.setText(defaults.get("content"));
+            }
+            
+            appendOutput("Loaded default configuration for subcase: " + selectedSubcase.getId() + "\n");
+        } else {
+            appendOutput("No default configuration available for selected subcase.\n");
+        }
     }
     
     public static void main(String[] args) {
