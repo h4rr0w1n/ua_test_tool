@@ -1,0 +1,24 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] --------------------< com.attech.amhs:ua-test-tool >--------------------
+[INFO] Building AMHS UA Test Tool 1.0.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ ua-test-tool ---
+[INFO] Deleting C:\Users\maste\OneDrive\Desktop\ua_test_tool\target
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ ua-test-tool ---
+[INFO] Copying 20 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.8.1:compile (default-compile) @ ua-test-tool ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 38 source files to C:\Users\maste\OneDrive\Desktop\ua_test_tool\target\classes
+[INFO] /C:/Users/maste/OneDrive/Desktop/ua_test_tool/src/main/java/com/attech/amhs/ua/common/MessageUtils.java: C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\common\MessageUtils.java uses unchecked or unsafe operations.
+[INFO] /C:/Users/maste/OneDrive/Desktop/ua_test_tool/src/main/java/com/attech/amhs/ua/common/MessageUtils.java: Recompile with -Xlint:unchecked for details.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  3.108 s
+[INFO] Finished at: 2026-05-22T16:12:12+07:00
+[INFO] ------------------------------------------------------------------------
