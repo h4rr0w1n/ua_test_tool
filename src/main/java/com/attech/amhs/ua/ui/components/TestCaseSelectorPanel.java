@@ -128,6 +128,13 @@ public class TestCaseSelectorPanel extends JPanel {
             for (Runnable listener : copyDefaultsListeners.values()) {
                 listener.run();
             }
+        } else {
+            // Show message if no defaults available
+            if (selectedSubcase == null) {
+                JOptionPane.showMessageDialog(this, "No subcase selected", "Warning", JOptionPane.WARNING_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "No AMHS defaults configured for this subcase", "Warning", JOptionPane.WARNING_MESSAGE);
+            }
         }
     }
     
@@ -137,6 +144,13 @@ public class TestCaseSelectorPanel extends JPanel {
             // Notify listeners to send message with defaults
             for (Runnable listener : sendDefaultsListeners.values()) {
                 listener.run();
+            }
+        } else {
+            // Show message if no defaults available
+            if (selectedSubcase == null) {
+                JOptionPane.showMessageDialog(this, "No subcase selected", "Warning", JOptionPane.WARNING_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "No AMHS defaults configured for this subcase", "Warning", JOptionPane.WARNING_MESSAGE);
             }
         }
     }
@@ -189,6 +203,13 @@ public class TestCaseSelectorPanel extends JPanel {
             // Notify listeners that defaults should be loaded
             for (Runnable listener : defaultsLoadedListeners.values()) {
                 listener.run();
+            }
+        } else {
+            // Show message if no defaults available
+            if (selectedSubcase == null) {
+                JOptionPane.showMessageDialog(this, "No subcase selected", "Warning", JOptionPane.WARNING_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "No AMHS defaults configured for this subcase", "Warning", JOptionPane.WARNING_MESSAGE);
             }
         }
     }

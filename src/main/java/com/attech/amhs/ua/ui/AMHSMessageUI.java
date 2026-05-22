@@ -554,7 +554,19 @@ public class AMHSMessageUI extends JFrame {
         
         new Thread(() -> {
             try {
-                List<AMHSMessageService.MessageSummary> messages = messageService.receiveMessages(10);
+                // Get mailbox summary first to know how many messages are available
+                List<AMHSMessageService.MessageSummary> allMessages = messageService.getMailboxSummary();
+                int totalMessages = allMessages.size();
+                
+                if (totalMessages == 0) {
+                    SwingUtilities.invokeLater(() -> {
+                        appendOutput("No messages found.\n");
+                    });
+                    return;
+                }
+                
+                // Receive all messages
+                List<AMHSMessageService.MessageSummary> messages = messageService.receiveMessages(totalMessages);
                 SwingUtilities.invokeLater(() -> {
                     if (messages.isEmpty()) {
                         appendOutput("No messages found.\n");
