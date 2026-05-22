@@ -79,16 +79,13 @@ public class AMHSMessageUI extends JFrame {
         JPanel mainPanel = new JPanel(new BorderLayout(5, 5));
         mainPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
         
-        // LEFT PANEL - Test Case Selection and Session Control
+        // LEFT PANEL - Test Case Selection (top) and Test Session Control with Action Logs (bottom)
         JPanel leftPanel = createLeftPanel();
         
         // CENTER PANEL - Configuration and Message Operations
         JPanel centerPanel = createCenterPanel();
         
-        // RIGHT PANEL - Message Display
-        messageDisplayPanel = new MessageDisplayPanel();
-        
-        // BOTTOM PANEL - Test Marking (Subcase/Case Marking)
+        // RIGHT PANEL - Subcase Marking (displaying sent/received messages)
         markingPanel = new TestMarkingPanel(repository);
         JScrollPane markingScrollPane = new JScrollPane(markingPanel);
         markingScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
@@ -101,7 +98,7 @@ public class AMHSMessageUI extends JFrame {
         mainHorizontalSplit.setContinuousLayout(true);
         
         // Create split for center-right: center and right message display
-        JSplitPane centerRightSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, centerPanel, messageDisplayPanel);
+        JSplitPane centerRightSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, centerPanel, markingScrollPane);
         centerRightSplit.setDividerLocation(600);
         centerRightSplit.setResizeWeight(0.7);
         centerRightSplit.setContinuousLayout(true);
@@ -109,7 +106,6 @@ public class AMHSMessageUI extends JFrame {
         // Fix the main panel layout
         mainPanel.add(leftPanel, BorderLayout.WEST);
         mainPanel.add(centerRightSplit, BorderLayout.CENTER);
-        mainPanel.add(markingScrollPane, BorderLayout.SOUTH);
         
         add(mainPanel);
     }
@@ -126,15 +122,16 @@ public class AMHSMessageUI extends JFrame {
         selectorScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         selectorScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         
-        // Test Control Panel and Action Logs (middle/bottom, split)
+        // Test Session Control Panel (replaces Timer section) with Action Logs below
         JPanel controlLogPanel = new JPanel(new BorderLayout(5, 5));
         
-        // Test Control Panel
+        // Test Session Control Panel - shows action logs from the tool
         controlPanel = new TestControlPanel(repository, recorder);
         JScrollPane controlScroll = new JScrollPane(controlPanel);
         controlScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        controlScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         
-        // Action Logs Panel
+        // Action Logs Panel - detailed logs especially for sending/receiving messages
         actionLogsPanel = new ActionLogsPanel();
         
         JSplitPane controlLogSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, controlScroll, actionLogsPanel);
@@ -144,7 +141,7 @@ public class AMHSMessageUI extends JFrame {
         
         controlLogPanel.add(controlLogSplit, BorderLayout.CENTER);
         
-        // Main left panel split: selector on top, control+logs on bottom
+        // Main left panel split: selector on top, session control+logs on bottom
         JSplitPane leftSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, selectorScroll, controlLogPanel);
         leftSplit.setDividerLocation(0.35);
         leftSplit.setResizeWeight(0.35);
