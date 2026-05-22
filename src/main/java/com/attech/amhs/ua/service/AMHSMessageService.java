@@ -95,16 +95,16 @@ public class AMHSMessageService {
                 session = p7Session;
             }
             
-            session.SetSummarizeOnBind(false);
+            //session.SetSummarizeOnBind(false);
             // Set connection timeout before binding - use a longer timeout for initial connection
-            try {
+            //try {
                 // Increase timeout to 90 seconds for more reliable connections
-                int effectiveTimeout = Math.max(connectTimeoutSeconds, 90);
-                session.SetTimeout(effectiveTimeout);
-                System.out.println("DEBUG: Connection timeout set to " + effectiveTimeout + " seconds");
-            } catch (Exception e) {
-                System.out.println("DEBUG: Could not set timeout: " + e.getMessage());
-            }
+                //int effectiveTimeout = Math.max(connectTimeoutSeconds, 90);
+                //session.SetTimeout(effectiveTimeout);
+                //System.out.println("DEBUG: Connection timeout set to " + effectiveTimeout + " seconds");
+            //} catch (Exception e) {
+            //    System.out.println("DEBUG: Could not set timeout: " + e.getMessage());
+            //}
             
             System.out.println("DEBUG: Calling bind()...");
             session.bind();
