@@ -81,15 +81,18 @@ public class AMHSMessageUI extends JFrame {
         
         // LEFT PANEL - Test Case Selection (top) and Test Session Control with Action Logs (bottom)
         JPanel leftPanel = createLeftPanel();
+        leftPanel.setMinimumSize(new Dimension(280, 0));
         
         // CENTER PANEL - Configuration and Message Operations
         JPanel centerPanel = createCenterPanel();
+        centerPanel.setMinimumSize(new Dimension(400, 0));
         
         // RIGHT PANEL - Subcase Marking (displaying sent/received messages)
         markingPanel = new TestMarkingPanel(repository);
         JScrollPane markingScrollPane = new JScrollPane(markingPanel);
         markingScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         markingScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        markingScrollPane.setMinimumSize(new Dimension(300, 0));
         
         // Create main horizontal split: left panel and center-right area
         JSplitPane mainHorizontalSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, centerPanel);
@@ -98,13 +101,11 @@ public class AMHSMessageUI extends JFrame {
         mainHorizontalSplit.setContinuousLayout(true);
         
         // Create split for center-right: center and right message display
-        JSplitPane centerRightSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, centerPanel, markingScrollPane);
-        centerRightSplit.setDividerLocation(600);
-        centerRightSplit.setResizeWeight(0.7);
+        JSplitPane centerRightSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, mainHorizontalSplit, markingScrollPane);
+        centerRightSplit.setDividerLocation(700);
+        centerRightSplit.setResizeWeight(0.5);
         centerRightSplit.setContinuousLayout(true);
         
-        // Fix the main panel layout
-        mainPanel.add(leftPanel, BorderLayout.WEST);
         mainPanel.add(centerRightSplit, BorderLayout.CENTER);
         
         add(mainPanel);
@@ -405,6 +406,11 @@ public class AMHSMessageUI extends JFrame {
                     lblConnectionStatus.setText("Status: Connected");
                     lblConnectionStatus.setForeground(Color.GREEN);
                     appendOutput("Successfully connected to X.400 system\n");
+                    
+                    // Update the marking panel with the current user address for filtering
+                    if (markingPanel != null) {
+                        markingPanel.setUserAddress(userOrAddress);
+                    }
                 });
             } catch (Throwable t) {
                 SwingUtilities.invokeLater(() -> {
@@ -479,6 +485,15 @@ public class AMHSMessageUI extends JFrame {
             return;
         }
         
+        // Log the send operation to Action Logs Panel
+        if (actionLogsPanel != null) {
+            actionLogsPanel.logSendMessage(
+                selectorPanel.getSelectedTestCase() != null ? selectorPanel.getSelectedTestCase().getId() : "N/A",
+                selectorPanel.getSelectedSubcase() != null ? selectorPanel.getSelectedSubcase().getId() : "N/A",
+                recipient, subject, content, priority.toString(), true, null, null
+            );
+        }
+        
         appendOutput("Sending message...\n");
         
         new Thread(() -> {
@@ -487,12 +502,41 @@ public class AMHSMessageUI extends JFrame {
                 SwingUtilities.invokeLater(() -> {
                     appendOutput("Message sent successfully!\n");
                     appendOutput("Message ID: " + msgId + "\n");
+                    
+                    // Add message to marking panel (sent messages)
+                    MessageLog sentMessageLog = new MessageLog(
+                        selectorPanel.getSelectedTestCase() != null ? selectorPanel.getSelectedTestCase().getId() : "N/A",
+                        selectorPanel.getSelectedSubcase() != null ? selectorPanel.getSelectedSubcase().getId() : "N/A"
+                    );
+                    sentMessageLog.setRecipient(recipient);
+                    sentMessageLog.setSubject(subject);
+                    sentMessageLog.setContent(content);
+                    sentMessageLog.setPriority(priority.toString());
+                    sentMessageLog.setSuccess(true);
+                    if (markingPanel != null) {
+                        markingPanel.addMessage(sentMessageLog, false); // false = sent message
+                    }
                 });
             } catch (Throwable t) {
                 SwingUtilities.invokeLater(() -> {
                     appendOutput("Failed to send message: " + t.getMessage() + "\n");
                     if (t instanceof X400APIException) {
                         appendOutput("Error code: " + ((X400APIException) t).getNativeErrorCode() + "\n");
+                    }
+                    
+                    // Log failed send to marking panel
+                    MessageLog failedMessageLog = new MessageLog(
+                        selectorPanel.getSelectedTestCase() != null ? selectorPanel.getSelectedTestCase().getId() : "N/A",
+                        selectorPanel.getSelectedSubcase() != null ? selectorPanel.getSelectedSubcase().getId() : "N/A"
+                    );
+                    failedMessageLog.setRecipient(recipient);
+                    failedMessageLog.setSubject(subject);
+                    failedMessageLog.setContent(content);
+                    failedMessageLog.setPriority(priority.toString());
+                    failedMessageLog.setSuccess(false);
+                    failedMessageLog.setErrorMessage(t.getMessage());
+                    if (markingPanel != null) {
+                        markingPanel.addMessage(failedMessageLog, false); // false = sent message
                     }
                 });
             }
@@ -523,6 +567,30 @@ public class AMHSMessageUI extends JFrame {
                                 appendOutput("Content: " + msg.getContent() + "\n");
                             }
                             appendOutput("----------------------------------------\n");
+                            
+                            // Add received message to marking panel
+                            MessageLog receivedMessageLog = new MessageLog(
+                                selectorPanel.getSelectedTestCase() != null ? selectorPanel.getSelectedTestCase().getId() : "N/A",
+                                selectorPanel.getSelectedSubcase() != null ? selectorPanel.getSelectedSubcase().getId() : "N/A"
+                            );
+                            // For received messages, we set the sender as recipient for filtering purposes
+                            receivedMessageLog.setRecipient(msg.getSender());
+                            receivedMessageLog.setSubject(msg.getSubject());
+                            receivedMessageLog.setContent(msg.getContent());
+                            receivedMessageLog.setSuccess(true);
+                            if (markingPanel != null) {
+                                markingPanel.addMessage(receivedMessageLog, true); // true = received message
+                            }
+                        }
+                        
+                        // Log to action logs
+                        if (actionLogsPanel != null) {
+                            StringBuilder details = new StringBuilder();
+                            for (AMHSMessageService.MessageSummary msg : messages) {
+                                details.append("From: ").append(msg.getSender())
+                                       .append(", Subject: ").append(msg.getSubject()).append("\n");
+                            }
+                            actionLogsPanel.logReceiveMessages("Messages retrieved from mailbox", messages.size(), details.toString());
                         }
                     }
                 });
