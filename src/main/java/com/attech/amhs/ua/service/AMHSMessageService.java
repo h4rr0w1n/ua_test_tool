@@ -23,10 +23,20 @@ public class AMHSMessageService {
     private String userOrAddress;
     private String password;
     private boolean useP3; // false = P7 Message Store, true = P3 Channel
+    private int connectTimeoutSeconds; // Connection timeout in seconds
     
     public AMHSMessageService() {
         this.isConnected = false;
         this.useP3 = false;
+        this.connectTimeoutSeconds = 30; // Default 30 second timeout
+    }
+    
+    /**
+     * Set connection timeout in seconds
+     * @param timeoutSeconds timeout value
+     */
+    public void setConnectTimeout(int timeoutSeconds) {
+        this.connectTimeoutSeconds = timeoutSeconds;
     }
     
     /**
@@ -69,6 +79,10 @@ public class AMHSMessageService {
                 System.out.println("DEBUG: Normalized Presentation Address: " + addressToUse);
             }
             
+            // Extract host and port for diagnostic purposes
+            String extractedHost = extractIP(presentationAddress);
+            System.out.println("DEBUG: Extracted host: " + extractedHost);
+            
             if (useP3) {
                 System.out.println("Connecting to P3 Channel...");
                 System.out.println("DEBUG: Attempting P3 bind with address: " + addressToUse);
@@ -82,6 +96,17 @@ public class AMHSMessageService {
             }
             
             session.SetSummarizeOnBind(false);
+            // Set connection timeout before binding - use a longer timeout for initial connection
+            try {
+                // Increase timeout to 90 seconds for more reliable connections
+                int effectiveTimeout = Math.max(connectTimeoutSeconds, 90);
+                session.SetTimeout(effectiveTimeout);
+                System.out.println("DEBUG: Connection timeout set to " + effectiveTimeout + " seconds");
+            } catch (Exception e) {
+                System.out.println("DEBUG: Could not set timeout: " + e.getMessage());
+            }
+            
+            System.out.println("DEBUG: Calling bind()...");
             session.bind();
             
             isConnected = true;
@@ -132,6 +157,10 @@ public class AMHSMessageService {
 
     /**
      * Normalize presentation address formats for ISODE X.400 bind.
+     * Supports multiple formats:
+     * - URI format: "3001"/URI+0000+URL+itot://192.168.22.186:3001
+     * - Internet format: "3001"/Internet=192.168.22.186+3001
+     * - Direct IP format: 192.168.22.186:3001
      */
     private String normalizePresentationAddress(String address) {
         if (address == null) {
@@ -139,6 +168,16 @@ public class AMHSMessageService {
         }
 
         String normalized = address.trim();
+
+        // Handle direct IP:port format (e.g., "192.168.22.186:3001")
+        if (normalized.matches("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}:\\d+")) {
+            // Convert to Internet format with default selector "3001"
+            int colonIdx = normalized.lastIndexOf(':');
+            String host = normalized.substring(0, colonIdx);
+            String port = normalized.substring(colonIdx + 1);
+            normalized = "\"3001\"/Internet=" + host + "+" + port;
+            System.out.println("DEBUG: Converted IP:port to " + normalized);
+        }
 
         // Collapse duplicated quote characters before the transport descriptor
         normalized = normalized.replaceAll("\"{2,}/", "\"/");
@@ -163,6 +202,16 @@ public class AMHSMessageService {
             }
         }
 
+        // Also handle case where address already has Internet= but might have extra quotes or formatting issues
+        if (normalized.contains("Internet=")) {
+            // Ensure proper format: "selector"/Internet=host+port
+            // Remove any extra whitespace
+            normalized = normalized.replaceAll("\\s+", "");
+            // Ensure single quotes around selector if present
+            normalized = normalized.replaceAll("\"+", "\"");
+        }
+
+        System.out.println("DEBUG: Final normalized address: " + normalized);
         return normalized;
     }
 

@@ -295,6 +295,9 @@ public class AMHSMessageUI extends JFrame {
             messageService.configureP7(presentationAddress, userOrAddress, password);
         }
         
+        // Set a longer timeout for more reliable connections (90 seconds)
+        messageService.setConnectTimeout(90);
+        
         new Thread(() -> {
             try {
                 messageService.connect();
@@ -326,6 +329,19 @@ public class AMHSMessageUI extends JFrame {
                         appendOutput("3. Rebuild: mvn clean package\n");
                         appendOutput("4. Try connecting again\n\n");
                         appendOutput("For more details, see: README.md\n\n");
+                    }
+                    
+                    // Provide additional troubleshooting for timeout errors
+                    if (errorMsg != null && errorMsg.contains("timeout")) {
+                        appendOutput("\n=== CONNECTION TIMEOUT TROUBLESHOOTING ===\n");
+                        appendOutput("The server did not respond within the timeout period.\n");
+                        appendOutput("Please check:\n");
+                        appendOutput("1. Server is running and accessible at: " + presentationAddress + "\n");
+                        appendOutput("2. Network connectivity: ping the server IP\n");
+                        appendOutput("3. Port is open: telnet <server_ip> <port>\n");
+                        appendOutput("4. Firewall settings allow the connection\n");
+                        appendOutput("5. Try switching between P7 and P3 connection types\n");
+                        appendOutput("6. Verify credentials (user/O/R address and password)\n\n");
                     }
                     
                     if (t instanceof X400APIException) {
