@@ -18,9 +18,11 @@ public class MessageLog implements Serializable {
     private boolean success;             // Whether send succeeded
     private String errorMessage;         // Error message if send failed
     private String x400Payload;          // Full X.400 payload sent
+    private boolean isReceived;          // true if this is a received message, false if sent
 
     public MessageLog() {
         this.timestamp = System.currentTimeMillis();
+        this.isReceived = false;
     }
 
     public MessageLog(String testCaseId, String testSubcaseId) {
@@ -28,7 +30,7 @@ public class MessageLog implements Serializable {
         this.testCaseId = testCaseId;
         this.testSubcaseId = testSubcaseId;
     }
-
+    
     // Getters and Setters
     public String getTestCaseId() {
         return testCaseId;
@@ -108,5 +110,13 @@ public class MessageLog implements Serializable {
 
     public void setX400Payload(String x400Payload) {
         this.x400Payload = x400Payload;
+    }
+    
+    public boolean isReceived() {
+        return isReceived;
+    }
+    
+    public void setIsReceived(boolean isReceived) {
+        this.isReceived = isReceived;
     }
 }

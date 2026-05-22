@@ -106,6 +106,7 @@ public class TestMarkingPanel extends JPanel {
      * @param isReceived true if received message, false if sent
      */
     public void addMessage(MessageLog message, boolean isReceived) {
+        message.setIsReceived(isReceived);
         allMessages.add(message);
         refreshDisplay();
     }
@@ -133,12 +134,13 @@ public class TestMarkingPanel extends JPanel {
             if (isMatching) {
                 String formatted = formatMessage(message);
                 
-                if (message.getRecipient() != null && !message.getRecipient().isEmpty()) {
-                    // Has recipient - it's a sent message
-                    sentBuilder.append(formatted).append("\n---\n");
-                } else {
-                    // No recipient - it's a received message
+                // Use the isReceived flag to determine which panel to show the message in
+                if (message.isReceived()) {
+                    // Received message - show in received panel
                     receivedBuilder.append(formatted).append("\n---\n");
+                } else {
+                    // Sent message - show in sent panel
+                    sentBuilder.append(formatted).append("\n---\n");
                 }
             }
         }
