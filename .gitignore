@@ -7,13 +7,10 @@ build/
 target/
 
 # Dependencies
-node_modules/
-venv/
-.venv/
-__pycache__/
-.mypy_cache/
-.pytest_cache/
-.gradle/
+lib/
+libs/
+dependency/
+dependencies/
 
 # Logs and temp files
 *.log
@@ -28,6 +25,8 @@ __pycache__/
 # Editors
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # System files
 .DS_Store
@@ -38,10 +37,20 @@ coverage/
 htmlcov/
 .coverage
 
-# Archives
+# MyPy
+.mypy_cache/
+
+# Pytest
+.pytest_cache/
+
+# Distribution
+dist/
+*.jar
+*.war
+*.ear
 *.zip
-*.gz
 *.tar
+*.gz
 *.tgz
 *.bz2
 *.xz

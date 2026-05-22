@@ -44,7 +44,6 @@ public class TestCaseSelectorPanel extends JPanel {
         gbc.gridx = 1;
         gbc.weightx = 1.0;
         cboTestCases = new JComboBox<>();
-        populateTestCases();
         cboTestCases.addActionListener(e -> handleTestCaseChanged());
         add(cboTestCases, gbc);
         
@@ -93,6 +92,9 @@ public class TestCaseSelectorPanel extends JPanel {
         btnLoadDefaults = new JButton("Load Default AMHS Configuration");
         btnLoadDefaults.addActionListener(e -> handleLoadDefaults());
         add(btnLoadDefaults, gbc);
+        
+        // Populate test cases after all UI components are initialized
+        populateTestCases();
     }
     
     private void populateTestCases() {
