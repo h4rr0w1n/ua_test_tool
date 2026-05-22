@@ -10,10 +10,7 @@ import com.attech.amhs.ua.repository.TestCaseRepository;
 import com.attech.amhs.ua.service.AMHSMessageService;
 import com.attech.amhs.ua.service.TestCaseLoader;
 import com.attech.amhs.ua.service.TestSessionRecorder;
-import com.attech.amhs.ua.ui.components.TestCaseSelectorPanel;
-import com.attech.amhs.ua.ui.components.TestControlPanel;
-import com.attech.amhs.ua.ui.components.TestMarkingPanel;
-import com.attech.amhs.ua.ui.components.TimerPanel;
+import com.attech.amhs.ua.ui.components.*;
 import com.isode.x400.highlevel.X400APIException;
 import com.isode.x400.highlevel.X400Msg.X400_Priority;
 import java.awt.*;
@@ -36,7 +33,8 @@ public class AMHSMessageUI extends JFrame {
     private TestCaseSelectorPanel selectorPanel;
     private TestControlPanel controlPanel;
     private TestMarkingPanel markingPanel;
-    private TimerPanel timerPanel;
+    private ActionLogsPanel actionLogsPanel;
+    private MessageDisplayPanel messageDisplayPanel;
     
     // Configuration fields
     private JTextField txtPresentationAddress;
@@ -52,7 +50,6 @@ public class AMHSMessageUI extends JFrame {
     private JComboBox<X400_Priority> comboPriority;
     
     // Status and output
-    private JTextArea txtOutput;
     private JLabel lblConnectionStatus;
     
     public AMHSMessageUI() {
@@ -74,54 +71,114 @@ public class AMHSMessageUI extends JFrame {
     
     private void initUI() {
         setTitle("AMHS X.400 Message Tool - Test Case Manager");
-        setSize(1200, 850);
+        setSize(1400, 950);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         
         // Create main panel with border
-        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        JPanel mainPanel = new JPanel(new BorderLayout(5, 5));
+        mainPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
         
-        // Left Panel - Test Case Selection and Control
-        JPanel leftPanel = new JPanel(new BorderLayout(10, 10));
+        // LEFT PANEL - Test Case Selection and Session Control
+        JPanel leftPanel = createLeftPanel();
         
-        // Test Case Selector Panel (top left)
-        selectorPanel = new TestCaseSelectorPanel(repository);
-        selectorPanel.addDefaultsLoadedListener("main", this::handleLoadDefaultsForSubcase);
-        leftPanel.add(selectorPanel, BorderLayout.NORTH);
+        // CENTER PANEL - Configuration and Message Operations
+        JPanel centerPanel = createCenterPanel();
         
-        // Test Control Panel (middle left)
-        controlPanel = new TestControlPanel(repository, recorder);
-        leftPanel.add(controlPanel, BorderLayout.CENTER);
+        // RIGHT PANEL - Message Display
+        messageDisplayPanel = new MessageDisplayPanel();
         
-        // Timer Panel (bottom left)
-        timerPanel = new TimerPanel(recorder);
-        leftPanel.add(timerPanel, BorderLayout.SOUTH);
-        
-        mainPanel.add(leftPanel, BorderLayout.WEST);
-        
-        // Center Panel - Configuration and Message
-        JPanel centerPanel = new JPanel(new BorderLayout(10, 10));
-        
-        // Configuration Panel
-        JPanel configPanel = createConfigurationPanel();
-        centerPanel.add(configPanel, BorderLayout.NORTH);
-        
-        // Message Panel
-        JPanel messagePanel = createMessagePanel();
-        centerPanel.add(messagePanel, BorderLayout.CENTER);
-        
-        mainPanel.add(centerPanel, BorderLayout.CENTER);
-        
-        // Right Panel - Test Marking
+        // BOTTOM PANEL - Test Marking (Subcase/Case Marking)
         markingPanel = new TestMarkingPanel(repository);
-        mainPanel.add(markingPanel, BorderLayout.EAST);
+        JScrollPane markingScrollPane = new JScrollPane(markingPanel);
+        markingScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        markingScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         
-        // Output Panel (South)
-        JPanel outputPanel = createOutputPanel();
-        mainPanel.add(outputPanel, BorderLayout.SOUTH);
+        // Create main horizontal split: left panel and center-right area
+        JSplitPane mainHorizontalSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, centerPanel);
+        mainHorizontalSplit.setDividerLocation(280);
+        mainHorizontalSplit.setResizeWeight(0.0);
+        mainHorizontalSplit.setContinuousLayout(true);
+        
+        // Create split for center-right: center and right message display
+        JSplitPane centerRightSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, centerPanel, messageDisplayPanel);
+        centerRightSplit.setDividerLocation(600);
+        centerRightSplit.setResizeWeight(0.7);
+        centerRightSplit.setContinuousLayout(true);
+        
+        // Fix the main panel layout
+        mainPanel.add(leftPanel, BorderLayout.WEST);
+        mainPanel.add(centerRightSplit, BorderLayout.CENTER);
+        mainPanel.add(markingScrollPane, BorderLayout.SOUTH);
         
         add(mainPanel);
+    }
+    
+    private JPanel createLeftPanel() {
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        
+        // Test Case Selector (top, resizable)
+        selectorPanel = new TestCaseSelectorPanel(repository);
+        selectorPanel.addDefaultsLoadedListener("main", this::handleLoadDefaultsForSubcase);
+        selectorPanel.addCopyDefaultsListener("main", this::handleCopyDefaults);
+        selectorPanel.addSendDefaultsListener("main", this::handleSendDefaults);
+        JScrollPane selectorScroll = new JScrollPane(selectorPanel);
+        selectorScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        selectorScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        
+        // Test Control Panel and Action Logs (middle/bottom, split)
+        JPanel controlLogPanel = new JPanel(new BorderLayout(5, 5));
+        
+        // Test Control Panel
+        controlPanel = new TestControlPanel(repository, recorder);
+        JScrollPane controlScroll = new JScrollPane(controlPanel);
+        controlScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        
+        // Action Logs Panel
+        actionLogsPanel = new ActionLogsPanel();
+        
+        JSplitPane controlLogSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, controlScroll, actionLogsPanel);
+        controlLogSplit.setDividerLocation(0.4);
+        controlLogSplit.setResizeWeight(0.4);
+        controlLogSplit.setContinuousLayout(true);
+        
+        controlLogPanel.add(controlLogSplit, BorderLayout.CENTER);
+        
+        // Main left panel split: selector on top, control+logs on bottom
+        JSplitPane leftSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, selectorScroll, controlLogPanel);
+        leftSplit.setDividerLocation(0.35);
+        leftSplit.setResizeWeight(0.35);
+        leftSplit.setContinuousLayout(true);
+        
+        panel.add(leftSplit, BorderLayout.CENTER);
+        
+        return panel;
+    }
+    
+    private JPanel createCenterPanel() {
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        
+        // Configuration Panel (top, resizable)
+        JPanel configPanel = createConfigurationPanel();
+        JScrollPane configScroll = new JScrollPane(configPanel);
+        configScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        configScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        
+        // Message Panel (middle, resizable)
+        JPanel messagePanel = createMessagePanel();
+        JScrollPane messageScroll = new JScrollPane(messagePanel);
+        messageScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        messageScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        
+        // Split configuration and message
+        JSplitPane centerSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, configScroll, messageScroll);
+        centerSplit.setDividerLocation(0.3);
+        centerSplit.setResizeWeight(0.3);
+        centerSplit.setContinuousLayout(true);
+        
+        panel.add(centerSplit, BorderLayout.CENTER);
+        
+        return panel;
     }
     
     private JPanel createConfigurationPanel() {
@@ -315,23 +372,13 @@ public class AMHSMessageUI extends JFrame {
         panel.add(btnRefresh, gbc);
         
         gbc.gridx = 3;
-        JButton btnClear = new JButton("Clear Output");
-        btnClear.addActionListener(e -> txtOutput.setText(""));
+        JButton btnClear = new JButton("Clear Logs");
+        btnClear.addActionListener(e -> {
+            if (actionLogsPanel != null) {
+                actionLogsPanel.clearLogs();
+            }
+        });
         panel.add(btnClear, gbc);
-        
-        return panel;
-    }
-    
-    private JPanel createOutputPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Output"));
-        panel.setPreferredSize(new Dimension(0, 200));
-        
-        txtOutput = new JTextArea();
-        txtOutput.setEditable(false);
-        txtOutput.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        JScrollPane scrollPane = new JScrollPane(txtOutput);
-        panel.add(scrollPane, BorderLayout.CENTER);
         
         return panel;
     }
@@ -579,8 +626,103 @@ public class AMHSMessageUI extends JFrame {
     }
 
     private void appendOutput(String text) {
-        txtOutput.append(text);
-        txtOutput.setCaretPosition(txtOutput.getDocument().getLength());
+        if (actionLogsPanel != null) {
+            // Parse the text and log appropriately
+            actionLogsPanel.logAction(text.trim());
+        }
+    }
+    
+    /**
+     * Handle copying default configuration to Message Operations
+     */
+    private void handleCopyDefaults() {
+        Map<String, String> defaults = selectorPanel.getSelectedSubcaseDefaults();
+        if (!defaults.isEmpty()) {
+            // Load recipient
+            if (defaults.containsKey("recipient")) {
+                txtRecipient.setText(defaults.get("recipient"));
+            }
+            
+            // Load subject
+            if (defaults.containsKey("subject")) {
+                txtSubject.setText(defaults.get("subject"));
+            }
+            
+            // Load priority
+            if (defaults.containsKey("priority")) {
+                String priorityStr = defaults.get("priority");
+                if ("LOW".equalsIgnoreCase(priorityStr)) {
+                    comboPriority.setSelectedItem(X400_Priority.LOW_PRIORITY);
+                } else if ("HIGH".equalsIgnoreCase(priorityStr)) {
+                    comboPriority.setSelectedItem(X400_Priority.HIGH_PRIORITY);
+                } else if ("URGENT".equalsIgnoreCase(priorityStr)) {
+                    comboPriority.setSelectedItem(X400_Priority.HIGH_PRIORITY);
+                } else {
+                    comboPriority.setSelectedItem(X400_Priority.NORMAL_PRIORITY);
+                }
+            }
+            
+            // Load content
+            if (defaults.containsKey("content")) {
+                txtContent.setText(defaults.get("content"));
+            }
+            
+            if (actionLogsPanel != null) {
+                actionLogsPanel.logAction("Defaults copied to Message Operations for subcase: " + 
+                                         selectorPanel.getSelectedSubcase().getId());
+            }
+        }
+    }
+    
+    /**
+     * Handle sending message with default configuration
+     */
+    private void handleSendDefaults() {
+        if (!messageService.isConnected()) {
+            if (actionLogsPanel != null) {
+                actionLogsPanel.logError("SEND", "Not connected to X.400 system", null);
+            }
+            return;
+        }
+        
+        // First copy defaults
+        handleCopyDefaults();
+        
+        // Then send
+        new Thread(() -> {
+            try {
+                String recipient = txtRecipient.getText().trim();
+                String subject = txtSubject.getText().trim();
+                String content = txtContent.getText().trim();
+                X400_Priority priority = (X400_Priority) comboPriority.getSelectedItem();
+                
+                if (recipient.isEmpty() || subject.isEmpty() || content.isEmpty()) {
+                    if (actionLogsPanel != null) {
+                        actionLogsPanel.logError("SEND", "Recipient, subject, and content are required", null);
+                    }
+                    return;
+                }
+                
+                if (actionLogsPanel != null) {
+                    actionLogsPanel.logSendMessage(
+                        selectorPanel.getSelectedTestCase() != null ? selectorPanel.getSelectedTestCase().getId() : "N/A",
+                        selectorPanel.getSelectedSubcase() != null ? selectorPanel.getSelectedSubcase().getId() : "N/A",
+                        recipient, subject, content, priority.toString(), true, null, null
+                    );
+                }
+                
+                String msgId = messageService.sendMessage(recipient, subject, content, priority);
+                if (actionLogsPanel != null) {
+                    actionLogsPanel.logAction("Message sent successfully. Message ID: " + msgId);
+                }
+            } catch (Throwable t) {
+                if (actionLogsPanel != null) {
+                    java.io.StringWriter sw = new java.io.StringWriter();
+                    t.printStackTrace(new java.io.PrintWriter(sw));
+                    actionLogsPanel.logError("SEND", t.getMessage(), sw.toString());
+                }
+            }
+        }).start();
     }
     
     /**
@@ -620,9 +762,13 @@ public class AMHSMessageUI extends JFrame {
                 txtContent.setText(defaults.get("content"));
             }
             
-            appendOutput("Loaded default configuration for subcase: " + selectedSubcase.getId() + "\n");
+            if (actionLogsPanel != null) {
+                actionLogsPanel.logAction("Loaded default configuration for subcase: " + selectedSubcase.getId());
+            }
         } else {
-            appendOutput("No default configuration available for selected subcase.\n");
+            if (actionLogsPanel != null) {
+                actionLogsPanel.logAction("No default configuration available for selected subcase");
+            }
         }
     }
     

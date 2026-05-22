@@ -20,11 +20,17 @@ public class TestCaseSelectorPanel extends JPanel {
     private JLabel lblCaseDescription;
     private JLabel lblSubcaseDescription;
     private JButton btnLoadDefaults;
+    private JButton btnCopyDefaults;
+    private JButton btnSendDefaults;
     private Map<String, Runnable> defaultsLoadedListeners;
+    private Map<String, Runnable> copyDefaultsListeners;
+    private Map<String, Runnable> sendDefaultsListeners;
     
     public TestCaseSelectorPanel(TestCaseRepository repository) {
         this.repository = repository;
         this.defaultsLoadedListeners = new HashMap<>();
+        this.copyDefaultsListeners = new HashMap<>();
+        this.sendDefaultsListeners = new HashMap<>();
         initUI();
     }
     
@@ -93,8 +99,46 @@ public class TestCaseSelectorPanel extends JPanel {
         btnLoadDefaults.addActionListener(e -> handleLoadDefaults());
         add(btnLoadDefaults, gbc);
         
+        // Copy Defaults Button
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.5;
+        btnCopyDefaults = new JButton("Copy Defaults to Message Ops");
+        btnCopyDefaults.addActionListener(e -> handleCopyDefaults());
+        add(btnCopyDefaults, gbc);
+        
+        // Send Defaults Button
+        gbc.gridx = 1;
+        gbc.gridy = 5;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.5;
+        btnSendDefaults = new JButton("Send with Defaults");
+        btnSendDefaults.addActionListener(e -> handleSendDefaults());
+        add(btnSendDefaults, gbc);
+        
         // Populate test cases after all UI components are initialized
         populateTestCases();
+    }
+    
+    private void handleCopyDefaults() {
+        TestSubcase selectedSubcase = (TestSubcase) cboSubcases.getSelectedItem();
+        if (selectedSubcase != null && !selectedSubcase.getAmhsDefaults().isEmpty()) {
+            // Notify listeners to copy defaults to Message Operations
+            for (Runnable listener : copyDefaultsListeners.values()) {
+                listener.run();
+            }
+        }
+    }
+    
+    private void handleSendDefaults() {
+        TestSubcase selectedSubcase = (TestSubcase) cboSubcases.getSelectedItem();
+        if (selectedSubcase != null && !selectedSubcase.getAmhsDefaults().isEmpty()) {
+            // Notify listeners to send message with defaults
+            for (Runnable listener : sendDefaultsListeners.values()) {
+                listener.run();
+            }
+        }
     }
     
     private void populateTestCases() {
@@ -159,6 +203,22 @@ public class TestCaseSelectorPanel extends JPanel {
     
     public void addDefaultsLoadedListener(String key, Runnable listener) {
         defaultsLoadedListeners.put(key, listener);
+    }
+    
+    public void addCopyDefaultsListener(String key, Runnable listener) {
+        copyDefaultsListeners.put(key, listener);
+    }
+    
+    public void addSendDefaultsListener(String key, Runnable listener) {
+        sendDefaultsListeners.put(key, listener);
+    }
+    
+    public Map<String, String> getSelectedSubcaseDefaults() {
+        TestSubcase selectedSubcase = (TestSubcase) cboSubcases.getSelectedItem();
+        if (selectedSubcase != null) {
+            return new HashMap<>(selectedSubcase.getAmhsDefaults());
+        }
+        return new HashMap<>();
     }
     
     public void refresh() {

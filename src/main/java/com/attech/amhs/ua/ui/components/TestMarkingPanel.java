@@ -10,6 +10,7 @@ import java.awt.event.ActionEvent;
 
 /**
  * UI Panel for marking test cases and subcases as pass or fail
+ * Redesigned for compact horizontal layout at the bottom
  */
 public class TestMarkingPanel extends JPanel {
     
@@ -26,20 +27,32 @@ public class TestMarkingPanel extends JPanel {
     private JButton btnMarkCase;
     private JLabel lblCaseStatus;
     
+    private JSplitPane mainSplitPane;
+    
     public TestMarkingPanel(TestCaseRepository repository) {
         this.repository = repository;
         initUI();
     }
     
     private void initUI() {
-        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+        setLayout(new BorderLayout());
+        setBorder(new TitledBorder("Test Marking"));
         
-        // Subcase Marking Section
-        add(createSubcaseMarkingPanel());
-        add(Box.createVerticalStrut(10));
+        // Subcase Marking Panel (left)
+        JPanel subcasePanel = createSubcaseMarkingPanel();
         
-        // Case Marking Section
-        add(createCaseMarkingPanel());
+        // Case Marking Panel (right)
+        JPanel casePanel = createCaseMarkingPanel();
+        
+        // Split pane with subcase on left, case on right
+        mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, subcasePanel, casePanel);
+        mainSplitPane.setDividerLocation(0.5);
+        mainSplitPane.setResizeWeight(0.5);
+        mainSplitPane.setContinuousLayout(true);
+        
+        add(mainSplitPane, BorderLayout.CENTER);
+        
+        setPreferredSize(new Dimension(0, 120));
     }
     
     private JPanel createSubcaseMarkingPanel() {
@@ -47,13 +60,13 @@ public class TestMarkingPanel extends JPanel {
         panel.setBorder(new TitledBorder("Subcase Marking (One-Time Only)"));
         panel.setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.insets = new Insets(3, 3, 3, 3);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         
         // Result selection
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.gridwidth = 2;
+        gbc.gridwidth = 1;
         panel.add(new JLabel("Result:"), gbc);
         
         rbSubcasePass = new JRadioButton("PASS");
@@ -63,31 +76,34 @@ public class TestMarkingPanel extends JPanel {
         grp.add(rbSubcasePass);
         grp.add(rbSubcaseFail);
         
-        gbc.gridx = 2;
-        gbc.gridwidth = 1;
+        gbc.gridx = 1;
         panel.add(rbSubcasePass, gbc);
         
-        gbc.gridx = 3;
+        gbc.gridx = 2;
         panel.add(rbSubcaseFail, gbc);
         
-        // Comments
+        // Comment field (compact)
         gbc.gridx = 0;
         gbc.gridy = 1;
-        gbc.gridwidth = 4;
+        gbc.gridwidth = 1;
         panel.add(new JLabel("Comment:"), gbc);
         
-        gbc.gridy = 2;
-        gbc.weighty = 0.3;
+        gbc.gridx = 1;
+        gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
-        txtSubcaseComment = new JTextArea(3, 30);
+        gbc.weighty = 1.0;
+        txtSubcaseComment = new JTextArea(2, 15);
         txtSubcaseComment.setLineWrap(true);
         txtSubcaseComment.setWrapStyleWord(true);
-        panel.add(new JScrollPane(txtSubcaseComment), gbc);
+        JScrollPane scrollPane = new JScrollPane(txtSubcaseComment);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        panel.add(scrollPane, gbc);
         
         // Mark button
         gbc.gridx = 0;
-        gbc.gridy = 3;
-        gbc.gridwidth = 4;
+        gbc.gridy = 2;
+        gbc.gridwidth = 3;
         gbc.weighty = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         btnMarkSubcase = new JButton("Mark Subcase");
@@ -96,10 +112,11 @@ public class TestMarkingPanel extends JPanel {
         
         // Status
         gbc.gridx = 0;
-        gbc.gridy = 4;
-        gbc.gridwidth = 4;
+        gbc.gridy = 3;
+        gbc.gridwidth = 3;
         lblSubcaseStatus = new JLabel("Ready to mark");
         lblSubcaseStatus.setForeground(Color.BLUE);
+        lblSubcaseStatus.setFont(new Font(lblSubcaseStatus.getFont().getName(), Font.PLAIN, 10));
         panel.add(lblSubcaseStatus, gbc);
         
         return panel;
@@ -110,13 +127,13 @@ public class TestMarkingPanel extends JPanel {
         panel.setBorder(new TitledBorder("Test Case Marking (Changeable)"));
         panel.setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.insets = new Insets(3, 3, 3, 3);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         
         // Result selection
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.gridwidth = 2;
+        gbc.gridwidth = 1;
         panel.add(new JLabel("Result:"), gbc);
         
         rbCasePass = new JRadioButton("PASS");
@@ -126,31 +143,34 @@ public class TestMarkingPanel extends JPanel {
         grp.add(rbCasePass);
         grp.add(rbCaseFail);
         
-        gbc.gridx = 2;
-        gbc.gridwidth = 1;
+        gbc.gridx = 1;
         panel.add(rbCasePass, gbc);
         
-        gbc.gridx = 3;
+        gbc.gridx = 2;
         panel.add(rbCaseFail, gbc);
         
-        // Comments
+        // Comment field (compact)
         gbc.gridx = 0;
         gbc.gridy = 1;
-        gbc.gridwidth = 4;
+        gbc.gridwidth = 1;
         panel.add(new JLabel("Comment:"), gbc);
         
-        gbc.gridy = 2;
-        gbc.weighty = 0.3;
+        gbc.gridx = 1;
+        gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
-        txtCaseComment = new JTextArea(3, 30);
+        gbc.weighty = 1.0;
+        txtCaseComment = new JTextArea(2, 15);
         txtCaseComment.setLineWrap(true);
         txtCaseComment.setWrapStyleWord(true);
-        panel.add(new JScrollPane(txtCaseComment), gbc);
+        JScrollPane scrollPane = new JScrollPane(txtCaseComment);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        panel.add(scrollPane, gbc);
         
         // Mark button
         gbc.gridx = 0;
-        gbc.gridy = 3;
-        gbc.gridwidth = 4;
+        gbc.gridy = 2;
+        gbc.gridwidth = 3;
         gbc.weighty = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         btnMarkCase = new JButton("Mark Test Case");
@@ -159,10 +179,11 @@ public class TestMarkingPanel extends JPanel {
         
         // Status
         gbc.gridx = 0;
-        gbc.gridy = 4;
-        gbc.gridwidth = 4;
+        gbc.gridy = 3;
+        gbc.gridwidth = 3;
         lblCaseStatus = new JLabel("Ready to mark");
         lblCaseStatus.setForeground(Color.BLUE);
+        lblCaseStatus.setFont(new Font(lblCaseStatus.getFont().getName(), Font.PLAIN, 10));
         panel.add(lblCaseStatus, gbc);
         
         return panel;

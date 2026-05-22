@@ -11,11 +11,13 @@ com\attech\amhs\ua\ui\components\TimerPanel.class
 com\attech\amhs\ua\common\enums\MsgClass.class
 com\attech\amhs\ua\isode\MSUtil.class
 com\attech\amhs\ua\service\AMHSMessageService.class
+com\attech\amhs\ua\ui\components\ActionLogsPanel.class
 com\attech\amhs\ua\isode\ConnectionStatusChangedEventHandler.class
 com\attech\amhs\ua\isode\Recipient.class
 com\attech\amhs\ua\ui\components\TimerPanel$2.class
 com\attech\amhs\ua\common\MString.class
 com\attech\amhs\ua\service\AMHSMessageService$MessageSummary.class
+com\attech\amhs\ua\ui\components\MessageDisplayPanel.class
 com\attech\amhs\ua\isode\Connection1.class
 com\attech\amhs\ua\ui\components\TimerPanel$1.class
 com\attech\amhs\ua\service\TestCaseConfigLoader.class
