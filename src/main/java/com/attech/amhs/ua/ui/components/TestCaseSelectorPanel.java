@@ -97,6 +97,9 @@ public class TestCaseSelectorPanel extends JPanel {
     
     private void populateTestCases() {
         cboTestCases.removeAllItems();
+        if (repository == null || repository.getTestCasesList() == null) {
+            return;
+        }
         for (TestCase testCase : repository.getTestCasesList()) {
             cboTestCases.addItem(testCase);
         }
@@ -114,8 +117,10 @@ public class TestCaseSelectorPanel extends JPanel {
             
             // Populate subcases
             cboSubcases.removeAllItems();
-            for (TestSubcase subcase : selectedCase.getSubcases()) {
-                cboSubcases.addItem(subcase);
+            if (selectedCase.getSubcases() != null) {
+                for (TestSubcase subcase : selectedCase.getSubcases()) {
+                    cboSubcases.addItem(subcase);
+                }
             }
             if (cboSubcases.getItemCount() > 0) {
                 cboSubcases.setSelectedIndex(0);
