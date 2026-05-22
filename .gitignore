@@ -1,1 +1,16 @@
-(src/main/java/com/attech/amhs/ua/ui/AMHSMessageUI.java)
+```
+# Compiled and build artifacts
+*.class
+target/
+
+# Dependencies
+.gradle/
+
+# Logs and temp files
+*.log
+*.tmp
+
+# Editors
+.vscode/
+.idea/
+```
