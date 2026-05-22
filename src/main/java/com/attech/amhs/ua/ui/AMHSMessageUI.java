@@ -6,6 +6,7 @@ package com.attech.amhs.ua.ui;
 
 import com.attech.amhs.ua.model.TestCase;
 import com.attech.amhs.ua.model.TestSubcase;
+import com.attech.amhs.ua.model.MessageLog;
 import com.attech.amhs.ua.repository.TestCaseRepository;
 import com.attech.amhs.ua.service.AMHSMessageService;
 import com.attech.amhs.ua.service.TestCaseLoader;
