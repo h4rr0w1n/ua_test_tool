@@ -117,6 +117,14 @@ public class TestCaseConfigLoader {
         };
         
         for (String field : amhsFields) {
+            // First try to load from file (supports field-file property)
+            String fileValue = loadValueFromFile(props, prefix + "amhs." + field + "-file");
+            if (fileValue != null) {
+                subcase.setAmhsDefault(field, fileValue);
+                continue;
+            }
+            
+            // Fall back to direct property value
             String value = props.getProperty(prefix + "amhs." + field);
             if (value != null) {
                 subcase.setAmhsDefault(field, value);
@@ -143,6 +151,70 @@ public class TestCaseConfigLoader {
         if (content != null && !content.isEmpty()) {
             subcase.setAmhsDefault("content", content);
         }
+    }
+    
+    /**
+     * Load value from a file referenced by a property
+     * 
+     * @param props Properties object containing file path
+     * @param filePropertyKey The key of the property containing the file path
+     * @return File content as string, or null if file property not found or file cannot be read
+     */
+    private static String loadValueFromFile(Properties props, String filePropertyKey) {
+        String filePath = props.getProperty(filePropertyKey);
+        if (filePath == null || filePath.isEmpty()) {
+            return null;
+        }
+        
+        try {
+            // Try loading from classpath resources first
+            InputStream inputStream = TestCaseConfigLoader.class.getClassLoader().getResourceAsStream(filePath);
+            if (inputStream != null) {
+                return readInputStreamToString(inputStream);
+            }
+            
+            // Try as absolute file path
+            File file = new File(filePath);
+            if (file.exists()) {
+                try (FileInputStream fis = new FileInputStream(file)) {
+                    return readInputStreamToString(fis);
+                }
+            }
+            
+            // Try relative to testcases directory
+            String relativeTestcasesPath = "testcases/" + filePath;
+            inputStream = TestCaseConfigLoader.class.getClassLoader().getResourceAsStream(relativeTestcasesPath);
+            if (inputStream != null) {
+                return readInputStreamToString(inputStream);
+            }
+            
+            System.err.println("Warning: File not found for property '" + filePropertyKey + "': " + filePath);
+            return null;
+        } catch (IOException e) {
+            System.err.println("Error reading file '" + filePath + "' for property '" + filePropertyKey + "': " + e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Read InputStream to String
+     * 
+     * @param inputStream Input stream to read
+     * @return String content of the stream
+     * @throws IOException if read fails
+     */
+    private static String readInputStreamToString(InputStream inputStream) throws IOException {
+        StringBuilder content = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (content.length() > 0) {
+                    content.append("\n");
+                }
+                content.append(line);
+            }
+        }
+        return content.toString();
     }
 
     /**

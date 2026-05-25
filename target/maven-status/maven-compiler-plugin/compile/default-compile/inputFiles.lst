@@ -11,6 +11,7 @@ C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\co
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\service\TestCaseLoader.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\isode\enums\MessageClass.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\ui\components\ActionLogsPanel.java
+C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\ui\components\ToolbarPanel.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\service\TestCaseConfigLoader.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\isode\Connection1.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\isode\Attachment.java
@@ -21,9 +22,11 @@ C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\is
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\service\LocalAMHSMessageService.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\ui\AMHSMessageUI.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\isode\ReportRecipient.java
+C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\ui\components\SettingsDialog.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\ui\components\TestCaseSelectorPanel.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\service\TestCaseTemplate.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\ui\components\TestControlPanel.java
+C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\ui\components\ResultsPopupDialog.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\isode\ReceivedMessage1.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\common\MessageUtils.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\repository\TestCaseRepository.java

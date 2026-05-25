@@ -4,245 +4,314 @@ import com.attech.amhs.ua.model.TestCase;
 import com.attech.amhs.ua.model.TestSubcase;
 import com.attech.amhs.ua.repository.TestCaseRepository;
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
+import javax.swing.tree.*;
 import java.awt.*;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * UI Panel for selecting test cases and subcases
+ * Left-column panel for selecting CTSW test cases and their messages.
+ *
+ * Layout:
+ *   ┌─ CASE: [CTSW0xx combo] ─────────────────┐
+ *   │  |_ default message                      │
+ *   │  |_ message 1  (subcase 1)               │
+ *   │  |_ message 2  (subcase 2)               │
+ *   │  ...                                     │
+ *   │  [description text area]                 │
+ *   ├─────────────────────────────────────────┤
+ *   │  <Load defaults>   <Send defaults>       │
+ *   └─────────────────────────────────────────┘
  */
 public class TestCaseSelectorPanel extends JPanel {
-    
-    private TestCaseRepository repository;
+
+    private final TestCaseRepository repository;
+
+    // Top combo
     private JComboBox<TestCase> cboTestCases;
-    private JComboBox<TestSubcase> cboSubcases;
-    private JLabel lblCaseDescription;
-    private JLabel lblSubcaseDescription;
+
+    // Tree
+    private JTree subcaseTree;
+    private DefaultTreeModel treeModel;
+    private DefaultMutableTreeNode rootNode;
+
+    // Description
+    private JTextArea txtDescription;
+
+    // Buttons
     private JButton btnLoadDefaults;
-    private JButton btnCopyDefaults;
     private JButton btnSendDefaults;
-    private Map<String, Runnable> defaultsLoadedListeners;
-    private Map<String, Runnable> copyDefaultsListeners;
-    private Map<String, Runnable> sendDefaultsListeners;
-    
+
+    // Listener maps (kept for backward-compatibility with AMHSMessageUI wiring)
+    private final Map<String, Runnable> defaultsLoadedListeners = new HashMap<>();
+    private final Map<String, Runnable> copyDefaultsListeners   = new HashMap<>();
+    private final Map<String, Runnable> sendDefaultsListeners   = new HashMap<>();
+
     public TestCaseSelectorPanel(TestCaseRepository repository) {
         this.repository = repository;
-        this.defaultsLoadedListeners = new HashMap<>();
-        this.copyDefaultsListeners = new HashMap<>();
-        this.sendDefaultsListeners = new HashMap<>();
         initUI();
     }
-    
+
+    // ── UI construction ───────────────────────────────────────────────────
+
     private void initUI() {
-        setBorder(new TitledBorder("Test Case Selection"));
-        setLayout(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        
-        // Test Case Label & Combo
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.weightx = 0;
-        add(new JLabel("Test Case:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        cboTestCases = new JComboBox<>();
-        cboTestCases.addActionListener(e -> handleTestCaseChanged());
-        add(cboTestCases, gbc);
-        
-        // Subcase Label & Combo
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.weightx = 0;
-        add(new JLabel("Subcase:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        cboSubcases = new JComboBox<>();
-        cboSubcases.addActionListener(e -> handleSubcaseChanged());
-        add(cboSubcases, gbc);
-        
-        // Test Case Description
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.weightx = 0;
-        add(new JLabel("Case Description:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        lblCaseDescription = new JLabel("");
-        lblCaseDescription.setForeground(Color.GRAY);
-        lblCaseDescription.setPreferredSize(new Dimension(300, 30));
-        add(lblCaseDescription, gbc);
-        
-        // Subcase Description
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        gbc.weightx = 0;
-        add(new JLabel("Subcase Description:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        lblSubcaseDescription = new JLabel("");
-        lblSubcaseDescription.setForeground(Color.GRAY);
-        add(lblSubcaseDescription, gbc);
-        
-        // Load Defaults Button
-        gbc.gridx = 0;
-        gbc.gridy = 4;
-        gbc.gridwidth = 2;
-        gbc.weightx = 1.0;
-        btnLoadDefaults = new JButton("Load Default AMHS Configuration");
-        btnLoadDefaults.addActionListener(e -> handleLoadDefaults());
-        add(btnLoadDefaults, gbc);
-        
-        // Copy Defaults Button
-        gbc.gridx = 0;
-        gbc.gridy = 5;
-        gbc.gridwidth = 1;
-        gbc.weightx = 0.5;
-        btnCopyDefaults = new JButton("Copy Defaults to Message Ops");
-        btnCopyDefaults.addActionListener(e -> handleCopyDefaults());
-        add(btnCopyDefaults, gbc);
-        
-        // Send Defaults Button
-        gbc.gridx = 1;
-        gbc.gridy = 5;
-        gbc.gridwidth = 1;
-        gbc.weightx = 0.5;
-        btnSendDefaults = new JButton("Send with Defaults");
-        btnSendDefaults.addActionListener(e -> handleSendDefaults());
-        add(btnSendDefaults, gbc);
-        
-        // Populate test cases after all UI components are initialized
+        setBorder(new TitledBorder("Test Case"));
+        setLayout(new BorderLayout(4, 4));
+
+        add(buildTopCombo(),   BorderLayout.NORTH);
+        add(buildCenterTree(), BorderLayout.CENTER);
+        add(buildBottomBtns(), BorderLayout.SOUTH);
+
         populateTestCases();
     }
-    
-    private void handleCopyDefaults() {
-        TestSubcase selectedSubcase = (TestSubcase) cboSubcases.getSelectedItem();
-        if (selectedSubcase != null && !selectedSubcase.getAmhsDefaults().isEmpty()) {
-            // Notify listeners to copy defaults to Message Operations
-            for (Runnable listener : copyDefaultsListeners.values()) {
-                listener.run();
-            }
-        } else {
-            // Show message if no defaults available
-            if (selectedSubcase == null) {
-                JOptionPane.showMessageDialog(this, "No subcase selected", "Warning", JOptionPane.WARNING_MESSAGE);
-            } else {
-                JOptionPane.showMessageDialog(this, "No AMHS defaults configured for this subcase", "Warning", JOptionPane.WARNING_MESSAGE);
+
+    /** CTSW case selector row */
+    private JPanel buildTopCombo() {
+        JPanel row = new JPanel(new BorderLayout(5, 0));
+        row.setBorder(new EmptyBorder(2, 2, 2, 2));
+
+        JLabel lbl = new JLabel("CASE:");
+        lbl.setFont(lbl.getFont().deriveFont(Font.BOLD, 12f));
+        row.add(lbl, BorderLayout.WEST);
+
+        cboTestCases = new JComboBox<>();
+        cboTestCases.addActionListener(e -> handleTestCaseChanged());
+        row.add(cboTestCases, BorderLayout.CENTER);
+        return row;
+    }
+
+    /** Tree + description split */
+    private JSplitPane buildCenterTree() {
+        // ── Tree ─────────────────────────────────────────────────────────
+        rootNode  = new DefaultMutableTreeNode("Messages");
+        treeModel = new DefaultTreeModel(rootNode);
+        subcaseTree = new JTree(treeModel);
+        subcaseTree.setRootVisible(false);
+        subcaseTree.setShowsRootHandles(true);
+        subcaseTree.getSelectionModel().setSelectionMode(
+                TreeSelectionModel.SINGLE_TREE_SELECTION);
+        subcaseTree.setCellRenderer(new SubcaseCellRenderer());
+        subcaseTree.addTreeSelectionListener(e -> handleTreeSelectionChanged());
+
+        JScrollPane treeScroll = new JScrollPane(subcaseTree);
+        treeScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+
+        // ── Description ──────────────────────────────────────────────────
+        txtDescription = new JTextArea(3, 20);
+        txtDescription.setEditable(false);
+        txtDescription.setLineWrap(true);
+        txtDescription.setWrapStyleWord(true);
+        txtDescription.setFont(UIManager.getFont("Label.font"));
+        txtDescription.setBackground(UIManager.getColor("Panel.background"));
+        txtDescription.setBorder(BorderFactory.createTitledBorder("Description"));
+
+        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+                treeScroll, new JScrollPane(txtDescription));
+        split.setResizeWeight(0.70);
+        split.setDividerSize(5);
+        split.setContinuousLayout(true);
+        return split;
+    }
+
+    /** Load defaults / Send defaults button row */
+    private JPanel buildBottomBtns() {
+        JPanel panel = new JPanel(new GridLayout(1, 2, 5, 0));
+        panel.setBorder(new EmptyBorder(3, 2, 3, 2));
+
+        btnLoadDefaults = new JButton("Load defaults");
+        btnLoadDefaults.setToolTipText("Copy default AMHS fields for selected message to the Message Operations panel");
+        btnLoadDefaults.addActionListener(e -> handleLoadDefaults());
+
+        btnSendDefaults = new JButton("Send defaults");
+        btnSendDefaults.setToolTipText("Load defaults and immediately send the message");
+        btnSendDefaults.addActionListener(e -> handleSendDefaults());
+
+        panel.add(btnLoadDefaults);
+        panel.add(btnSendDefaults);
+        return panel;
+    }
+
+    // ── Event handlers ────────────────────────────────────────────────────
+
+    private void handleTestCaseChanged() {
+        TestCase tc = (TestCase) cboTestCases.getSelectedItem();
+        rootNode.removeAllChildren();
+
+        if (tc != null) {
+            // "default message" node (no linked subcase)
+            rootNode.add(new DefaultMutableTreeNode(
+                    new SubcaseNode("default message", null, true)));
+
+            // One tree node per subcase
+            if (tc.getSubcases() != null) {
+                int idx = 1;
+                for (TestSubcase sc : tc.getSubcases()) {
+                    String label = "message " + idx + "  (" + sc.getId() + ")";
+                    rootNode.add(new DefaultMutableTreeNode(
+                            new SubcaseNode(label, sc, false)));
+                    idx++;
+                }
             }
         }
-    }
-    
-    private void handleSendDefaults() {
-        TestSubcase selectedSubcase = (TestSubcase) cboSubcases.getSelectedItem();
-        if (selectedSubcase != null && !selectedSubcase.getAmhsDefaults().isEmpty()) {
-            // Notify listeners to send message with defaults
-            for (Runnable listener : sendDefaultsListeners.values()) {
-                listener.run();
-            }
-        } else {
-            // Show message if no defaults available
-            if (selectedSubcase == null) {
-                JOptionPane.showMessageDialog(this, "No subcase selected", "Warning", JOptionPane.WARNING_MESSAGE);
-            } else {
-                JOptionPane.showMessageDialog(this, "No AMHS defaults configured for this subcase", "Warning", JOptionPane.WARNING_MESSAGE);
-            }
+
+        treeModel.reload();
+        for (int i = 0; i < subcaseTree.getRowCount(); i++) {
+            subcaseTree.expandRow(i);
         }
+        if (subcaseTree.getRowCount() > 0) {
+            subcaseTree.setSelectionRow(0);
+        }
+        txtDescription.setText("");
     }
-    
-    private void populateTestCases() {
-        cboTestCases.removeAllItems();
-        if (repository == null || repository.getTestCasesList() == null) {
+
+    private void handleTreeSelectionChanged() {
+        SubcaseNode sn = getSelectedNode();
+        if (sn == null) {
+            txtDescription.setText("");
             return;
         }
-        for (TestCase testCase : repository.getTestCasesList()) {
-            cboTestCases.addItem(testCase);
+        if (sn.isDefault) {
+            txtDescription.setText(
+                "Default message: saved and loaded from default configuration.\n" +
+                "Follows the ICAO testbook baseline for the selected test case.");
+        } else if (sn.subcase != null) {
+            String desc = sn.subcase.getDescription();
+            txtDescription.setText(desc != null ? desc : "(no description)");
+        }
+    }
+
+    private void handleLoadDefaults() {
+        TestSubcase sc = getSelectedSubcase();
+        if (sc != null && !sc.getAmhsDefaults().isEmpty()) {
+            defaultsLoadedListeners.values().forEach(Runnable::run);
+        } else if (sc == null) {
+            JOptionPane.showMessageDialog(this,
+                "No subcase selected (select a numbered message, not 'default message').",
+                "Warning", JOptionPane.WARNING_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this,
+                "No AMHS defaults configured for this subcase.",
+                "Warning", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    private void handleSendDefaults() {
+        TestSubcase sc = getSelectedSubcase();
+        if (sc != null && !sc.getAmhsDefaults().isEmpty()) {
+            sendDefaultsListeners.values().forEach(Runnable::run);
+        } else if (sc == null) {
+            JOptionPane.showMessageDialog(this,
+                "No subcase selected (select a numbered message, not 'default message').",
+                "Warning", JOptionPane.WARNING_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this,
+                "No AMHS defaults configured for this subcase.",
+                "Warning", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    // ── Data helpers ──────────────────────────────────────────────────────
+
+    private void populateTestCases() {
+        cboTestCases.removeAllItems();
+        if (repository == null || repository.getTestCasesList() == null) return;
+        for (TestCase tc : repository.getTestCasesList()) {
+            cboTestCases.addItem(tc);
         }
         if (cboTestCases.getItemCount() > 0) {
             cboTestCases.setSelectedIndex(0);
             handleTestCaseChanged();
         }
     }
-    
-    private void handleTestCaseChanged() {
-        TestCase selectedCase = (TestCase) cboTestCases.getSelectedItem();
-        if (selectedCase != null) {
-            lblCaseDescription.setText(selectedCase.getDescription() != null ? 
-                                      selectedCase.getDescription() : "");
-            
-            // Populate subcases
-            cboSubcases.removeAllItems();
-            if (selectedCase.getSubcases() != null) {
-                for (TestSubcase subcase : selectedCase.getSubcases()) {
-                    cboSubcases.addItem(subcase);
-                }
-            }
-            if (cboSubcases.getItemCount() > 0) {
-                cboSubcases.setSelectedIndex(0);
-            }
-            handleSubcaseChanged();
-        }
+
+    private SubcaseNode getSelectedNode() {
+        TreePath path = subcaseTree.getSelectionPath();
+        if (path == null) return null;
+        DefaultMutableTreeNode node =
+                (DefaultMutableTreeNode) path.getLastPathComponent();
+        Object uo = node.getUserObject();
+        return (uo instanceof SubcaseNode) ? (SubcaseNode) uo : null;
     }
-    
-    private void handleSubcaseChanged() {
-        TestSubcase selectedSubcase = (TestSubcase) cboSubcases.getSelectedItem();
-        if (selectedSubcase != null) {
-            lblSubcaseDescription.setText(selectedSubcase.getDescription() != null ? 
-                                         selectedSubcase.getDescription() : "");
-        }
-    }
-    
-    private void handleLoadDefaults() {
-        TestSubcase selectedSubcase = (TestSubcase) cboSubcases.getSelectedItem();
-        if (selectedSubcase != null && !selectedSubcase.getAmhsDefaults().isEmpty()) {
-            // Notify listeners that defaults should be loaded
-            for (Runnable listener : defaultsLoadedListeners.values()) {
-                listener.run();
-            }
-        } else {
-            // Show message if no defaults available
-            if (selectedSubcase == null) {
-                JOptionPane.showMessageDialog(this, "No subcase selected", "Warning", JOptionPane.WARNING_MESSAGE);
-            } else {
-                JOptionPane.showMessageDialog(this, "No AMHS defaults configured for this subcase", "Warning", JOptionPane.WARNING_MESSAGE);
-            }
-        }
-    }
-    
+
+    // ── Public API (used by AMHSMessageUI) ────────────────────────────────
+
     public TestCase getSelectedTestCase() {
         return (TestCase) cboTestCases.getSelectedItem();
     }
-    
+
+    /** Returns null when the "default message" node is selected */
     public TestSubcase getSelectedSubcase() {
-        return (TestSubcase) cboSubcases.getSelectedItem();
+        SubcaseNode sn = getSelectedNode();
+        return (sn != null && !sn.isDefault) ? sn.subcase : null;
     }
-    
-    public void addDefaultsLoadedListener(String key, Runnable listener) {
-        defaultsLoadedListeners.put(key, listener);
-    }
-    
-    public void addCopyDefaultsListener(String key, Runnable listener) {
-        copyDefaultsListeners.put(key, listener);
-    }
-    
-    public void addSendDefaultsListener(String key, Runnable listener) {
-        sendDefaultsListeners.put(key, listener);
-    }
-    
+
     public Map<String, String> getSelectedSubcaseDefaults() {
-        TestSubcase selectedSubcase = (TestSubcase) cboSubcases.getSelectedItem();
-        if (selectedSubcase != null) {
-            return new HashMap<>(selectedSubcase.getAmhsDefaults());
-        }
-        return new HashMap<>();
+        TestSubcase sc = getSelectedSubcase();
+        return sc != null ? new HashMap<>(sc.getAmhsDefaults()) : new HashMap<>();
     }
-    
+
+    /** Refresh the tree after external repository changes */
     public void refresh() {
         populateTestCases();
+        subcaseTree.repaint();
+    }
+
+    // Listener registration (same API as before)
+    public void addDefaultsLoadedListener(String key, Runnable r) { defaultsLoadedListeners.put(key, r); }
+    public void addCopyDefaultsListener(String key,   Runnable r) { copyDefaultsListeners.put(key, r); }
+    public void addSendDefaultsListener(String key,   Runnable r) { sendDefaultsListeners.put(key, r); }
+
+    // ── Inner classes ─────────────────────────────────────────────────────
+
+    /** Data object held in each JTree node */
+    static class SubcaseNode {
+        final String       label;
+        final TestSubcase  subcase;   // null for the "default message" node
+        final boolean      isDefault;
+
+        SubcaseNode(String label, TestSubcase subcase, boolean isDefault) {
+            this.label     = label;
+            this.subcase   = subcase;
+            this.isDefault = isDefault;
+        }
+
+        @Override public String toString() { return label; }
+    }
+
+    /** Colour-codes tree nodes by result; italicises the default-message row */
+    private static class SubcaseCellRenderer extends DefaultTreeCellRenderer {
+
+        private static final Color PASS_FG = new Color(0,  120, 0);
+        private static final Color FAIL_FG = new Color(170, 0,  0);
+
+        @Override
+        public Component getTreeCellRendererComponent(
+                JTree tree, Object value, boolean sel, boolean expanded,
+                boolean leaf, int row, boolean hasFocus) {
+
+            super.getTreeCellRendererComponent(
+                    tree, value, sel, expanded, leaf, row, hasFocus);
+            setIcon(null);     // remove default folder/leaf icons
+
+            if (value instanceof DefaultMutableTreeNode) {
+                Object uo = ((DefaultMutableTreeNode) value).getUserObject();
+                if (uo instanceof SubcaseNode) {
+                    SubcaseNode sn = (SubcaseNode) uo;
+                    if (sn.isDefault) {
+                        setFont(getFont().deriveFont(Font.ITALIC));
+                        if (!sel) setForeground(Color.GRAY);
+                    } else if (sn.subcase != null) {
+                        String result = sn.subcase.getResult();
+                        if (!sel) {
+                            if ("PASS".equals(result))      setForeground(PASS_FG);
+                            else if ("FAIL".equals(result)) setForeground(FAIL_FG);
+                        }
+                    }
+                }
+            }
+            return this;
+        }
     }
 }
