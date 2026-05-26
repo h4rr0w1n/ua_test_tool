@@ -1,18 +1,1 @@
-```
-# Compiled and build artifacts
-*.class
-target/
-
-# Dependencies
-.m2/
-.gradle/
-
-# Logs and temp files
-*.log
-*.tmp
-*.swp
-
-# Editors
-.vscode/
-.idea/
-```
+(src/main/java/com/attech/amhs/ua/isode/MSUtil.java)
