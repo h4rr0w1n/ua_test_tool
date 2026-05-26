@@ -22,7 +22,7 @@ public class BodypartGeneralText extends Bodypart {
      * Create a general text body part with default settings
      * @param content Text content
      */
-    public BodypartGeneralText(String content) {
+    public BodypartGeneralText(String content) throws X400APIException {
         this(content, null, null);
     }
     
@@ -32,7 +32,8 @@ public class BodypartGeneralText extends Bodypart {
      * @param charsetRegNumber Charset registration number (e.g., "1", "6", "8859-1")
      * @param charsetRepertoire Charset repertoire name (e.g., "iso646", "cyrillic", "cjk")
      */
-    public BodypartGeneralText(String content, String charsetRegNumber, String charsetRepertoire) {
+    public BodypartGeneralText(String content, String charsetRegNumber, String charsetRepertoire) throws X400APIException {
+        super(Bodypart_Type.BODYPART_GENERAL_TEXT);
         this.content = content != null ? content : "";
         this.charsetRegNumber = charsetRegNumber;
         this.charsetRepertoire = charsetRepertoire;

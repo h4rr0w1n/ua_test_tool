@@ -23,7 +23,8 @@ public class BodypartFTBP extends Bodypart {
      * @param fileName Name of the file
      * @param fileContent Binary content of the file
      */
-    public BodypartFTBP(String fileName, byte[] fileContent) {
+    public BodypartFTBP(String fileName, byte[] fileContent) throws X400APIException {
+        super(Bodypart_Type.BODYPART_FTBP);
         this.fileName = fileName != null ? fileName : "attachment.bin";
         this.fileContent = fileContent != null ? fileContent : new byte[0];
         this.fileSize = this.fileContent.length;
@@ -33,7 +34,7 @@ public class BodypartFTBP extends Bodypart {
      * Create a file transfer body part with just filename (empty content)
      * @param fileName Name of the file
      */
-    public BodypartFTBP(String fileName) {
+    public BodypartFTBP(String fileName) throws X400APIException {
         this(fileName, new byte[0]);
     }
     
