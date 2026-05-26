@@ -371,7 +371,7 @@ public class AMHSMessageService {
                 } finally {
                     try {
                         rm.finishWithMessage(0, 0);
-                    } catch (X400APIException ex) {
+                    } catch (Exception ex) {
                         // Log and continue
                         System.err.println("Error finishing message: " + ex.getMessage());
                     }
