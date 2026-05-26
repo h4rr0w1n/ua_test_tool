@@ -224,6 +224,10 @@ public class XlsxExporter {
         
         int row = 1;
         for (MessageLog log : testSession.getMessageLogs()) {
+            // Skip received messages - only export sent messages
+            if (log.isReceived()) {
+                continue;
+            }
             Row dataRow = sheet.createRow(row++);
             dataRow.createCell(0).setCellValue(formatDate(log.getTimestamp()));
             dataRow.createCell(1).setCellValue(log.getTestCaseId() != null ? log.getTestCaseId() : "");

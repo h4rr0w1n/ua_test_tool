@@ -1,16 +1,1 @@
-```
-# Compiled and build artifacts
-*.class
-target/
-
-# Dependencies
-.gradle/
-
-# Logs and temp files
-*.log
-*.tmp
-
-# Editors
-.vscode/
-.idea/
-```
+Nothing should be ignored in this case, as only a Java source file was modified and no build artifacts, dependencies, or temporary files were included in the changes.
