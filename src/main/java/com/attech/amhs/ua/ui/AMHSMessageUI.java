@@ -197,10 +197,17 @@ public class AMHSMessageUI extends JFrame {
         gbc.weightx = 0;
         panel.add(new JLabel("Recipient:"), gbc);
         gbc.gridx = 1;
-        gbc.gridwidth = 3;
+        gbc.gridwidth = 2;
         gbc.weightx = 1.0;
         txtRecipient = new JTextField("/CN=P7User1/OU=Sales/O=nova/PRMD=Isode/ADMD= /C=GB/", 30);
         panel.add(txtRecipient, gbc);
+
+        gbc.gridx = 3;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.0;
+        JButton btnBrowseRecipient = new JButton("Browse...");
+        btnBrowseRecipient.addActionListener(e -> browseAndLoadFile(txtRecipient, true));
+        panel.add(btnBrowseRecipient, gbc);
 
         // Subject
         gbc.gridx = 0;
@@ -238,13 +245,23 @@ public class AMHSMessageUI extends JFrame {
         gbc.anchor = GridBagConstraints.NORTHWEST;
         panel.add(new JLabel("Content:"), gbc);
         gbc.gridx = 1;
-        gbc.gridwidth = 3;
+        gbc.gridwidth = 2;
         gbc.weightx = 1.0;
         gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
         txtContent = new JTextArea(6, 30);
         txtContent.setText("This is a test message sent via AMHS X.400.");
         panel.add(new JScrollPane(txtContent), gbc);
+
+        gbc.gridx = 3;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.0;
+        gbc.weighty = 0.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        JButton btnBrowseContent = new JButton("Browse...");
+        btnBrowseContent.addActionListener(e -> browseAndLoadFile(txtContent, false));
+        panel.add(btnBrowseContent, gbc);
 
         // Buttons
         gbc.gridy = 4;
@@ -792,6 +809,23 @@ public class AMHSMessageUI extends JFrame {
     private void appendOutput(String text) {
         if (actionLogsPanel != null) {
             actionLogsPanel.logAction(text.trim());
+        }
+    }
+
+    private void browseAndLoadFile(javax.swing.text.JTextComponent targetComponent, boolean removeNewlines) {
+        JFileChooser fc = new JFileChooser();
+        if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            try {
+                String content = new String(java.nio.file.Files.readAllBytes(fc.getSelectedFile().toPath()), "UTF-8");
+                if (removeNewlines) {
+                    content = content.replace("\r", "").replace("\n", "");
+                }
+                targetComponent.setText(content);
+                appendOutput("Loaded file: " + fc.getSelectedFile().getName());
+            } catch (Exception ex) {
+                appendOutput("Failed to load file: " + ex.getMessage());
+                JOptionPane.showMessageDialog(this, "Failed to load file: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 
