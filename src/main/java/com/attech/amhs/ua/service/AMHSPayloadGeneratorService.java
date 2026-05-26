@@ -37,18 +37,21 @@ public class AMHSPayloadGeneratorService {
     private static final Map<String, X400_Priority> ATS_PRIORITY_MAP = new HashMap<>();
     
     static {
-        // Basic IPM priorities
-        ATS_PRIORITY_MAP.put("KK", X400_Priority.HIGHEST_PRIORITY);
+        // Basic IPM priorities - map to available X.400 priorities
+        // Note: HIGHEST_PRIORITY and NON_STANDARD_PRIORITY don't exist in the library
+        // Using closest available equivalents
+        ATS_PRIORITY_MAP.put("KK", X400_Priority.HIGH_PRIORITY);  // Highest available
         ATS_PRIORITY_MAP.put("GG", X400_Priority.HIGH_PRIORITY);
         ATS_PRIORITY_MAP.put("FF", X400_Priority.NORMAL_PRIORITY);
         ATS_PRIORITY_MAP.put("DD", X400_Priority.LOW_PRIORITY);
-        ATS_PRIORITY_MAP.put("SS", X400_Priority.NON_STANDARD_PRIORITY);
+        ATS_PRIORITY_MAP.put("SS", X400_Priority.LOW_PRIORITY);   // Non-standard maps to LOW
         
-        // Standard X.400 priorities
+        // Standard X.400 priorities - only these 3 exist in the library
         ATS_PRIORITY_MAP.put("LOW", X400_Priority.LOW_PRIORITY);
         ATS_PRIORITY_MAP.put("NORMAL", X400_Priority.NORMAL_PRIORITY);
         ATS_PRIORITY_MAP.put("HIGH", X400_Priority.HIGH_PRIORITY);
-        ATS_PRIORITY_MAP.put("URGENT", X400_Priority.URGENT_PRIORITY);
+        // URGENT doesn't exist, map to HIGH
+        ATS_PRIORITY_MAP.put("URGENT", X400_Priority.HIGH_PRIORITY);
     }
 
     /**
@@ -201,16 +204,18 @@ public class AMHSPayloadGeneratorService {
             setExtendedHeaderField(message, "authorization-time", authTime);
         }
         
-        // Handle originator-reference
+        // Handle originator-reference - use setStringparam with AMHS_att constant
         String origRef = amhsDefaults.get("originator-reference");
         if (origRef != null && !origRef.isEmpty()) {
-            message.setOriginatorReference(origRef);
+            // Originator reference is stored as extended header info
+            setExtendedHeaderField(message, "originator-reference", origRef);
         }
         
-        // Handle optional-heading-info (OHI)
+        // Handle optional-heading-info (OHI) - use setStringparam with AMHS_att constant
         String ohi = amhsDefaults.get("optional-heading-info");
         if (ohi != null && !ohi.isEmpty()) {
-            message.setOptionalHeadingInfo(ohi);
+            // OHI is stored using AMHS_att.ATS_S_OPTIONAL_HEADING_INFO
+            setExtendedHeaderField(message, "optional-heading-info", ohi);
         }
         
         // Handle responsibility
@@ -313,8 +318,9 @@ public class AMHSPayloadGeneratorService {
             int precValue = Integer.parseInt(precedence);
             
             // Map precedence to priority levels per EUR Doc 047
+            // Only 3 priorities available: LOW, NORMAL, HIGH
             if (precValue >= 100) {
-                message.setPriority(X400_Priority.HIGHEST_PRIORITY);
+                message.setPriority(X400_Priority.HIGH_PRIORITY);
             } else if (precValue >= 50) {
                 message.setPriority(X400_Priority.HIGH_PRIORITY);
             } else if (precValue >= 20) {
