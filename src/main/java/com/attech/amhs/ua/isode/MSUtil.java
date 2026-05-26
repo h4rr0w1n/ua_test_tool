@@ -91,7 +91,10 @@ public class MSUtil {
         StringBuffer value = new StringBuffer();
         final int stt = X400ms.x400_ms_msggetstrparam(ms, attribute, value);
         if (stt != X400_att.X400_E_NOERROR) {
-            //System.out.println(String.format("Fail to get int attribute from msmessage object. (Attribute: %s, Code: %s)", attribute, stt));
+            // Handle complex body and other non-critical errors gracefully
+            if (stt != X400_att.X400_E_COMPLEX_BODY && stt != X400_att.X400_E_MISSING_ATTR) {
+                logger.debug("Fail to get string attribute from msmessage object. (Attribute: {}, Code: {})", attribute, stt);
+            }
             return null;
         }
         return value.toString();
