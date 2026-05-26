@@ -126,7 +126,13 @@ public class TestMarkingPanel extends JPanel {
         StringBuilder receivedBuilder = new StringBuilder();
         StringBuilder sentBuilder = new StringBuilder();
         
-        for (MessageLog message : allMessages) {
+        int receivedCount = 0;
+        int sentCount = 0;
+        boolean limitActive = SettingsDialog.isLimitMessages();
+        int limit = SettingsDialog.getMessageLimit();
+        
+        for (int i = allMessages.size() - 1; i >= 0; i--) {
+            MessageLog message = allMessages.get(i);
             // Filter by User/O/R Address - check if message is related to current address
             boolean isMatching = currentUserAddress.isEmpty() || 
                                 messageContainsAddress(message, currentUserAddress);
@@ -136,11 +142,21 @@ public class TestMarkingPanel extends JPanel {
                 
                 // Use the isReceived flag to determine which panel to show the message in
                 if (message.isReceived()) {
-                    // Received message - show in received panel
-                    receivedBuilder.append(formatted).append("\n---\n");
+                    if (!limitActive || receivedCount < limit) {
+                        // Received message - show in received panel
+                        receivedBuilder.append(formatted).append("\n---\n");
+                        receivedCount++;
+                    }
                 } else {
-                    // Sent message - show in sent panel
-                    sentBuilder.append(formatted).append("\n---\n");
+                    if (!limitActive || sentCount < limit) {
+                        // Sent message - show in sent panel
+                        sentBuilder.append(formatted).append("\n---\n");
+                        sentCount++;
+                    }
+                }
+                
+                if (limitActive && receivedCount >= limit && sentCount >= limit) {
+                    break;
                 }
             }
         }
@@ -148,10 +164,12 @@ public class TestMarkingPanel extends JPanel {
         txtReceivedMessages.setText(receivedBuilder.toString());
         txtSentMessages.setText(sentBuilder.toString());
         
-        // Auto-scroll to bottom
+        // Auto-scroll
         SwingUtilities.invokeLater(() -> {
-            txtReceivedMessages.setCaretPosition(txtReceivedMessages.getDocument().getLength());
-            txtSentMessages.setCaretPosition(txtSentMessages.getDocument().getLength());
+            if (SettingsDialog.isAutoScrollMessages()) {
+                txtReceivedMessages.setCaretPosition(0);
+                txtSentMessages.setCaretPosition(0);
+            }
         });
     }
     

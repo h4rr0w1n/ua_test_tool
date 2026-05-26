@@ -13,11 +13,15 @@ public class SettingsDialog extends JDialog {
     private JTextField txtDefaultExportPath;
     private JCheckBox  chkAutoScrollLogs;
     private JCheckBox  chkAutoScrollMessages;
+    private JCheckBox  chkLimitMessages;
+    private JSpinner   spinMessageLimit;
 
     // Persisted settings (static so they survive dialog re-opens)
     private static String defaultExportPath  = ".";
     private static boolean autoScrollLogs    = true;
     private static boolean autoScrollMessages = true;
+    private static boolean limitMessages = false;
+    private static int messageLimit = 100;
 
     public SettingsDialog(Frame parent) {
         super(parent, "Tool Settings", true);
@@ -67,6 +71,17 @@ public class SettingsDialog extends JDialog {
         chkAutoScrollMessages = new JCheckBox("Auto-scroll message panels", autoScrollMessages);
         form.add(chkAutoScrollMessages, gbc);
 
+        // Limit Messages
+        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 1;
+        chkLimitMessages = new JCheckBox("Limit number of messages shown", limitMessages);
+        form.add(chkLimitMessages, gbc);
+
+        gbc.gridx = 1; gbc.gridwidth = 2;
+        spinMessageLimit = new JSpinner(new SpinnerNumberModel(messageLimit, 1, 10000, 10));
+        spinMessageLimit.setEnabled(limitMessages);
+        chkLimitMessages.addActionListener(e -> spinMessageLimit.setEnabled(chkLimitMessages.isSelected()));
+        form.add(spinMessageLimit, gbc);
+
         add(form, BorderLayout.CENTER);
 
         // ── Footer ────────────────────────────────────────────────────────
@@ -76,6 +91,8 @@ public class SettingsDialog extends JDialog {
             defaultExportPath    = txtDefaultExportPath.getText().trim();
             autoScrollLogs       = chkAutoScrollLogs.isSelected();
             autoScrollMessages   = chkAutoScrollMessages.isSelected();
+            limitMessages        = chkLimitMessages.isSelected();
+            messageLimit         = (Integer) spinMessageLimit.getValue();
             dispose();
         });
         JButton btnCancel = new JButton("Cancel");
@@ -90,4 +107,6 @@ public class SettingsDialog extends JDialog {
     public static String getDefaultExportPath()   { return defaultExportPath; }
     public static boolean isAutoScrollLogs()      { return autoScrollLogs; }
     public static boolean isAutoScrollMessages()  { return autoScrollMessages; }
+    public static boolean isLimitMessages()       { return limitMessages; }
+    public static int getMessageLimit()           { return messageLimit; }
 }

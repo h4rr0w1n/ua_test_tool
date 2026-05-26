@@ -137,7 +137,7 @@ public class XlsxExporter {
         headerRow.createCell(1).setCellValue("Name");
         headerRow.createCell(2).setCellValue("Description");
         headerRow.createCell(3).setCellValue("Result");
-        headerRow.createCell(4).setCellValue("Comment");
+        headerRow.createCell(4).setCellValue("Comments");
         headerRow.createCell(5).setCellValue("Subcase Count");
         
         for (int i = 0; i < 6; i++) {
@@ -188,7 +188,7 @@ public class XlsxExporter {
         headerRow.createCell(2).setCellValue("Subcase Name");
         headerRow.createCell(3).setCellValue("Description");
         headerRow.createCell(4).setCellValue("Result");
-        headerRow.createCell(5).setCellValue("Comment");
+        headerRow.createCell(5).setCellValue("Comments");
         headerRow.createCell(6).setCellValue("Marked");
         
         for (int i = 0; i < 7; i++) {
