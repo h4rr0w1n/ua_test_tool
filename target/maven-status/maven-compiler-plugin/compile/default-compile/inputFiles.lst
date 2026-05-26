@@ -8,6 +8,7 @@ C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\is
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\isode\enums\ConnectionType.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\model\TestCase.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\common\enums\MsgStatus.java
+C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\isode\BodypartFTBP.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\service\TestCaseLoader.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\isode\enums\MessageClass.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\ui\components\ActionLogsPanel.java
@@ -30,6 +31,7 @@ C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\ui
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\isode\ReceivedMessage1.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\common\MessageUtils.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\repository\TestCaseRepository.java
+C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\isode\BodypartGeneralText.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\model\TestSession.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\export\XlsxExporter.java
 C:\Users\maste\OneDrive\Desktop\ua_test_tool\src\main\java\com\attech\amhs\ua\service\AMHSPayloadGeneratorService.java

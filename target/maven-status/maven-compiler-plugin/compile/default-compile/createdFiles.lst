@@ -20,6 +20,7 @@ com\attech\amhs\ua\ui\components\TimerPanel$2.class
 com\attech\amhs\ua\common\MString.class
 com\attech\amhs\ua\service\AMHSMessageService$MessageSummary.class
 com\attech\amhs\ua\ui\components\ToolbarPanel.class
+com\attech\amhs\ua\isode\BodypartFTBP.class
 com\attech\amhs\ua\ui\components\MessageDisplayPanel.class
 com\attech\amhs\ua\isode\Connection1.class
 com\attech\amhs\ua\ui\components\TimerPanel$1.class
@@ -47,6 +48,7 @@ com\attech\amhs\ua\service\LocalAMHSMessageService$MessagePriority.class
 com\attech\amhs\ua\model\MessageLog.class
 com\attech\amhs\ua\service\TestCaseTemplate.class
 com\attech\amhs\ua\common\MessageUtils.class
+com\attech\amhs\ua\isode\BodypartGeneralText.class
 com\attech\amhs\ua\model\TestSubcase.class
 com\attech\amhs\ua\service\LocalAMHSMessageService.class
 com\attech\amhs\ua\ui\components\TestControlPanel.class
