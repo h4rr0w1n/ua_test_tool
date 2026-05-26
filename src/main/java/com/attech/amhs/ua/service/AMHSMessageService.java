@@ -346,24 +346,24 @@ public class AMHSMessageService {
                 try {
                     try {
                         summary.setSubject(rm.getSubject());
-                    } catch (X400APIException e) {
+                    } catch (Exception e) {
                         summary.setSubject(null);
                     }
                     try {
                         summary.setSender(rm.getFrom());
-                    } catch (X400APIException e) {
+                    } catch (Exception e) {
                         summary.setSender(null);
                     }
                     try {
                         summary.setContent(rm.getTextContent());
-                    } catch (X400APIException e) {
+                    } catch (Exception e) {
                         String emsg = e.getMessage() != null ? e.getMessage() : "";
                         if (emsg.contains("status = 80") || emsg.contains("COMPLEX_BODY") || emsg.contains("x400_ms_msggetstrparam")) {
                             // Complex/non-text body — treat content as null and continue
                             summary.setContent(null);
                         } else {
-                            // Unknown error — rethrow to be handled by outer catch
-                            throw e;
+                            // Unknown error — rethrow as X400APIException so outer handler deals with it
+                            throw new X400APIException(e.getMessage());
                         }
                     }
 
