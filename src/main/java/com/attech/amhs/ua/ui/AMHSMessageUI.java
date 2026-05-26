@@ -31,48 +31,49 @@ import javax.swing.border.TitledBorder;
  *
  * Window layout:
  * ┌───────────────────────────────────────────────────────────────────────┐
- * │  TOOLBAR  [timer | case pass/fail/note | msg pass/fail/note | results | export | settings] │
+ * │ TOOLBAR [timer | case pass/fail/note | msg pass/fail/note | results |
+ * export | settings] │
  * ├────────────────┬──────────────────────────────┬────────────────────────┤
- * │  CASE panel    │  Message Operation (top)      │  Messages (right)      │
- * │  (JTree)       │──────────────────────────────│                        │
- * │                │  Connect Config (bottom)      │                        │
+ * │ CASE panel │ Message Operation (top) │ Messages (right) │
+ * │ (JTree) │──────────────────────────────│ │
+ * │ │ Connect Config (bottom) │ │
  * ├────────────────┴──────────────────────────────┴────────────────────────┤
- * │  Action Logs (collapsible strip)                                        │
+ * │ Action Logs (collapsible strip) │
  * └─────────────────────────────────────────────────────────────────────────┘
  */
 public class AMHSMessageUI extends JFrame {
 
     // Services
-    private AMHSMessageService  messageService;
-    private TestCaseRepository  repository;
+    private AMHSMessageService messageService;
+    private TestCaseRepository repository;
     private TestSessionRecorder recorder;
 
     // Panels
-    private ToolbarPanel          toolbarPanel;
+    private ToolbarPanel toolbarPanel;
     private TestCaseSelectorPanel selectorPanel;
-    private ActionLogsPanel       actionLogsPanel;
-    private TestMarkingPanel      markingPanel;
+    private ActionLogsPanel actionLogsPanel;
+    private TestMarkingPanel markingPanel;
 
     // Connection-config fields (center-bottom pane)
-    private JTextField     txtPresentationAddress;
-    private JTextField     txtUserOrAddress;
+    private JTextField txtPresentationAddress;
+    private JTextField txtUserOrAddress;
     private JPasswordField txtPassword;
-    private JRadioButton   radioP7;
-    private JRadioButton   radioP3;
-    private JLabel         lblConnectionStatus;
+    private JRadioButton radioP7;
+    private JRadioButton radioP3;
+    private JLabel lblConnectionStatus;
 
     // Message-operation fields (center-top pane)
-    private JTextField          txtRecipient;
-    private JTextField          txtSubject;
-    private JTextArea           txtContent;
+    private JTextField txtRecipient;
+    private JTextField txtSubject;
+    private JTextArea txtContent;
     private JComboBox<X400_Priority> comboPriority;
 
     // ── Constructor ───────────────────────────────────────────────────────
 
     public AMHSMessageUI() {
         messageService = new AMHSMessageService();
-        repository     = new TestCaseRepository();
-        recorder       = new TestSessionRecorder();
+        repository = new TestCaseRepository();
+        recorder = new TestSessionRecorder();
 
         initializeTestCases();
         initUI();
@@ -82,13 +83,14 @@ public class AMHSMessageUI extends JFrame {
     private void initializeTestCases() {
         // First load the default test cases structure
         List<TestCase> testCases = TestCaseLoader.loadDefaultTestCases();
-        
-        // Then override with cases loaded from properties files (which include AMHS defaults)
+
+        // Then override with cases loaded from properties files (which include AMHS
+        // defaults)
         List<TestCase> configuredTestCases = TestCaseConfigLoader.loadAllTestCases();
         if (!configuredTestCases.isEmpty()) {
             testCases = configuredTestCases;
         }
-        
+
         repository.initializeWithTestCases(testCases);
     }
 
@@ -121,19 +123,19 @@ public class AMHSMessageUI extends JFrame {
 
     /**
      * Three-column horizontal split:
-     *   LEFT  – case selector (JTree)
-     *   CENTER – message-ops (top) + connect-config (bottom)
-     *   RIGHT  – messages
+     * LEFT – case selector (JTree)
+     * CENTER – message-ops (top) + connect-config (bottom)
+     * RIGHT – messages
      */
     private JSplitPane buildThreeColumnSplit() {
         // LEFT panel
         selectorPanel = new TestCaseSelectorPanel(repository);
         selectorPanel.addDefaultsLoadedListener("main", this::handleLoadDefaultsForSubcase);
-        selectorPanel.addSendDefaultsListener("main",   this::handleSendDefaults);
+        selectorPanel.addSendDefaultsListener("main", this::handleSendDefaults);
         JScrollPane leftScroll = new JScrollPane(selectorPanel);
         leftScroll.setMinimumSize(new Dimension(240, 0));
 
-        // CENTER panel  (message ops / connect config vertical split)
+        // CENTER panel (message ops / connect config vertical split)
         JSplitPane centerSplit = buildCenterSplit();
         centerSplit.setMinimumSize(new Dimension(380, 0));
 
@@ -164,10 +166,10 @@ public class AMHSMessageUI extends JFrame {
      * Both halves have titled borders and are separated by a draggable divider.
      */
     private JSplitPane buildCenterSplit() {
-        JPanel msgOpsPanel    = createMessageOperationsPanel();
+        JPanel msgOpsPanel = createMessageOperationsPanel();
         JScrollPane msgScroll = new JScrollPane(msgOpsPanel);
 
-        JPanel connPanel      = createConnectionConfigPanel();
+        JPanel connPanel = createConnectionConfigPanel();
         JScrollPane connScroll = new JScrollPane(connPanel);
 
         JSplitPane split = new JSplitPane(
@@ -187,46 +189,69 @@ public class AMHSMessageUI extends JFrame {
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(4, 5, 4, 5);
-        gbc.fill   = GridBagConstraints.HORIZONTAL;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
         // Recipient
-        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0;
         panel.add(new JLabel("Recipient:"), gbc);
-        gbc.gridx = 1; gbc.gridwidth = 3; gbc.weightx = 1.0;
+        gbc.gridx = 1;
+        gbc.gridwidth = 3;
+        gbc.weightx = 1.0;
         txtRecipient = new JTextField("/CN=P7User1/OU=Sales/O=nova/PRMD=Isode/ADMD= /C=GB/", 30);
         panel.add(txtRecipient, gbc);
 
         // Subject
-        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 1; gbc.weightx = 0;
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
         panel.add(new JLabel("Subject:"), gbc);
-        gbc.gridx = 1; gbc.gridwidth = 3; gbc.weightx = 1.0;
+        gbc.gridx = 1;
+        gbc.gridwidth = 3;
+        gbc.weightx = 1.0;
         txtSubject = new JTextField("Test X.400 Message", 30);
         panel.add(txtSubject, gbc);
 
         // Priority
-        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 1; gbc.weightx = 0;
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
         panel.add(new JLabel("Priority:"), gbc);
-        gbc.gridx = 1; gbc.gridwidth = 1; gbc.weightx = 0.5;
-        comboPriority = new JComboBox<>(new X400_Priority[]{
-            X400_Priority.NORMAL_PRIORITY,
-            X400_Priority.LOW_PRIORITY,
-            X400_Priority.HIGH_PRIORITY
+        gbc.gridx = 1;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.5;
+        comboPriority = new JComboBox<>(new X400_Priority[] {
+                X400_Priority.NORMAL_PRIORITY,
+                X400_Priority.LOW_PRIORITY,
+                X400_Priority.HIGH_PRIORITY
         });
         panel.add(comboPriority, gbc);
 
         // Content
-        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 1; gbc.weightx = 0;
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
         gbc.anchor = GridBagConstraints.NORTHWEST;
         panel.add(new JLabel("Content:"), gbc);
-        gbc.gridx = 1; gbc.gridwidth = 3; gbc.weightx = 1.0; gbc.weighty = 1.0;
+        gbc.gridx = 1;
+        gbc.gridwidth = 3;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
         txtContent = new JTextArea(6, 30);
         txtContent.setText("This is a test message sent via AMHS X.400.");
         panel.add(new JScrollPane(txtContent), gbc);
 
         // Buttons
-        gbc.gridy = 4; gbc.gridwidth = 1; gbc.weightx = 0;
-        gbc.weighty = 0; gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridy = 4;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
+        gbc.weighty = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.anchor = GridBagConstraints.CENTER;
 
         gbc.gridx = 0;
@@ -247,7 +272,8 @@ public class AMHSMessageUI extends JFrame {
         gbc.gridx = 3;
         JButton btnClearLogs = new JButton("Clear Logs");
         btnClearLogs.addActionListener(e -> {
-            if (actionLogsPanel != null) actionLogsPanel.clearLogs();
+            if (actionLogsPanel != null)
+                actionLogsPanel.clearLogs();
         });
         panel.add(btnClearLogs, gbc);
 
@@ -261,65 +287,92 @@ public class AMHSMessageUI extends JFrame {
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(4, 5, 4, 5);
-        gbc.fill   = GridBagConstraints.HORIZONTAL;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
         // Presentation Address
-        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0;
         panel.add(new JLabel("Presentation Address:"), gbc);
-        gbc.gridx = 1; gbc.gridwidth = 3; gbc.weightx = 1.0;
+        gbc.gridx = 1;
+        gbc.gridwidth = 3;
+        gbc.weightx = 1.0;
         txtPresentationAddress = new JTextField(
                 "\"3001\"/Internet=nova.isode.net+3001", 30);
         panel.add(txtPresentationAddress, gbc);
 
         // User/O/R Address
-        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 1; gbc.weightx = 0;
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
         panel.add(new JLabel("User/O/R Address:"), gbc);
-        gbc.gridx = 1; gbc.gridwidth = 3; gbc.weightx = 1.0;
+        gbc.gridx = 1;
+        gbc.gridwidth = 3;
+        gbc.weightx = 1.0;
         txtUserOrAddress = new JTextField(
                 "/CN=P7User1/OU=Sales/O=nova/PRMD=Isode/ADMD= /C=GB/", 30);
         panel.add(txtUserOrAddress, gbc);
 
         // Password + connection type
-        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 1; gbc.weightx = 0;
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
         panel.add(new JLabel("Password:"), gbc);
-        gbc.gridx = 1; gbc.gridwidth = 2; gbc.weightx = 1.0;
+        gbc.gridx = 1;
+        gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
         txtPassword = new JPasswordField("secret", 20);
         panel.add(txtPassword, gbc);
 
-        gbc.gridx = 3; gbc.gridwidth = 1; gbc.weightx = 0;
+        gbc.gridx = 3;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
         ButtonGroup grp = new ButtonGroup();
         radioP7 = new JRadioButton("P7 (Message Store)");
         radioP3 = new JRadioButton("P3 (Channel)");
         radioP7.setSelected(true);
-        grp.add(radioP7); grp.add(radioP3);
+        grp.add(radioP7);
+        grp.add(radioP3);
         JPanel radioPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        radioPanel.add(radioP7); radioPanel.add(radioP3);
+        radioPanel.add(radioP7);
+        radioPanel.add(radioP3);
         panel.add(radioPanel, gbc);
 
         // Connect / Disconnect
-        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2; gbc.weightx = 0;
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 2;
+        gbc.weightx = 0;
         JButton btnConnect = new JButton("Connect");
         btnConnect.addActionListener(e -> connect());
         panel.add(btnConnect, gbc);
 
-        gbc.gridx = 2; gbc.gridwidth = 2;
+        gbc.gridx = 2;
+        gbc.gridwidth = 2;
         JButton btnDisconnect = new JButton("Disconnect");
         btnDisconnect.addActionListener(e -> disconnect());
         panel.add(btnDisconnect, gbc);
 
         // Load / Save Config
-        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2;
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.gridwidth = 2;
         JButton btnLoad = new JButton("Load Config File");
         btnLoad.addActionListener(e -> loadConfigFromFile());
         panel.add(btnLoad, gbc);
 
-        gbc.gridx = 2; gbc.gridwidth = 2;
+        gbc.gridx = 2;
+        gbc.gridwidth = 2;
         JButton btnSave = new JButton("Save Config File");
         btnSave.addActionListener(e -> saveConfigToFile());
         panel.add(btnSave, gbc);
 
         // Status
-        gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 4;
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.gridwidth = 4;
         lblConnectionStatus = new JLabel("Status: Disconnected");
         lblConnectionStatus.setForeground(Color.RED);
         panel.add(lblConnectionStatus, gbc);
@@ -332,11 +385,11 @@ public class AMHSMessageUI extends JFrame {
     private void wireToolbarCallbacks() {
         toolbarPanel.setOnMarkCasePass(() -> markSelectedCase("PASS"));
         toolbarPanel.setOnMarkCaseFail(() -> markSelectedCase("FAIL"));
-        toolbarPanel.setOnNoteCase(    () -> addNoteToCase());
+        toolbarPanel.setOnNoteCase(() -> addNoteToCase());
 
         toolbarPanel.setOnMarkMsgPass(() -> markSelectedMessage("PASS"));
         toolbarPanel.setOnMarkMsgFail(() -> markSelectedMessage("FAIL"));
-        toolbarPanel.setOnNoteMsg(    () -> addNoteToMessage());
+        toolbarPanel.setOnNoteMsg(() -> addNoteToMessage());
 
         toolbarPanel.setOnShowResults(() -> {
             ResultsPopupDialog dlg = new ResultsPopupDialog(this, repository);
@@ -357,7 +410,7 @@ public class AMHSMessageUI extends JFrame {
         TestCase tc = getSelectedCase();
         if (tc == null) {
             JOptionPane.showMessageDialog(this,
-                "No test case selected.", "Warning", JOptionPane.WARNING_MESSAGE);
+                    "No test case selected.", "Warning", JOptionPane.WARNING_MESSAGE);
             return;
         }
         repository.markTestCase(tc.getId(), result, null);
@@ -366,11 +419,11 @@ public class AMHSMessageUI extends JFrame {
     }
 
     private void markSelectedMessage(String result) {
-        TestCase tc    = getSelectedCase();
+        TestCase tc = getSelectedCase();
         TestSubcase sc = getSelectedSubcase();
         if (tc == null || sc == null) {
             JOptionPane.showMessageDialog(this,
-                "No message (subcase) selected.", "Warning", JOptionPane.WARNING_MESSAGE);
+                    "No message (subcase) selected.", "Warning", JOptionPane.WARNING_MESSAGE);
             return;
         }
         repository.markSubcase(tc.getId(), sc.getId(), result, null);
@@ -382,12 +435,12 @@ public class AMHSMessageUI extends JFrame {
         TestCase tc = getSelectedCase();
         if (tc == null) {
             JOptionPane.showMessageDialog(this,
-                "No test case selected.", "Warning", JOptionPane.WARNING_MESSAGE);
+                    "No test case selected.", "Warning", JOptionPane.WARNING_MESSAGE);
             return;
         }
         String note = JOptionPane.showInputDialog(this,
-            "Enter note for case " + tc.getId() + ":",
-            tc.getComment() != null ? tc.getComment() : "");
+                "Enter note for case " + tc.getId() + ":",
+                tc.getComment() != null ? tc.getComment() : "");
         if (note != null) {
             tc.setComment(note);
             selectorPanel.refresh();
@@ -396,16 +449,16 @@ public class AMHSMessageUI extends JFrame {
     }
 
     private void addNoteToMessage() {
-        TestCase tc    = getSelectedCase();
+        TestCase tc = getSelectedCase();
         TestSubcase sc = getSelectedSubcase();
         if (tc == null || sc == null) {
             JOptionPane.showMessageDialog(this,
-                "No message (subcase) selected.", "Warning", JOptionPane.WARNING_MESSAGE);
+                    "No message (subcase) selected.", "Warning", JOptionPane.WARNING_MESSAGE);
             return;
         }
         String note = JOptionPane.showInputDialog(this,
-            "Enter note for message " + sc.getId() + ":",
-            sc.getComment() != null ? sc.getComment() : "");
+                "Enter note for message " + sc.getId() + ":",
+                sc.getComment() != null ? sc.getComment() : "");
         if (note != null) {
             sc.setComment(note);
             selectorPanel.refresh();
@@ -417,19 +470,19 @@ public class AMHSMessageUI extends JFrame {
         JFileChooser fc = new JFileChooser(SettingsDialog.getDefaultExportPath());
         fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
         fc.setSelectedFile(new File(
-            SettingsDialog.getDefaultExportPath() + File.separator +
-            "amhs_test_results_" + System.currentTimeMillis() + ".xlsx"));
+                SettingsDialog.getDefaultExportPath() + File.separator +
+                        "amhs_test_results_" + System.currentTimeMillis() + ".xlsx"));
         if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             try {
                 new XlsxExporter(repository, recorder.getTestSession())
                         .export(fc.getSelectedFile().getAbsolutePath());
                 JOptionPane.showMessageDialog(this,
-                    "Exported to:\n" + fc.getSelectedFile().getAbsolutePath(),
-                    "Export Successful", JOptionPane.INFORMATION_MESSAGE);
+                        "Exported to:\n" + fc.getSelectedFile().getAbsolutePath(),
+                        "Export Successful", JOptionPane.INFORMATION_MESSAGE);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this,
-                    "Export failed: " + ex.getMessage(),
-                    "Export Error", JOptionPane.ERROR_MESSAGE);
+                        "Export failed: " + ex.getMessage(),
+                        "Export Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -451,7 +504,7 @@ public class AMHSMessageUI extends JFrame {
         lblConnectionStatus.setForeground(Color.BLUE);
         appendOutput("Initiating connection to X.400 system…");
 
-        String address  = txtPresentationAddress.getText().trim();
+        String address = txtPresentationAddress.getText().trim();
         String userAddr = txtUserOrAddress.getText().trim();
         String password = new String(txtPassword.getPassword());
 
@@ -469,7 +522,8 @@ public class AMHSMessageUI extends JFrame {
                     lblConnectionStatus.setText("Status: Connected");
                     lblConnectionStatus.setForeground(new Color(0, 140, 0));
                     appendOutput("Successfully connected to X.400 system");
-                    if (markingPanel != null) markingPanel.setUserAddress(userAddr);
+                    if (markingPanel != null)
+                        markingPanel.setUserAddress(userAddr);
                 });
             } catch (Throwable t) {
                 SwingUtilities.invokeLater(() -> {
@@ -479,8 +533,8 @@ public class AMHSMessageUI extends JFrame {
                     if (t instanceof UnsatisfiedLinkError ||
                             (t.getMessage() != null && t.getMessage().contains("Native library"))) {
                         appendOutput("=== NATIVE LIBRARY ERROR ===\n" +
-                            "The Isode X.400 native libraries are not properly installed.\n" +
-                            "Required: pthreadvc2.dll, CJavaInterface.dll in lib/amd64/");
+                                "The Isode X.400 native libraries are not properly installed.\n" +
+                                "Required: pthreadvc2.dll, CJavaInterface.dll in lib/amd64/");
                     }
                     if (t instanceof X400APIException) {
                         appendOutput("Error code: " + ((X400APIException) t).getNativeErrorCode());
@@ -510,8 +564,8 @@ public class AMHSMessageUI extends JFrame {
         }
 
         String recipient = txtRecipient.getText().trim();
-        String subject   = txtSubject.getText().trim();
-        String content   = txtContent.getText().trim();
+        String subject = txtSubject.getText().trim();
+        String content = txtContent.getText().trim();
         X400_Priority priority = (X400_Priority) comboPriority.getSelectedItem();
 
         if (recipient.isEmpty() || subject.isEmpty() || content.isEmpty()) {
@@ -554,8 +608,7 @@ public class AMHSMessageUI extends JFrame {
                     SwingUtilities.invokeLater(() -> appendOutput("No messages found."));
                     return;
                 }
-                List<AMHSMessageService.MessageSummary> msgs =
-                        messageService.receiveMessages(all.size());
+                List<AMHSMessageService.MessageSummary> msgs = messageService.receiveMessages(all.size());
                 SwingUtilities.invokeLater(() -> {
                     appendOutput("Received " + msgs.size() + " message(s):");
                     StringBuilder details = new StringBuilder();
@@ -564,7 +617,7 @@ public class AMHSMessageUI extends JFrame {
                         addMessageToMarkingPanel(m.getSender(), m.getSubject(),
                                 m.getContent(), null, true, null, true);
                         details.append("From: ").append(m.getSender())
-                               .append(", Subject: ").append(m.getSubject()).append("\n");
+                                .append(", Subject: ").append(m.getSubject()).append("\n");
                     }
                     if (actionLogsPanel != null) {
                         actionLogsPanel.logReceiveMessages(
@@ -595,15 +648,14 @@ public class AMHSMessageUI extends JFrame {
                         appendOutput("Mailbox contains " + msgs.size() + " message(s):");
                         for (AMHSMessageService.MessageSummary m : msgs) {
                             appendOutput("  From: " + m.getSender() +
-                                "  Subject: " + m.getSubject() +
-                                "  Time: " + m.getSubmissionTime() +
-                                "  Size: " + m.getContentLength() + " bytes");
+                                    "  Subject: " + m.getSubject() +
+                                    "  Time: " + m.getSubmissionTime() +
+                                    "  Size: " + m.getContentLength() + " bytes");
                         }
                     }
                 });
             } catch (Throwable t) {
-                SwingUtilities.invokeLater(() ->
-                        appendOutput("Failed to get mailbox summary: " + t.getMessage()));
+                SwingUtilities.invokeLater(() -> appendOutput("Failed to get mailbox summary: " + t.getMessage()));
             }
         }).start();
     }
@@ -611,7 +663,7 @@ public class AMHSMessageUI extends JFrame {
     // ── Defaults handling ─────────────────────────────────────────────────
 
     private void loadBootDefaults() {
-        txtRecipient.setText("/CN=P7User1/OU=Sales/O=nova/PRMD=Isode/ADMD= /C=GB/");
+        txtRecipient.setText("/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         txtSubject.setText("Test X.400 Message");
         txtContent.setText("This is a test message sent via AMHS X.400.");
         comboPriority.setSelectedItem(X400_Priority.NORMAL_PRIORITY);
@@ -641,39 +693,41 @@ public class AMHSMessageUI extends JFrame {
         new Thread(() -> {
             try {
                 String recipient = txtRecipient.getText().trim();
-                String subject   = txtSubject.getText().trim();
-                String content   = txtContent.getText().trim();
+                String subject = txtSubject.getText().trim();
+                String content = txtContent.getText().trim();
                 X400_Priority priority = (X400_Priority) comboPriority.getSelectedItem();
                 if (recipient.isEmpty() || subject.isEmpty() || content.isEmpty()) {
                     appendOutput("Error: Recipient, subject, and content are required.");
                     return;
                 }
                 String msgId = messageService.sendMessage(recipient, subject, content, priority);
-                SwingUtilities.invokeLater(() ->
-                        appendOutput("Defaults sent successfully. Message ID: " + msgId));
+                SwingUtilities.invokeLater(() -> appendOutput("Defaults sent successfully. Message ID: " + msgId));
             } catch (Throwable t) {
-                SwingUtilities.invokeLater(() ->
-                        appendOutput("Send defaults failed: " + t.getMessage()));
+                SwingUtilities.invokeLater(() -> appendOutput("Send defaults failed: " + t.getMessage()));
             }
         }).start();
     }
 
     private void applyDefaults(Map<String, String> defaults) {
-        if (defaults.containsKey("recipient")) txtRecipient.setText(defaults.get("recipient"));
-        if (defaults.containsKey("subject"))   txtSubject.setText(defaults.get("subject"));
-        if (defaults.containsKey("content"))   txtContent.setText(defaults.get("content"));
+        if (defaults.containsKey("recipient"))
+            txtRecipient.setText(defaults.get("recipient"));
+        if (defaults.containsKey("subject"))
+            txtSubject.setText(defaults.get("subject"));
+        if (defaults.containsKey("content"))
+            txtContent.setText(defaults.get("content"));
         if (defaults.containsKey("priority")) {
             String p = defaults.get("priority");
             // Handle ICAO ATS priority codes and generic priority levels
-            if ("KK".equalsIgnoreCase(p) || "LOW".equalsIgnoreCase(p))     
+            if ("KK".equalsIgnoreCase(p) || "LOW".equalsIgnoreCase(p))
                 comboPriority.setSelectedItem(X400_Priority.LOW_PRIORITY);
             else if ("GG".equalsIgnoreCase(p) || "DD".equalsIgnoreCase(p) || "FF".equalsIgnoreCase(p) ||
-                     "HIGH".equalsIgnoreCase(p) || "URGENT".equalsIgnoreCase(p))      
+                    "HIGH".equalsIgnoreCase(p) || "URGENT".equalsIgnoreCase(p))
                 comboPriority.setSelectedItem(X400_Priority.HIGH_PRIORITY);
             else if ("SS".equalsIgnoreCase(p))
-                // SS priority maps to Normal (Special Service in ICAO, but AMQP uses discrete levels)
+                // SS priority maps to Normal (Special Service in ICAO, but AMQP uses discrete
+                // levels)
                 comboPriority.setSelectedItem(X400_Priority.NORMAL_PRIORITY);
-            else                                         
+            else
                 comboPriority.setSelectedItem(X400_Priority.NORMAL_PRIORITY);
         }
     }
@@ -683,30 +737,34 @@ public class AMHSMessageUI extends JFrame {
     private void addMessageToMarkingPanel(String recipientOrSender, String subject,
             String content, String priority, boolean success,
             String errorMessage, boolean isReceived) {
-        if (markingPanel == null) return;
+        if (markingPanel == null)
+            return;
         MessageLog log = new MessageLog(
-            getSelectedCase()    != null ? getSelectedCase().getId()    : "N/A",
-            getSelectedSubcase() != null ? getSelectedSubcase().getId() : "N/A"
-        );
+                getSelectedCase() != null ? getSelectedCase().getId() : "N/A",
+                getSelectedSubcase() != null ? getSelectedSubcase().getId() : "N/A");
         log.setRecipient(recipientOrSender);
         log.setSubject(subject);
         log.setContent(content);
-        if (priority != null) log.setPriority(priority);
+        if (priority != null)
+            log.setPriority(priority);
         log.setSuccess(success);
-        if (errorMessage != null) log.setErrorMessage(errorMessage);
+        if (errorMessage != null)
+            log.setErrorMessage(errorMessage);
         log.setIsReceived(isReceived);
-        
+
         String x400Payload = "X.400 Message Attributes:\n" +
-            "- " + (isReceived ? "Sender" : "Recipient") + " (O/R Address): " + recipientOrSender + "\n" +
-            "- Subject: " + subject + "\n" +
-            "- Content-Type: IA5Text\n" +
-            "- Priority: " + (priority != null ? priority : "NORMAL_PRIORITY") + "\n" +
-            (!isReceived ? "- Delivery Report Request: DR_NON_DELIVERY_REPORT\n- IPN Request: IPN_NON_RECEIPT_NOTIFICATION\n" : "");
-                           
+                "- " + (isReceived ? "Sender" : "Recipient") + " (O/R Address): " + recipientOrSender + "\n" +
+                "- Subject: " + subject + "\n" +
+                "- Content-Type: IA5Text\n" +
+                "- Priority: " + (priority != null ? priority : "NORMAL_PRIORITY") + "\n" +
+                (!isReceived
+                        ? "- Delivery Report Request: DR_NON_DELIVERY_REPORT\n- IPN Request: IPN_NON_RECEIPT_NOTIFICATION\n"
+                        : "");
+
         log.setX400Payload(x400Payload);
-        
+
         markingPanel.addMessage(log, isReceived);
-        
+
         if (recorder != null && recorder.getTestSession() != null) {
             recorder.getTestSession().addMessageLog(log);
         }
@@ -714,21 +772,21 @@ public class AMHSMessageUI extends JFrame {
 
     private void logSend(String recipient, String subject, String content,
             X400_Priority priority, boolean success) {
-        if (actionLogsPanel == null) return;
-        
+        if (actionLogsPanel == null)
+            return;
+
         String x400Payload = "X.400 Message Attributes:\n" +
-            "- Recipient (O/R Address): " + recipient + "\n" +
-            "- Subject: " + subject + "\n" +
-            "- Content-Type: IA5Text\n" +
-            "- Priority: " + (priority != null ? priority.toString() : "NORMAL_PRIORITY") + "\n" +
-            "- Delivery Report Request: DR_NON_DELIVERY_REPORT\n" +
-            "- IPN Request: IPN_NON_RECEIPT_NOTIFICATION";
+                "- Recipient (O/R Address): " + recipient + "\n" +
+                "- Subject: " + subject + "\n" +
+                "- Content-Type: IA5Text\n" +
+                "- Priority: " + (priority != null ? priority.toString() : "NORMAL_PRIORITY") + "\n" +
+                "- Delivery Report Request: DR_NON_DELIVERY_REPORT\n" +
+                "- IPN Request: IPN_NON_RECEIPT_NOTIFICATION";
 
         actionLogsPanel.logSendMessage(
-            getSelectedCase()    != null ? getSelectedCase().getId()    : "N/A",
-            getSelectedSubcase() != null ? getSelectedSubcase().getId() : "N/A",
-            recipient, subject, content, priority.toString(), success, null, x400Payload
-        );
+                getSelectedCase() != null ? getSelectedCase().getId() : "N/A",
+                getSelectedSubcase() != null ? getSelectedSubcase().getId() : "N/A",
+                recipient, subject, content, priority.toString(), success, null, x400Payload);
     }
 
     private void appendOutput(String text) {
@@ -743,7 +801,8 @@ public class AMHSMessageUI extends JFrame {
 
     private void loadConfigFromFile() {
         java.io.File file = new java.io.File(CONFIG_FILE);
-        if (!file.exists()) return;
+        if (!file.exists())
+            return;
         java.util.Properties props = new java.util.Properties();
         try (java.io.FileInputStream fis = new java.io.FileInputStream(file)) {
             props.load(fis);
@@ -766,11 +825,11 @@ public class AMHSMessageUI extends JFrame {
     private void saveConfigToFile() {
         java.util.Properties props = new java.util.Properties();
         props.setProperty("presentationAddress", txtPresentationAddress.getText().trim());
-        props.setProperty("userOrAddress",       txtUserOrAddress.getText().trim());
-        props.setProperty("password",            new String(txtPassword.getPassword()));
-        props.setProperty("recipient",           txtRecipient.getText().trim());
-        props.setProperty("subject",             txtSubject.getText().trim());
-        props.setProperty("connectionType",      radioP3.isSelected() ? "P3" : "P7");
+        props.setProperty("userOrAddress", txtUserOrAddress.getText().trim());
+        props.setProperty("password", new String(txtPassword.getPassword()));
+        props.setProperty("recipient", txtRecipient.getText().trim());
+        props.setProperty("subject", txtSubject.getText().trim());
+        props.setProperty("connectionType", radioP3.isSelected() ? "P3" : "P7");
         try (java.io.FileOutputStream fos = new java.io.FileOutputStream(CONFIG_FILE)) {
             props.store(fos, "AMHS UA Test Tool Connection Settings");
             appendOutput("Saved configuration to " + CONFIG_FILE);
@@ -784,7 +843,8 @@ public class AMHSMessageUI extends JFrame {
     public static void main(String[] args) {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         SwingUtilities.invokeLater(() -> {
             AMHSMessageUI ui = new AMHSMessageUI();
