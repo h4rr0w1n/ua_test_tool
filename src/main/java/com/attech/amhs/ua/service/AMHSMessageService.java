@@ -341,15 +341,41 @@ public class AMHSMessageService {
             
             for (int i = 0; i < toReceive; i++) {
                 ReceiveMsg rm = bindSession.receiveNextAvailableMessage();
-                
+
                 MessageSummary summary = new MessageSummary();
-                summary.setSubject(rm.getSubject());
-                summary.setSender(rm.getFrom());
-                summary.setContent(rm.getTextContent());
-                
-                messages.add(summary);
-                
-                rm.finishWithMessage(0, 0);
+                try {
+                    try {
+                        summary.setSubject(rm.getSubject());
+                    } catch (X400APIException e) {
+                        summary.setSubject(null);
+                    }
+                    try {
+                        summary.setSender(rm.getFrom());
+                    } catch (X400APIException e) {
+                        summary.setSender(null);
+                    }
+                    try {
+                        summary.setContent(rm.getTextContent());
+                    } catch (X400APIException e) {
+                        String emsg = e.getMessage() != null ? e.getMessage() : "";
+                        if (emsg.contains("status = 80") || emsg.contains("COMPLEX_BODY") || emsg.contains("x400_ms_msggetstrparam")) {
+                            // Complex/non-text body — treat content as null and continue
+                            summary.setContent(null);
+                        } else {
+                            // Unknown error — rethrow to be handled by outer catch
+                            throw e;
+                        }
+                    }
+
+                    messages.add(summary);
+                } finally {
+                    try {
+                        rm.finishWithMessage(0, 0);
+                    } catch (X400APIException ex) {
+                        // Log and continue
+                        System.err.println("Error finishing message: " + ex.getMessage());
+                    }
+                }
             }
             
             bindSession.unbind();
