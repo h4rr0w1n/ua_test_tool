@@ -610,9 +610,21 @@ public class AMHSMessageUI extends JFrame {
 
     // ── Defaults handling ─────────────────────────────────────────────────
 
+    private void loadBootDefaults() {
+        txtRecipient.setText("/CN=P7User1/OU=Sales/O=nova/PRMD=Isode/ADMD= /C=GB/");
+        txtSubject.setText("Test X.400 Message");
+        txtContent.setText("This is a test message sent via AMHS X.400.");
+        comboPriority.setSelectedItem(X400_Priority.NORMAL_PRIORITY);
+    }
+
     private void handleLoadDefaultsForSubcase() {
         TestSubcase sc = getSelectedSubcase();
-        if (sc == null || sc.getAmhsDefaults().isEmpty()) {
+        if (sc == null) {
+            loadBootDefaults();
+            appendOutput("Loaded default configuration (boot baseline).");
+            return;
+        }
+        if (sc.getAmhsDefaults().isEmpty()) {
             appendOutput("No default configuration available for selected subcase");
             return;
         }
@@ -682,16 +694,40 @@ public class AMHSMessageUI extends JFrame {
         if (priority != null) log.setPriority(priority);
         log.setSuccess(success);
         if (errorMessage != null) log.setErrorMessage(errorMessage);
+        log.setIsReceived(isReceived);
+        
+        String x400Payload = "X.400 Message Attributes:\n" +
+            "- " + (isReceived ? "Sender" : "Recipient") + " (O/R Address): " + recipientOrSender + "\n" +
+            "- Subject: " + subject + "\n" +
+            "- Content-Type: IA5Text\n" +
+            "- Priority: " + (priority != null ? priority : "NORMAL_PRIORITY") + "\n" +
+            (!isReceived ? "- Delivery Report Request: DR_NON_DELIVERY_REPORT\n- IPN Request: IPN_NON_RECEIPT_NOTIFICATION\n" : "");
+                           
+        log.setX400Payload(x400Payload);
+        
         markingPanel.addMessage(log, isReceived);
+        
+        if (recorder != null && recorder.getTestSession() != null) {
+            recorder.getTestSession().addMessageLog(log);
+        }
     }
 
     private void logSend(String recipient, String subject, String content,
             X400_Priority priority, boolean success) {
         if (actionLogsPanel == null) return;
+        
+        String x400Payload = "X.400 Message Attributes:\n" +
+            "- Recipient (O/R Address): " + recipient + "\n" +
+            "- Subject: " + subject + "\n" +
+            "- Content-Type: IA5Text\n" +
+            "- Priority: " + (priority != null ? priority.toString() : "NORMAL_PRIORITY") + "\n" +
+            "- Delivery Report Request: DR_NON_DELIVERY_REPORT\n" +
+            "- IPN Request: IPN_NON_RECEIPT_NOTIFICATION";
+
         actionLogsPanel.logSendMessage(
             getSelectedCase()    != null ? getSelectedCase().getId()    : "N/A",
             getSelectedSubcase() != null ? getSelectedSubcase().getId() : "N/A",
-            recipient, subject, content, priority.toString(), success, null, null
+            recipient, subject, content, priority.toString(), success, null, x400Payload
         );
     }
 

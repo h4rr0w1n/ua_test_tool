@@ -150,7 +150,21 @@ public class XlsxExporter {
             dataRow.createCell(0).setCellValue(testCase.getId());
             dataRow.createCell(1).setCellValue(testCase.getName());
             dataRow.createCell(2).setCellValue(testCase.getDescription() != null ? testCase.getDescription() : "");
-            dataRow.createCell(3).setCellValue(testCase.getResult() != null ? testCase.getResult() : "");
+            
+            String result = testCase.getResult();
+            if (result == null || result.trim().isEmpty()) {
+                boolean hasFail = false;
+                boolean hasPass = false;
+                for (TestSubcase sc : testCase.getSubcases()) {
+                    if ("FAIL".equalsIgnoreCase(sc.getResult())) hasFail = true;
+                    if ("PASS".equalsIgnoreCase(sc.getResult())) hasPass = true;
+                }
+                if (hasFail) result = "FAIL";
+                else if (hasPass) result = "PASS";
+                else result = "";
+            }
+            dataRow.createCell(3).setCellValue(result);
+            
             dataRow.createCell(4).setCellValue(testCase.getComment() != null ? testCase.getComment() : "");
             dataRow.createCell(5).setCellValue(testCase.getSubcases().size());
         }
@@ -217,8 +231,10 @@ public class XlsxExporter {
         headerRow.createCell(5).setCellValue("Priority");
         headerRow.createCell(6).setCellValue("Success");
         headerRow.createCell(7).setCellValue("Error");
+        headerRow.createCell(8).setCellValue("Content");
+        headerRow.createCell(9).setCellValue("X.400 Payload");
         
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < 10; i++) {
             headerRow.getCell(i).setCellStyle(headerStyle);
         }
         
@@ -237,9 +253,11 @@ public class XlsxExporter {
             dataRow.createCell(5).setCellValue(log.getPriority() != null ? log.getPriority() : "");
             dataRow.createCell(6).setCellValue(log.isSuccess() ? "Success" : "Failed");
             dataRow.createCell(7).setCellValue(log.getErrorMessage() != null ? log.getErrorMessage() : "");
+            dataRow.createCell(8).setCellValue(log.getContent() != null ? log.getContent() : "");
+            dataRow.createCell(9).setCellValue(log.getX400Payload() != null ? log.getX400Payload() : "");
         }
         
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < 10; i++) {
             sheet.autoSizeColumn(i);
         }
     }
@@ -268,12 +286,29 @@ public class XlsxExporter {
         sheet.getRow(row).createCell(1).setCellValue(formatDate(System.currentTimeMillis()));
         row++;
         
-        sheet.createRow(row).createCell(0).setCellValue("Total Test Cases:");
-        sheet.getRow(row).createCell(1).setCellValue(repository.getTestCaseCount());
+        int testedCases = 0;
+        for (TestCase testCase : repository.getTestCasesList()) {
+            boolean isTested = testCase.isMarked();
+            if (!isTested) {
+                for (TestSubcase subcase : testCase.getSubcases()) {
+                    if (subcase.isMarked()) {
+                        isTested = true;
+                        break;
+                    }
+                }
+            }
+            if (isTested) testedCases++;
+        }
+        
+        int totalCases = Math.max(20, repository.getTestCaseCount());
+        sheet.createRow(row).createCell(0).setCellValue("Tested / Total Test Cases:");
+        sheet.getRow(row).createCell(1).setCellValue(testedCases + " / " + totalCases);
         row++;
         
-        sheet.createRow(row).createCell(0).setCellValue("Total Subcases:");
-        sheet.getRow(row).createCell(1).setCellValue(repository.getSubcaseCount());
+        int testedSubcases = repository.getMarkedSubcaseCount();
+        int totalSubcases = repository.getSubcaseCount();
+        sheet.createRow(row).createCell(0).setCellValue("Tested / Total Subcases:");
+        sheet.getRow(row).createCell(1).setCellValue(testedSubcases + " / " + totalSubcases);
         row++;
         
         sheet.createRow(row).createCell(0).setCellValue("Total Messages Sent:");

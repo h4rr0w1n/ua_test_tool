@@ -176,19 +176,27 @@ public class TestCaseSelectorPanel extends JPanel {
             txtDescription.setText(
                 "Default message: saved and loaded from default configuration.\n" +
                 "Follows the ICAO testbook baseline for the selected test case.");
+            defaultsLoadedListeners.values().forEach(Runnable::run);
         } else if (sn.subcase != null) {
             String desc = sn.subcase.getDescription();
             txtDescription.setText(desc != null ? desc : "(no description)");
+            
+            if (!sn.subcase.getAmhsDefaults().isEmpty()) {
+                defaultsLoadedListeners.values().forEach(Runnable::run);
+            }
         }
     }
 
     private void handleLoadDefaults() {
+        SubcaseNode sn = getSelectedNode();
         TestSubcase sc = getSelectedSubcase();
-        if (sc != null && !sc.getAmhsDefaults().isEmpty()) {
+        if (sn != null && sn.isDefault) {
             defaultsLoadedListeners.values().forEach(Runnable::run);
-        } else if (sc == null) {
+        } else if (sc != null && !sc.getAmhsDefaults().isEmpty()) {
+            defaultsLoadedListeners.values().forEach(Runnable::run);
+        } else if (sn == null) {
             JOptionPane.showMessageDialog(this,
-                "No subcase selected (select a numbered message, not 'default message').",
+                "No message selected.",
                 "Warning", JOptionPane.WARNING_MESSAGE);
         } else {
             JOptionPane.showMessageDialog(this,
@@ -198,12 +206,15 @@ public class TestCaseSelectorPanel extends JPanel {
     }
 
     private void handleSendDefaults() {
+        SubcaseNode sn = getSelectedNode();
         TestSubcase sc = getSelectedSubcase();
-        if (sc != null && !sc.getAmhsDefaults().isEmpty()) {
+        if (sn != null && sn.isDefault) {
             sendDefaultsListeners.values().forEach(Runnable::run);
-        } else if (sc == null) {
+        } else if (sc != null && !sc.getAmhsDefaults().isEmpty()) {
+            sendDefaultsListeners.values().forEach(Runnable::run);
+        } else if (sn == null) {
             JOptionPane.showMessageDialog(this,
-                "No subcase selected (select a numbered message, not 'default message').",
+                "No message selected.",
                 "Warning", JOptionPane.WARNING_MESSAGE);
         } else {
             JOptionPane.showMessageDialog(this,
