@@ -1,0 +1,258 @@
+ICAO EUR DOC 047 APPENDIX A - TEST CASE ANALYSIS (CTSW001-CTSW020)
+=====================================================================
+
+COMPARISON OF DOCUMENT REQUIREMENTS VS TestCaseLoader.java IMPLEMENTATION
+==========================================================================
+
+CTSW001 - Convert an incoming IPM to AMQP format
+-------------------------------------------------
+Document requires:
+  Basic IPM (5 subcases):
+    - Priority KK
+    - Priority GG  
+    - Priority FF
+    - Priority DD
+    - Priority SS
+  Extended IPM (6 subcases):
+    - Precedence 14
+    - Precedence 28
+    - Precedence 57
+    - Precedence 71
+    - Precedence 107
+    - Multiple recipients (107 and 14)
+  TOTAL: 11 subcases
+
+Implementation has: 11 subcases ✓ MATCH
+
+CTSW002 - Convert an incoming IPM containing optional-heading-information
+--------------------------------------------------------------------------
+Document requires (4 subcases):
+    - FF priority with OHI text
+    - SS priority with OHI text
+    - Precedence 57 with originators-reference element
+    - Precedence 107 with originators-reference element
+  TOTAL: 4 subcases
+
+Implementation has: 4 subcases ✓ MATCH
+
+CTSW003 - Generate a DR for a successfully translated IPM
+----------------------------------------------------------
+Document requires (6 subcases based on table):
+    1. no-report(0) / non-delivery-report(1) -> No DR
+    2. no-report(0) / report(2) -> DR returned
+    3. no-report(0) / audited-report(3) -> DR returned
+    4. non-delivery-report(1) / non-delivery-report(1) -> No DR
+    5. non-delivery-report(1) / report(2) -> DR returned
+    6. non-delivery-report(1) / audited-report(3) -> DR returned
+  TOTAL: 6 subcases
+
+Implementation has: 6 subcases ✓ MATCH
+
+CTSW004 - Generate an NDR if ATS-message-header has syntax error
+-----------------------------------------------------------------
+Document requires (5 subcases):
+    - Empty ATS-message-priority
+    - Invalid ATS-message-priority
+    - Empty ATS-message-filing-time
+    - Invalid ATS-message-filing-time
+    - Empty ATS-message-header and no IHE
+  TOTAL: 5 subcases
+
+Implementation has: 5 subcases ✓ MATCH
+
+CTSW005 - Generate an NDR if current time exceeds latest delivery time
+-----------------------------------------------------------------------
+Document requires (2 subcases):
+    - Latest-delivery-time set to date in the past
+    - Latest-delivery-time later than current time
+  TOTAL: 2 subcases
+
+Implementation has: 2 subcases ✓ MATCH
+
+CTSW006 - Reject IPM if payload size exceeds maximum
+-----------------------------------------------------
+Document requires (3 subcases):
+    a) IA5-text body part within limit (accepted)
+    b) IA5-text body part exceeds limit (rejected with NDR)
+    c) File-transfer-body-part exceeds limit (rejected with NDR)
+  TOTAL: 3 subcases
+
+Implementation has: 3 subcases ✓ MATCH
+
+CTSW007 - Reject IPM with multiple body parts
+----------------------------------------------
+Document requires (4 subcases):
+    - Basic ia5-text + file-transfer-body-part (ACCEPTED)
+    - General-text-body-part + file-transfer-body-part (ACCEPTED)
+    - Two ia5-text body parts (REJECTED)
+    - Three body parts: ia5-text + general-text + FTBP (REJECTED)
+  TOTAL: 4 subcases
+
+Implementation has: 4 subcases ✓ MATCH
+
+CTSW008 - Reject IPM with unsupported content-type
+---------------------------------------------------
+Document requires (4 subcases):
+    - interpersonal-messaging-1988(22) - ACCEPTED
+    - interpersonal-messaging-1984(2) - REJECTED
+    - edi-messaging(35) - REJECTED
+    - unidentified(0) - REJECTED
+  TOTAL: 4 subcases
+
+Implementation has: 4 subcases ✓ MATCH
+
+CTSW009 - Distribute IPM to AMHS users and AMQP consumers
+----------------------------------------------------------
+Document requires (2 subcases):
+    - Primary: 1 AMHS + 1 AMQP; Copy: 1 AMHS + 1 AMQP
+    - Primary: 1 AMHS + 1 AMQP; Blind Copy: 1 AMHS + 1 AMQP
+  TOTAL: 2 subcases
+
+Implementation has: 2 subcases ✓ MATCH
+
+CTSW010 - Reject IPM addressing more AMQP consumers than maximum
+-----------------------------------------------------------------
+Document requires (2 subcases):
+    - 512 recipients (limit=512) - ACCEPTED
+    - 513 recipients (limit=512) - REJECTED
+  TOTAL: 2 subcases
+
+Implementation has: 2 subcases ✓ MATCH
+
+CTSW011 - Probe Conveyance Test
+--------------------------------
+Document requires (5 subcases):
+    - Probe 1: content-length < max, reachable AMQP consumer -> DR
+    - Probe 2: content-length < max, unmappable AMQP consumer -> NDR
+    - Probe 3: content-length > max, reachable AMQP consumer -> NDR
+    - Probe 4: 512 AMQP consumers (limit=512) -> DR
+    - Probe 5: > 512 AMQP consumers (limit=512) -> NDR
+  TOTAL: 5 subcases
+
+Implementation has: 5 subcases ✓ MATCH
+
+CTSW012 - Reject Probe for unknown recipients
+----------------------------------------------
+Document requires (1 subcase):
+    - Two recipients: one mappable, one unknown -> NDR for unknown, DR for valid
+  TOTAL: 1 subcase
+
+Implementation has: 1 subcase ✓ MATCH
+
+CTSW013 - Reject Probe with unknown originator address
+-------------------------------------------------------
+Document requires (1 subcase):
+    - Invalid originator AMHS address with two AMQP recipients -> NDR for all
+  TOTAL: 1 subcase
+
+Implementation has: 1 subcase ✓ MATCH
+
+CTSW014 - Incoming RN relating to subject message with priority != SS
+----------------------------------------------------------------------
+Document requires (2 subcases):
+    - Subject IPM priority SS -> RN transferred, logged, reported
+    - Subject IPM priority DD -> Error logged, reported, stored at CP
+  TOTAL: 2 subcases
+
+Implementation has: 2 subcases ✓ MATCH
+
+CTSW015 - Incoming RN without related subject message
+------------------------------------------------------
+Document requires (1 subcase):
+    - RN with fictitious subject IPM -> NDR generated, logged, reported
+  TOTAL: 1 subcase
+
+Implementation has: 1 subcase ✓ MATCH
+
+CTSW016 - Processing of CURRENT encoded-information-types (EIT)
+----------------------------------------------------------------
+Document requires (12 subcases for IPMs + same for Probes):
+    1. Built-in ia5-text(2) - ACCEPT
+    2. Built-in unknown(0) - REJECT
+    3. Extended OID 2.6.3.4.2 (ia5-text) - ACCEPT
+    4. Extended OID 2.6.3.4.0 (unknown) - REJECT
+    5. Extended OID {id-cs-eit-authority 1} - ACCEPT
+    6. Extended OID {id-cs-eit-authority 2} - ACCEPT
+    7. Extended OID {1} and {6} - ACCEPT
+    8. Extended OID {1}, {6}, and {100} - ACCEPT
+    9. Extended OID {3} (invalid) - REJECT
+    10. Extended OID {1}, {6}, and {7} (invalid) - REJECT
+    11. Mixed built-in ia5-text(2) + extended {2.6.3.4.2, 1, 6} - ACCEPT
+    12. Extended OID {id-eit-file-transfer 0} - ACCEPT
+  TOTAL: 12 subcases
+
+Implementation has: 12 subcases ✓ MATCH
+
+CTSW017 - Incoming IPM with an ia5-text-body-part
+--------------------------------------------------
+Document requires (3 subcases):
+    - Extended EIT 2.6.3.4.2 - ACCEPT
+    - Built-in EIT ia5-text(2) - ACCEPT
+    - Repertoire ita2(2) - May be rejected with NDR
+  TOTAL: 3 subcases
+
+Implementation has: 3 subcases ✓ MATCH
+
+CTSW018 - Incoming IPM with general-text-body-part and ISO 646
+---------------------------------------------------------------
+Document requires (2 subcases):
+    - ISO 646 (US-ASCII) characters only - ACCEPT
+    - US-ASCII + non-listed US-ASCII characters - ACCEPT
+  TOTAL: 2 subcases
+
+Implementation has: 2 subcases ✓ MATCH
+
+CTSW019 - Incoming IPM with general-text-body-part and non-ISO 646
+-------------------------------------------------------------------
+Document requires (3 subcases):
+    - ISO 8859-1 repertoire - Convert or reject per local policy
+    - Cyrillic, Arabic, Greek, or Hebrew - Convert or reject per local policy
+    - Chinese, Japanese, or Korean - Convert or reject per local policy
+  TOTAL: 3 subcases
+
+Implementation has: 3 subcases ✓ MATCH
+
+CTSW020 - Notify SS to Control Position
+----------------------------------------
+Document requires (5 subcases):
+    1. Two AMQP consumers (responsible), precedence 107 and 28 -> NOTIFY CP
+    2. Two AMQP consumers (responsible), priority SS -> NOTIFY CP
+    3. 1 AMQP (responsible, prec 107) + 1 AMHS (non-responsible, prec 107) -> NOTIFY CP
+    4. Two AMQP consumers (responsible), precedence 14 -> NO NOTIFY
+    5. Two AMQP consumers (responsible), priority DD -> NO NOTIFY
+  TOTAL: 5 subcases
+
+Implementation has: 5 subcases ✓ MATCH
+
+===========================================================================
+SUMMARY
+===========================================================================
+All 20 test cases (CTSW001-CTSW020) have been verified against the 
+ICAO EUR Doc 047 Appendix A specification.
+
+Total Subcases by Test Case:
+  CTSW001: 11 subcases ✓
+  CTSW002: 4 subcases ✓
+  CTSW003: 6 subcases ✓
+  CTSW004: 5 subcases ✓
+  CTSW005: 2 subcases ✓
+  CTSW006: 3 subcases ✓
+  CTSW007: 4 subcases ✓
+  CTSW008: 4 subcases ✓
+  CTSW009: 2 subcases ✓
+  CTSW010: 2 subcases ✓
+  CTSW011: 5 subcases ✓
+  CTSW012: 1 subcase ✓
+  CTSW013: 1 subcase ✓
+  CTSW014: 2 subcases ✓
+  CTSW015: 1 subcase ✓
+  CTSW016: 12 subcases ✓
+  CTSW017: 3 subcases ✓
+  CTSW018: 2 subcases ✓
+  CTSW019: 3 subcases ✓
+  CTSW020: 5 subcases ✓
+
+TOTAL: 78 subcases across 20 test cases - ALL MATCHING DOCUMENT REQUIREMENTS ✓
+
+The TestCaseLoader.java implementation correctly defines all required test cases
+and subcases as specified in ICAO EUR Doc 047 Appendix A version 3.0.

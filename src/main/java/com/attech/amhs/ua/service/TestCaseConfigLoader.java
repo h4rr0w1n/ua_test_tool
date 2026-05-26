@@ -107,13 +107,27 @@ public class TestCaseConfigLoader {
      * @param subcase TestSubcase to populate
      */
     private static void loadAmhsDefaults(Properties props, String prefix, TestSubcase subcase) {
-        // Common AMHS fields
+        // Comprehensive AMHS fields including all EUR Doc 047 requirements
         String[] amhsFields = {
+            // Basic fields
             "recipient", "subject", "priority", "content",
+            // ATS-specific fields
             "filing-time", "precedence", "authorization-time",
+            // Body part configuration
             "body-part-type", "charset-reg-number", "charset-repertoire",
+            "conversion-with-loss-prohibited",
+            // Header fields
             "originator-reference", "optional-heading-info",
-            "responsibility", "notify-control-position"
+            "responsibility", "notify-control-position",
+            // EIT (Encoded Information Types)
+            "eit-type", "eit-value", "eit-oid", "eit-oids", "eit-builtin",
+            "eit-authority",
+            // FTBP (File Transfer Body Part)
+            "ftbp-file-name", "ftbp-content",
+            // Size validation
+            "exceeds-max-size", "should-reject",
+            // Multiple body parts support
+            "second-body-content"
         };
         
         for (String field : amhsFields) {
