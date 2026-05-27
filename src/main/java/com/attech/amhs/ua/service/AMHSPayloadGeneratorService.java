@@ -443,14 +443,74 @@ public class AMHSPayloadGeneratorService {
     }
     
     /**
-     * Set extended header field (placeholder for actual X.400 extension mechanism)
-     * In a real implementation, this would use X.400 extension attributes
+     * Set extended header field using X.400 AMHS attributes
+     * Uses the ISODE X.400 API's setStringparam/setIntParam methods with AMHS_att constants
+     * 
+     * @param message X400Msg message to modify
+     * @param fieldName Name of the field to set
+     * @param value Value to set
      */
     private void setExtendedHeaderField(X400Msg message, String fieldName, String value) 
             throws X400APIException {
-        // Placeholder: Actual implementation would use X.400 extension mechanisms
-        // For now, store as a custom attribute or encode in available fields
-        // This depends on the specific ISODE X.400 API capabilities
+        if (value == null || value.isEmpty()) {
+            return;
+        }
+        
+        // Map field names to AMHS attribute constants
+        switch (fieldName) {
+            case "filing-time":
+                message.setStringparam(AMHS_att.ATS_S_FILING_TIME, value);
+                break;
+            case "authorization-time":
+                message.setStringparam(AMHS_att.ATS_S_FILING_TIME, value); // Use filing time as auth time
+                break;
+            case "originator-reference":
+                message.setStringparam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO, value);
+                break;
+            case "optional-heading-info":
+                message.setStringparam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO, value);
+                break;
+            case "precedence":
+                // Set precedence using X.400 priority attribute
+                try {
+                    int precValue = Integer.parseInt(value);
+                    message.setIntParam(X400_att.X400_N_PRECEDENCE, precValue);
+                } catch (NumberFormatException e) {
+                    // If not numeric, store as string in optional heading info
+                    message.setStringparam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO, "PRECEDENCE:" + value);
+                }
+                break;
+            case "charset-reg-number":
+            case "charset-repertoire":
+            case "conversion-with-loss-prohibited":
+            case "eit-builtin":
+            case "eit-extended":
+                // Store these in extended attributes via optional heading info
+                // Format: FIELD=value
+                String existingOhi = getOptionalHeadingInfo(message);
+                String newOhi = existingOhi != null ? existingOhi + "\n" + fieldName.toUpperCase() + "=" + value : fieldName.toUpperCase() + "=" + value;
+                message.setStringparam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO, newOhi);
+                break;
+            default:
+                // For unknown fields, store in optional heading info
+                message.setStringparam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO, fieldName.toUpperCase() + "=" + value);
+                break;
+        }
+    }
+    
+    /**
+     * Get current optional heading info from message
+     */
+    private String getOptionalHeadingInfo(X400Msg message) {
+        try {
+            java.util.ArrayList<String> params = message.getPrintableStringParam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO);
+            if (params != null && !params.isEmpty()) {
+                return params.get(0);
+            }
+        } catch (Exception e) {
+            // Ignore errors, return null
+        }
+        return null;
     }
     
     /**
