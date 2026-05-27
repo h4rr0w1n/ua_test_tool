@@ -111,8 +111,8 @@ public class TestCaseConfigLoader {
         String[] amhsFields = {
             // Basic fields
             "recipient", "subject", "priority", "content",
-            // ATS-specific fields
-            "filing-time", "precedence", "authorization-time",
+            // ATS-specific fields (including priority-indicator which is REQUIRED per ICAO Doc 020)
+            "filing-time", "precedence", "authorization-time", "priority-indicator",
             // Body part configuration
             "body-part-type", "charset-reg-number", "charset-repertoire",
             "conversion-with-loss-prohibited",
