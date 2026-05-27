@@ -210,9 +210,14 @@ public class AMHSPayloadGeneratorService {
                 }
             }
             
-            // Ensure message is built before sending
+            // Always ensure message is built before sending
             if (session != null) {
-                message.buildMsg(session);
+                try {
+                    message.buildMsg(session);
+                } catch (X400APIException e) {
+                    logger.error("Error building message: " + e.getMessage(), e);
+                    throw e;
+                }
             }
         } catch (X400APIException e) {
             // Handle or log exception
@@ -242,6 +247,7 @@ public class AMHSPayloadGeneratorService {
 
     /**
      * Apply AMHS-specific fields to X.400 message
+     * Only sets attributes that have non-empty, meaningful values
      * 
      * @param message X400Msg to configure
      * @param content Message content
@@ -257,7 +263,7 @@ public class AMHSPayloadGeneratorService {
             effectiveContent = amhsDefaults.get("content");
         }
         
-        if (bodyPartType != null && !bodyPartType.isEmpty()) {
+        if (bodyPartType != null && !bodyPartType.isEmpty() && !"ia5-text".equals(bodyPartType)) {
             addBodyParts(message, bodyPartType, effectiveContent, amhsDefaults);
         } else if (effectiveContent != null && !effectiveContent.isEmpty()) {
             // Default to IA5 text
