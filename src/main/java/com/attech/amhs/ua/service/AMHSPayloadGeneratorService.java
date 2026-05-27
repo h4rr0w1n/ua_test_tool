@@ -146,8 +146,14 @@ public class AMHSPayloadGeneratorService {
                     message.setTextBody(content);
                 }
             }
+            
+            // Ensure message is built before sending
+            if (session != null) {
+                message.buildMsg(session);
+            }
         } catch (X400APIException e) {
             // Handle or log exception
+            logger.error("Error building X.400 message: " + e.getMessage(), e);
         }
         
         return message;
