@@ -10,6 +10,7 @@ import com.isode.x400.highlevel.BodypartGeneralText;
 import com.isode.x400.highlevel.BodypartFTBP;
 import com.isode.x400api.AMHS_att;
 import com.isode.x400api.MSMessage;
+import com.isode.x400api.X400_att;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Arrays;
