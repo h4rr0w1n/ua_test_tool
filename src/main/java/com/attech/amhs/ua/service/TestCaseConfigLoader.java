@@ -107,7 +107,7 @@ public class TestCaseConfigLoader {
      * @param subcase TestSubcase to populate
      */
     private static void loadAmhsDefaults(Properties props, String prefix, TestSubcase subcase) {
-        // Comprehensive AMHS fields including all EUR Doc 047 requirements
+        // Comprehensive AMHS fields including all EUR Doc 047 and ICAO Doc 020 requirements
         String[] amhsFields = {
             // Basic fields
             "recipient", "subject", "priority", "content",
@@ -127,7 +127,19 @@ public class TestCaseConfigLoader {
             // Size validation
             "exceeds-max-size", "should-reject",
             // Multiple body parts support
-            "second-body-content"
+            "second-body-content",
+            // Recipient lists (from reference document Section 2.5)
+            "primary-recipients", "copy-recipients", "bcc-recipients", "recipient-file",
+            // Report configuration (from reference document Section 2.6)
+            "originator-report-request", "originating-mta-report-request",
+            // Timing attributes (from reference document Section 1.4 and 2.2)
+            "latest-delivery-time",
+            // Subject IPM references (from reference document Section 2.2)
+            "subject-ipm-id", "subject-ipm-priority",
+            // Additional charset support
+            "charset-reg-numbers", "repertoire", "content-type",
+            // Header empty flag
+            "header-empty"
         };
         
         for (String field : amhsFields) {

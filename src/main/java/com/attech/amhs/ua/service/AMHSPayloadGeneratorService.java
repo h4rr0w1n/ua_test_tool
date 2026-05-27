@@ -256,6 +256,15 @@ public class AMHSPayloadGeneratorService {
         
         // Handle charset configuration
         applyCharsetConfiguration(message, amhsDefaults);
+        
+        // Handle report request configuration (from ICAO Doc 020 Section 2.6)
+        applyReportRequestConfiguration(message, amhsDefaults);
+        
+        // Handle latest delivery time (from ICAO Doc 020 Section 2.2)
+        applyLatestDeliveryTime(message, amhsDefaults);
+        
+        // Handle subject IPM references (from ICAO Doc 020 Section 2.2)
+        applySubjectIpmReferences(message, amhsDefaults);
     }
     
     /**
@@ -629,6 +638,104 @@ public class AMHSPayloadGeneratorService {
         if ("true".equalsIgnoreCase(notifyControl) || "yes".equalsIgnoreCase(notifyControl)) {
             // Enable control position notification
             setExtendedHeaderField(message, "notify-control-position", "enabled");
+        }
+    }
+    
+    /**
+     * Apply report request configuration (originator-report-request, originating-mta-report-request)
+     * Per ICAO Doc 020 Section 2.6 - Report Configuration
+     * 
+     * @param message X400Msg
+     * @param amhsDefaults AMHS configuration containing report request settings
+     */
+    private void applyReportRequestConfiguration(X400Msg message, Map<String, String> amhsDefaults) throws X400APIException {
+        String originatorReportRequest = amhsDefaults.get("originator-report-request");
+        String originatingMtaReportRequest = amhsDefaults.get("originating-mta-report-request");
+        
+        // Map report request values to X.400 constants
+        // Values: no-report(0), non-delivery-report(1), report(2), audited-report(3)
+        if (originatorReportRequest != null && !originatorReportRequest.isEmpty()) {
+            int reportValue = mapReportRequestToValue(originatorReportRequest);
+            if (reportValue >= 0) {
+                // Set originator report request using X400_att.X400_N_REPORT_REQUEST
+                message.setIntParam(X400_att.X400_N_REPORT_REQUEST, reportValue);
+                setExtendedHeaderField(message, "originator-report-request", originatorReportRequest);
+            }
+        }
+        
+        if (originatingMtaReportRequest != null && !originatingMtaReportRequest.isEmpty()) {
+            int mtaReportValue = mapReportRequestToValue(originatingMtaReportRequest);
+            if (mtaReportValue >= 0) {
+                // Set MTA report request using X400_att.X400_N_MTA_REPORT_REQUEST
+                message.setIntParam(X400_att.X400_N_MTA_REPORT_REQUEST, mtaReportValue);
+                setExtendedHeaderField(message, "originating-mta-report-request", originatingMtaReportRequest);
+            }
+        }
+    }
+    
+    /**
+     * Map report request string to integer value
+     * 
+     * @param reportRequest Report request string (no-report, non-delivery-report, report, audited-report)
+     * @return Integer value (0-3) or -1 if invalid
+     */
+    private int mapReportRequestToValue(String reportRequest) {
+        if (reportRequest == null) return -1;
+        String lower = reportRequest.toLowerCase().trim();
+        switch (lower) {
+            case "no-report":
+            case "0":
+                return 0;
+            case "non-delivery-report":
+            case "ndr":
+            case "1":
+                return 1;
+            case "report":
+            case "2":
+                return 2;
+            case "audited-report":
+            case "3":
+                return 3;
+            default:
+                return -1;
+        }
+    }
+    
+    /**
+     * Apply latest delivery time configuration
+     * Per ICAO Doc 020 Section 2.2 - Extended IPM Attributes
+     * 
+     * @param message X400Msg
+     * @param amhsDefaults AMHS configuration containing latest-delivery-time
+     */
+    private void applyLatestDeliveryTime(X400Msg message, Map<String, String> amhsDefaults) throws X400APIException {
+        String latestDeliveryTime = amhsDefaults.get("latest-delivery-time");
+        if (latestDeliveryTime != null && !latestDeliveryTime.isEmpty()) {
+            // Store latest delivery time as extended header info
+            // Format: YYMMDDHHMM (e.g., 2501021200 for Jan 2, 2025 12:00)
+            setExtendedHeaderField(message, "latest-delivery-time", latestDeliveryTime);
+        }
+    }
+    
+    /**
+     * Apply subject IPM references (subject-ipm-id, subject-ipm-priority)
+     * Per ICAO Doc 020 Section 2.2 - Extended IPM Attributes
+     * 
+     * @param message X400Msg
+     * @param amhsDefaults AMHS configuration containing subject IPM references
+     */
+    private void applySubjectIpmReferences(X400Msg message, Map<String, String> amhsDefaults) throws X400APIException {
+        String subjectIpmId = amhsDefaults.get("subject-ipm-id");
+        String subjectIpmPriority = amhsDefaults.get("subject-ipm-priority");
+        
+        if (subjectIpmId != null && !subjectIpmId.isEmpty()) {
+            // Store subject IPM identifier using X400_att.X400_S_SUBJECT_IPM
+            setExtendedHeaderField(message, "subject-ipm-id", subjectIpmId);
+        }
+        
+        if (subjectIpmPriority != null && !subjectIpmPriority.isEmpty()) {
+            // Store subject IPM priority (ATS code like KK, GG, FF, DD, SS)
+            setExtendedHeaderField(message, "subject-ipm-priority", subjectIpmPriority);
         }
     }
 
