@@ -1,5 +1,3 @@
-```
-# Compiled and build artifacts
-*.class
-target/
-```
+(src/main/java/com/attech/amhs/ua/service/AMHSPayloadGeneratorService.java) is a source code file and should not be added to .gitignore. Since there are no build artifacts, dependencies, or temporary files in the changes, the .gitignore should remain empty.
+
+(empty — output nothing)
