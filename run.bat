@@ -1,11 +1,12 @@
 @echo off
-:: Execution script for AMHS UA Test Tool on Windows
-:: This script checks dependencies, compiles the app if needed, and launches the UI.
+:: Run script for AMHS UA Test Tool on Windows
+:: This script launches the pre-built JAR with proper settings.
+:: Use build.bat first to compile the tool, then use this script to run it.
 
 title AMHS UA Test Tool - Runner
 
 echo ==========================================================
-echo               AMHS UA Test Tool - Runner                  
+echo            AMHS UA Test Tool - Run Script                
 echo ==========================================================
 echo.
 
@@ -92,129 +93,24 @@ echo Java version:
 java -version
 echo.
 
-:: 2. MAVEN AUTO-DETECTION
-where mvn 2>nul
-if %ERRORLEVEL% equ 0 goto :mvn_done
-where mvn.cmd 2>nul
-if %ERRORLEVEL% equ 0 goto :mvn_done
-where mvn.bat 2>nul
-if %ERRORLEVEL% equ 0 goto :mvn_done
-if not "%M2_HOME%"=="" (
-    if exist "%M2_HOME%\bin\mvn.cmd" (
-        set "PATH=%M2_HOME%\bin;!PATH!"
-        echo Auto-detected Maven from M2_HOME: %M2_HOME%
-        goto :mvn_done
-    )
-)
-if not "%MAVEN_HOME%"=="" (
-    if exist "%MAVEN_HOME%\bin\mvn.cmd" (
-        set "PATH=%MAVEN_HOME%\bin;!PATH!"
-        echo Auto-detected Maven from MAVEN_HOME: %MAVEN_HOME%
-        goto :mvn_done
-    )
-)
-
-:: Search common Maven install directories (any version, any distribution)
-for %%B in (
-    "C:\Program Files\Apache Software Foundation",
-    "C:\Program Files (x86)\Apache Software Foundation",
-    "C:\Program Files\Maven",
-    "C:\tools\maven",
-    "C:\ProgramData\chocolatey\lib",
-    "C:\ProgramData\chocolatey\lib\maven",
-    "C:\ProgramData\chocolatey\lib\maven\tools",
-    "C:\Users\%USERNAME%\scoop\apps",
-    "C:\Users\%USERNAME%\.sdkman\candidates\maven"
-) do (
-    if exist "%%~B" (
-        for /d %%d in ("%%~B\maven*" "%%~B\apache-maven*" "%%~B\maven\*" "%%~B\current") do (
-            if exist "%%~fd\bin\mvn.cmd" (
-                set "MAVEN_HOME=%%~fd"
-                set "PATH=%%~fd\bin;!PATH!"
-                echo Auto-detected Maven from install directory: %%~fd
-                goto :mvn_done
-            )
-            if exist "%%~fd\bin\mvn.bat" (
-                set "MAVEN_HOME=%%~fd"
-                set "PATH=%%~fd\bin;!PATH!"
-                echo Auto-detected Maven from install directory: %%~fd
-                goto :mvn_done
-            )
-        )
-    )
-)
-
-:: Search NetBeans bundled Maven (any NetBeans version)
-for %%B in ("C:\Program Files (x86)\NetBeans*" "C:\Program Files\NetBeans*") do (
-    for /d %%d in ("%%~B") do (
-        if exist "%%~fd\java\maven\bin\mvn.bat" (
-            set "MAVEN_HOME=%%~fd\java\maven"
-            set "PATH=%%~fd\java\maven\bin;!PATH!"
-            echo Auto-detected Maven from NetBeans: %%~fd\java\maven
-            goto :mvn_done
-        )
-    )
-)
-
-:: Last resort: check registry
-for /f "tokens=2*" %%a in ('reg query "HKLM\SOFTWARE\Apache Software Foundation\Maven" /v "M2_HOME" 2^>nul') do (
-    if exist "%%b\bin\mvn.cmd" (
-        set "MAVEN_HOME=%%b"
-        set "PATH=%%b\bin;!PATH!"
-        echo Auto-detected Maven from registry: %%b
-        goto :mvn_done
-    )
-)
-
-echo ERROR: Maven is not installed or not available in your PATH.
-echo Please install Apache Maven: https://maven.apache.org/download.cgi
-echo Or, if you have NetBeans installed, ensure its bundled Maven is detected.
-echo You can also install Maven via Chocolatey: choco install maven
-echo Or via Scoop: scoop install maven
-echo Alternatively, set M2_HOME or MAVEN_HOME to your Maven installation directory.
-echo.
-pause
-exit /b 1
-
-:mvn_done
-
-:: Check if the compiled JAR exists, otherwise trigger a Maven build
+:: 2. CHECK IF JAR FILE EXISTS
 if not exist "%JAR_FILE%" (
     echo.
-    echo Compiled JAR not found. Building the application...
+    echo ERROR: Compiled JAR not found at:
+    echo %JAR_FILE%
     echo.
-    
-    :: Check if lib directory exists
-    if not exist "%SCRIPT_DIR%lib" (
-        echo WARNING: lib directory not found.
-        echo The required Maven libraries may not be installed.
-        echo Please run install-libs.bat first if you have the dependency JAR files.
-        echo.
-        echo Attempting to build anyway...
-        echo.
-    )
-    
-    :: Build using Maven package
-    call mvn clean package
-    if !ERRORLEVEL! neq 0 (
-        echo.
-        echo ERROR: Maven build failed^!
-        echo Please ensure all required dependencies are installed.
-        echo If you have the Isode/ATTech libraries, run: install-libs.bat
-        echo.
-        pause
-        exit /b 1
-    )
+    echo Please run build.bat first to compile the application.
     echo.
-    echo Build successful^!
-    echo.
+    pause
+    exit /b 1
 )
 
-echo Starting AMHS UA Test Tool UI...
+echo.
+echo Starting AMHS UA Test Tool...
 echo ==========================================================
 echo.
 
-:: Run the application with appropriate library path if lib exists
+:: 3. RUN THE APPLICATION
 if exist "%ISODE_LIB_DIR%" (
     echo Found Isode native library path: "%ISODE_LIB_DIR%"
     java -Disode.bindir="%SCRIPT_DIR%lib" -Djava.library.path="%ISODE_LIB_DIR%" -jar "%JAR_FILE%"

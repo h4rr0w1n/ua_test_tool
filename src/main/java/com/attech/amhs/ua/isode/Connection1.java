@@ -330,15 +330,19 @@ public class Connection1 {
         MSMessage ipnMessage = new MSMessage();
         int result = X400ms.x400_ms_msgmakeIPN(message, -1, ipnMessage);
         
-       
+
         if (result != X400_att.X400_E_NOERROR) {
-            throw new X400APIException(String.format("Making IPN message fail (code: %s)", result));
+            String errorMsg = String.format("Making IPN message failed with error code: 0x%04X", result);
+            logger.error(errorMsg);
+            throw new X400APIException(errorMsg);
         }
 
         result = com.isode.x400api.X400ms.x400_ms_msgsend(ipnMessage);
         if (result != X400_att.X400_E_NOERROR) {
+            String errorMsg = String.format("Delivery of IPN message failed with error code: 0x%04X", result);
+            logger.error(errorMsg);
             disconnect();
-            throw new X400APIException(String.format("Delivery IPN message fail (code: %s)", result));
+            throw new X400APIException(errorMsg);
         }
     }
     //---------------------------------------------------
@@ -348,12 +352,17 @@ public class Connection1 {
     //---------------------------------------------------
     
     public int send(MSMessage message) throws X400APIException {
+        if (!isConnected()) {
+            throw new X400APIException("Not connected to Message Store. Cannot send message.");
+        }
+        
         logger.error("Delivery message");
         final int sts = com.isode.x400api.X400ms.x400_ms_msgsend(message);
         if (sts != X400_att.X400_E_NOERROR) {
+            String errorMsg = String.format("Delivery failed with error code: 0x%04X", sts);
+            logger.error(errorMsg);
             disconnect();
-            logger.error("Delivery fail ({})", sts);
-            // throw new X400APIException(String.format("Delivery fail (code %s)", sts));
+            throw new X400APIException(errorMsg);
         }
         return sts;
     }

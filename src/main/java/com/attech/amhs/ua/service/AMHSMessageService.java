@@ -8,6 +8,9 @@ import com.isode.x400.highlevel.*;
 import com.isode.x400api.X400_att;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 /**
  * Service class for AMHS X.400 message operations
@@ -15,8 +18,13 @@ import java.util.List;
  */
 public class AMHSMessageService {
     
+    private static final Logger logger = Logger.getLogger(AMHSMessageService.class.getName());
+    private static final int MAX_RETRIES = 3;
+    private static final long RETRY_DELAY_MS = 1000;
+    
     private boolean isConnected;
     private P3BindSession session;
+    private AMHSPayloadGeneratorService payloadGenerator = new AMHSPayloadGeneratorService();
     
     // Configuration
     private String presentationAddress;
@@ -239,6 +247,81 @@ public class AMHSMessageService {
     }
     
     /**
+     * Send an X.400 message with full AMHS configuration
+     * @param recipient O/R Address of the recipient
+     * @param subject Message subject
+     * @param content Message content
+     * @param priority Message priority
+     * @param amhsDefaults Additional AMHS configuration fields
+     * @return Message submission ID
+     */
+    public String sendMessage(String recipient, String subject, String content, 
+                             X400Msg.X400_Priority priority, Map<String, String> amhsDefaults) throws X400APIException {
+        if (!isConnected) {
+            throw new X400APIException("Not connected to X.400 system");
+        }
+        
+        X400APIException lastException = null;
+        
+        for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            P7BindSession bindSession = null;
+            try {
+                logger.log(Level.INFO, "Attempting to send AMHS message (attempt " + attempt + "/" + MAX_RETRIES + ")");
+                
+                bindSession = new P7BindSession(presentationAddress, userOrAddress, password);
+                bindSession.bind();
+                
+                // Use payload generator to build a fully configured AMHS message
+                X400Msg x400msg = payloadGenerator.buildX400Message(bindSession, recipient, subject, content, 
+                                                                 priority != null ? priority.toString() : "NORMAL", 
+                                                                 amhsDefaults);
+                
+                // Send the message
+                x400msg.sendMsg(bindSession);
+                
+                // Get submission details
+                String msgSubId = x400msg.getMessageIdentifier();
+                
+                System.out.println("AMHS Message submitted.");
+                System.out.println("Message Submission ID: " + msgSubId);
+                logger.log(Level.INFO, "AMHS Message sent successfully with ID: " + msgSubId);
+                
+                bindSession.unbind();
+                
+                return msgSubId;
+                
+            } catch (X400APIException e) {
+                lastException = e;
+                logger.log(Level.WARNING, "AMHS send attempt " + attempt + " failed: " + e.getMessage(), e);
+                
+                if (bindSession != null) {
+                    try {
+                        bindSession.unbind();
+                    } catch (X400APIException ex) {
+                        logger.log(Level.FINE, "Error unbinding after failed send: " + ex.getMessage());
+                    }
+                }
+                
+                if (attempt < MAX_RETRIES) {
+                    try {
+                        logger.log(Level.INFO, "Waiting " + RETRY_DELAY_MS + "ms before retry...");
+                        Thread.sleep(RETRY_DELAY_MS);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw lastException;
+                    }
+                }
+            }
+        }
+        
+        if (lastException != null) {
+            throw lastException;
+        } else {
+            throw new X400APIException("Failed to send AMHS message after " + MAX_RETRIES + " attempts");
+        }
+    }
+    
+    /**
      * Send an X.400 message
      * @param recipient O/R Address of the recipient
      * @param subject Message subject
@@ -247,66 +330,8 @@ public class AMHSMessageService {
      * @return Message submission ID
      */
     public String sendMessage(String recipient, String subject, String content, 
-                              X400Msg.X400_Priority priority) throws X400APIException {
-        if (!isConnected) {
-            throw new X400APIException("Not connected to X.400 system");
-        }
-        
-        P7BindSession bindSession = null;
-        try {
-            // Create bind session
-            bindSession = new P7BindSession(presentationAddress, userOrAddress, password);
-            bindSession.bind();
-            
-            // Create message
-            X400Msg x400msg = new X400Msg(bindSession);
-            
-            // Set recipient with delivery report request
-            x400msg.setTo(recipient, X400Msg.DR_Request.DR_NON_DELIVERY_REPORT, 
-                         X400Msg.IPN_NON_RECEIPT_NOTIFICATION);
-            
-            // Set subject
-            x400msg.setSubject(subject);
-            
-            // Set priority
-            if (priority != null) {
-                x400msg.setPriority(priority);
-            } else {
-                x400msg.setPriority(X400Msg.X400_Priority.NORMAL_PRIORITY);
-            }
-            
-            // Add IA5 text bodypart
-            BodypartIA5Text ia5 = new BodypartIA5Text(content);
-            x400msg.addBodypart(ia5);
-            
-            // Send the message
-            x400msg.sendMsg(bindSession);
-            
-            // Get submission details
-            String msgSubId = x400msg.getMessageIdentifier();
-            String ipmId = x400msg.getMessageIPMIdentifier();
-            String submissionTime = x400msg.getSubmissionTime();
-            
-            System.out.println("Message submitted.");
-            System.out.println("Message Submission ID: " + msgSubId);
-            System.out.println("IPM ID: " + ipmId);
-            System.out.println("Submission time: " + submissionTime);
-            
-            // Unbind
-            bindSession.unbind();
-            
-            return msgSubId;
-            
-        } catch (X400APIException e) {
-            if (bindSession != null) {
-                try {
-                    bindSession.unbind();
-                } catch (X400APIException ex) {
-                    // Ignore unbind errors
-                }
-            }
-            throw e;
-        }
+                               X400Msg.X400_Priority priority) throws X400APIException {
+        return sendMessage(recipient, subject, content, priority, null);
     }
     
     /**

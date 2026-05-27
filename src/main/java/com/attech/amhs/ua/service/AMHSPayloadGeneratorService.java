@@ -8,10 +8,14 @@ import com.isode.x400.highlevel.X400Msg.X400_Priority;
 import com.isode.x400.highlevel.BodypartIA5Text;
 import com.isode.x400.highlevel.BodypartGeneralText;
 import com.isode.x400.highlevel.BodypartFTBP;
+import com.isode.x400api.AMHS_att;
+import com.isode.x400api.MSMessage;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Arrays;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Service for generating AMHS X.400 message payloads with test case defaults
@@ -30,6 +34,8 @@ public class AMHSPayloadGeneratorService {
         EMPTY_DEFAULTS.put("content", "");
         EMPTY_DEFAULTS.put("priority", "NORMAL");
     }
+
+    private static final Logger logger = LoggerFactory.getLogger(AMHSPayloadGeneratorService.class);
 
     /**
      * ATS Priority to X.400 Priority mapping
@@ -132,7 +138,7 @@ public class AMHSPayloadGeneratorService {
             
             // Apply additional AMHS fields from defaults
             if (amhsDefaults != null && !amhsDefaults.isEmpty()) {
-                applyAmhsFields(message, amhsDefaults);
+                applyAmhsFields(message, content, amhsDefaults);
             } else {
                 // Set content as IA5 text by default
                 if (content != null && !content.isEmpty()) {
@@ -168,18 +174,24 @@ public class AMHSPayloadGeneratorService {
      * Apply AMHS-specific fields to X.400 message
      * 
      * @param message X400Msg to configure
+     * @param content Message content
      * @param amhsDefaults Map of AMHS field names to values
      */
-    private void applyAmhsFields(X400Msg message, Map<String, String> amhsDefaults) throws X400APIException {
+    private void applyAmhsFields(X400Msg message, String content, Map<String, String> amhsDefaults) throws X400APIException {
         // Handle body part type and content
         String bodyPartType = amhsDefaults.get("body-part-type");
-        String content = amhsDefaults.get("content");
+        
+        // Use content from parameter, fallback to defaults map if empty
+        String effectiveContent = content;
+        if (effectiveContent == null || effectiveContent.isEmpty()) {
+            effectiveContent = amhsDefaults.get("content");
+        }
         
         if (bodyPartType != null && !bodyPartType.isEmpty()) {
-            addBodyParts(message, bodyPartType, content, amhsDefaults);
-        } else if (content != null && !content.isEmpty()) {
+            addBodyParts(message, bodyPartType, effectiveContent, amhsDefaults);
+        } else if (effectiveContent != null && !effectiveContent.isEmpty()) {
             // Default to IA5 text
-            BodypartIA5Text ia5 = new BodypartIA5Text(content);
+            BodypartIA5Text ia5 = new BodypartIA5Text(effectiveContent);
             message.addBodypart(ia5);
         }
         

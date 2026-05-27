@@ -71,15 +71,21 @@ public class XlsxExporter {
         // Session timing
         row++;
         sheet.createRow(row).createCell(0).setCellValue("Session Start Time:");
-        sheet.getRow(row).createCell(1).setCellValue(formatDate(testSession.getSessionStartTime()));
+        long startTime = testSession.getSessionStartTime();
+        sheet.getRow(row).createCell(1).setCellValue(formatDate(startTime));
         row++;
         
         sheet.createRow(row).createCell(0).setCellValue("Session End Time:");
-        sheet.getRow(row).createCell(1).setCellValue(formatDate(testSession.getSessionEndTime()));
+        long endTime = testSession.getSessionEndTime();
+        sheet.getRow(row).createCell(1).setCellValue(formatDate(endTime));
         row++;
         
         sheet.createRow(row).createCell(0).setCellValue("Session Duration (ms):");
         sheet.getRow(row).createCell(1).setCellValue(testSession.getSessionDuration());
+        row++;
+        
+        sheet.createRow(row).createCell(0).setCellValue("Session Duration (HH:mm:ss):");
+        sheet.getRow(row).createCell(1).setCellValue(formatDuration(testSession.getSessionDuration()));
         row++;
         
         // Statistics
@@ -189,9 +195,12 @@ public class XlsxExporter {
         headerRow.createCell(3).setCellValue("Description");
         headerRow.createCell(4).setCellValue("Result");
         headerRow.createCell(5).setCellValue("Comments");
-        headerRow.createCell(6).setCellValue("Marked");
+        headerRow.createCell(6).setCellValue("Start Time");
+        headerRow.createCell(7).setCellValue("End Time");
+        headerRow.createCell(8).setCellValue("Duration (ms)");
+        headerRow.createCell(9).setCellValue("Marked");
         
-        for (int i = 0; i < 7; i++) {
+        for (int i = 0; i < 10; i++) {
             headerRow.getCell(i).setCellStyle(headerStyle);
         }
         
@@ -205,11 +214,14 @@ public class XlsxExporter {
                 dataRow.createCell(3).setCellValue(subcase.getDescription() != null ? subcase.getDescription() : "");
                 dataRow.createCell(4).setCellValue(subcase.getResult() != null ? subcase.getResult() : "");
                 dataRow.createCell(5).setCellValue(subcase.getComment() != null ? subcase.getComment() : "");
-                dataRow.createCell(6).setCellValue(subcase.isMarked() ? "Yes" : "No");
+                dataRow.createCell(6).setCellValue(formatDate(subcase.getStartTime()));
+                dataRow.createCell(7).setCellValue(formatDate(subcase.getEndTime()));
+                dataRow.createCell(8).setCellValue(subcase.getDuration());
+                dataRow.createCell(9).setCellValue(subcase.isMarked() ? "Yes" : "No");
             }
         }
         
-        for (int i = 0; i < 7; i++) {
+        for (int i = 0; i < 10; i++) {
             sheet.autoSizeColumn(i);
         }
     }
@@ -351,5 +363,19 @@ public class XlsxExporter {
         }
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         return sdf.format(new Date(timestamp));
+    }
+
+    /**
+     * Format duration in milliseconds to HH:mm:ss format
+     */
+    private String formatDuration(long durationMs) {
+        if (durationMs == 0) {
+            return "0s";
+        }
+        long totalSeconds = durationMs / 1000;
+        long hours = totalSeconds / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
+        long seconds = totalSeconds % 60;
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
     }
 }

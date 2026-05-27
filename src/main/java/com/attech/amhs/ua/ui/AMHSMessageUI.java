@@ -590,22 +590,24 @@ public class AMHSMessageUI extends JFrame {
             return;
         }
 
-        logSend(recipient, subject, content, priority, true);
+        logSend(recipient, subject, content, priority, true, getSelectedSubcase() != null ? getSelectedSubcase().getAmhsDefaults() : null);
         appendOutput("Sending message…");
 
         new Thread(() -> {
             try {
-                String msgId = messageService.sendMessage(recipient, subject, content, priority);
+                String msgId = messageService.sendMessage(recipient, subject, content, priority, getSelectedSubcase() != null ? getSelectedSubcase().getAmhsDefaults() : null);
                 SwingUtilities.invokeLater(() -> {
                     appendOutput("Message sent! ID: " + msgId);
-                    addMessageToMarkingPanel(recipient, subject, content,
-                            priority.toString(), true, null, false);
+                        addMessageToMarkingPanel(recipient, subject, content,
+                            priority.toString(), true, null, false, 
+                            getSelectedSubcase() != null ? getSelectedSubcase().getAmhsDefaults() : null);
                 });
             } catch (Throwable t) {
                 SwingUtilities.invokeLater(() -> {
                     appendOutput("Failed to send message: " + t.getMessage());
                     addMessageToMarkingPanel(recipient, subject, content,
-                            priority.toString(), false, t.getMessage(), false);
+                            priority.toString(), false, t.getMessage(), false, 
+                            getSelectedSubcase() != null ? getSelectedSubcase().getAmhsDefaults() : null);
                 });
             }
         }).start();
@@ -632,7 +634,7 @@ public class AMHSMessageUI extends JFrame {
                     for (AMHSMessageService.MessageSummary m : msgs) {
                         appendOutput("From: " + m.getSender() + "  Subject: " + m.getSubject());
                         addMessageToMarkingPanel(m.getSender(), m.getSubject(),
-                                m.getContent(), null, true, null, true);
+                                m.getContent(), null, true, null, true, null);
                         details.append("From: ").append(m.getSender())
                                 .append(", Subject: ").append(m.getSubject()).append("\n");
                     }
@@ -717,7 +719,7 @@ public class AMHSMessageUI extends JFrame {
                     appendOutput("Error: Recipient, subject, and content are required.");
                     return;
                 }
-                String msgId = messageService.sendMessage(recipient, subject, content, priority);
+                String msgId = messageService.sendMessage(recipient, subject, content, priority, getSelectedSubcase() != null ? getSelectedSubcase().getAmhsDefaults() : null);
                 SwingUtilities.invokeLater(() -> appendOutput("Defaults sent successfully. Message ID: " + msgId));
             } catch (Throwable t) {
                 SwingUtilities.invokeLater(() -> appendOutput("Send defaults failed: " + t.getMessage()));
@@ -751,9 +753,38 @@ public class AMHSMessageUI extends JFrame {
 
     // ── Utility helpers ───────────────────────────────────────────────────
 
+    private String generateDetailedPayload(String recipientOrSender, String subject, String priority, boolean isReceived, Map<String, String> defaults) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("X.400 Message Attributes:\n");
+        sb.append("- ").append(isReceived ? "Sender" : "Recipient").append(" (O/R Address): ").append(recipientOrSender).append("\n");
+        sb.append("- Subject: ").append(subject != null ? subject : "").append("\n");
+        sb.append("- Priority: ").append(priority != null ? priority : "NORMAL_PRIORITY").append("\n");
+
+        if (defaults != null && !defaults.isEmpty()) {
+            // List all AMHS specific fields from defaults
+            defaults.forEach((key, value) -> {
+                if (value != null && !value.isEmpty()) {
+                    // Avoid duplicating basic fields
+                    if (!key.equals("recipient") && !key.equals("subject") && !key.equals("priority") && !key.equals("content")) {
+                        // Format key for readability (e.g., "filing-time" -> "Filing Time")
+                        String formattedKey = key.substring(0, 1).toUpperCase() + key.substring(1).replace("-", " ");
+                        sb.append("- ").append(formattedKey).append(": ").append(value).append("\n");
+                    }
+                }
+            });
+        }
+
+        if (!isReceived) {
+            sb.append("- Delivery Report Request: DR_NON_DELIVERY_REPORT\n");
+            sb.append("- IPN Request: IPN_NON_RECEIPT_NOTIFICATION\n");
+        }
+        
+        return sb.toString();
+    }
+
     private void addMessageToMarkingPanel(String recipientOrSender, String subject,
             String content, String priority, boolean success,
-            String errorMessage, boolean isReceived) {
+            String errorMessage, boolean isReceived, Map<String, String> defaults) {
         if (markingPanel == null)
             return;
         MessageLog log = new MessageLog(
@@ -769,14 +800,7 @@ public class AMHSMessageUI extends JFrame {
             log.setErrorMessage(errorMessage);
         log.setIsReceived(isReceived);
 
-        String x400Payload = "X.400 Message Attributes:\n" +
-                "- " + (isReceived ? "Sender" : "Recipient") + " (O/R Address): " + recipientOrSender + "\n" +
-                "- Subject: " + subject + "\n" +
-                "- Content-Type: IA5Text\n" +
-                "- Priority: " + (priority != null ? priority : "NORMAL_PRIORITY") + "\n" +
-                (!isReceived
-                        ? "- Delivery Report Request: DR_NON_DELIVERY_REPORT\n- IPN Request: IPN_NON_RECEIPT_NOTIFICATION\n"
-                        : "");
+        String x400Payload = generateDetailedPayload(recipientOrSender, subject, priority, isReceived, defaults);
 
         log.setX400Payload(x400Payload);
 
@@ -788,22 +812,16 @@ public class AMHSMessageUI extends JFrame {
     }
 
     private void logSend(String recipient, String subject, String content,
-            X400_Priority priority, boolean success) {
+            X400_Priority priority, boolean success, Map<String, String> defaults) {
         if (actionLogsPanel == null)
             return;
 
-        String x400Payload = "X.400 Message Attributes:\n" +
-                "- Recipient (O/R Address): " + recipient + "\n" +
-                "- Subject: " + subject + "\n" +
-                "- Content-Type: IA5Text\n" +
-                "- Priority: " + (priority != null ? priority.toString() : "NORMAL_PRIORITY") + "\n" +
-                "- Delivery Report Request: DR_NON_DELIVERY_REPORT\n" +
-                "- IPN Request: IPN_NON_RECEIPT_NOTIFICATION";
+        String x400Payload = generateDetailedPayload(recipient, subject, priority != null ? priority.toString() : "NORMAL_PRIORITY", false, defaults);
 
         actionLogsPanel.logSendMessage(
                 getSelectedCase() != null ? getSelectedCase().getId() : "N/A",
                 getSelectedSubcase() != null ? getSelectedSubcase().getId() : "N/A",
-                recipient, subject, content, priority.toString(), success, null, x400Payload);
+                recipient, subject, content, priority != null ? priority.toString() : "NORMAL_PRIORITY", success, null, x400Payload);
     }
 
     private void appendOutput(String text) {

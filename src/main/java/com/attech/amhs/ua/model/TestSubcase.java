@@ -17,10 +17,14 @@ public class TestSubcase implements Serializable {
     private String result;                      // "PASS" or "FAIL" or null if not tested
     private String comment;                     // Test result comment
     private boolean marked;                     // Whether this subcase has been marked
+    private long startTime;                     // When the test started (milliseconds)
+    private long endTime;                       // When the test ended (milliseconds)
     
     public TestSubcase() {
         this.amhsDefaults = new HashMap<>();
         this.marked = false;
+        this.startTime = 0;
+        this.endTime = 0;
     }
     
     public TestSubcase(String id, String name) {
@@ -92,6 +96,29 @@ public class TestSubcase implements Serializable {
 
     public void setMarked(boolean marked) {
         this.marked = marked;
+    }
+
+    public long getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
+    }
+
+    public long getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(long endTime) {
+        this.endTime = endTime;
+    }
+
+    public long getDuration() {
+        if (startTime == 0 || endTime == 0) {
+            return 0;
+        }
+        return endTime - startTime;
     }
 
     @Override

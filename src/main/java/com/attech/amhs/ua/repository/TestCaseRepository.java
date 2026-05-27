@@ -98,9 +98,17 @@ public class TestCaseRepository {
     public void markSubcase(String caseId, String subcaseId, String result, String comment) {
         TestSubcase subcase = this.getSubcaseById(caseId, subcaseId);
         if (subcase != null) {
+            // Record start time if not already set
+            if (subcase.getStartTime() == 0) {
+                subcase.setStartTime(System.currentTimeMillis());
+            }
+            
             subcase.setResult(result);
             subcase.setComment(comment);
             subcase.setMarked(true);
+            
+            // Record end time
+            subcase.setEndTime(System.currentTimeMillis());
         }
     }
 
