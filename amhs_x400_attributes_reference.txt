@@ -1,0 +1,276 @@
+# AMHS X.400 Attributes Reference Document
+## Based on ICAO Doc 020 (Manual on Air Traffic Management Systems) and EUR Doc 047
+
+### Overview
+This document lists all required and optional AMHS X.400 attributes as defined in ICAO documentation
+for Aeronautical Message Handling System (AMHS) implementation.
+
+================================================================================
+## SECTION 1: CORE X.400 ATTRIBUTES (X400_att constants)
+================================================================================
+
+### 1.1 Message Identification Attributes
+| Attribute Name                      | Constant                          | Required/Optional | Description                                    |
+|-------------------------------------|-----------------------------------|-------------------|------------------------------------------------|
+| Message Identifier                  | X400_S_MESSAGE_IDENTIFIER         | Required          | Unique identifier for the message              |
+| IPM Identifier                      | X400_S_IPM_IDENTIFIER             | Required (IPM)    | Identifier for InterPersonal Message           |
+| Subject Identifier                  | X400_S_SUBJECT_IDENTIFIER         | Optional          | Subject reference identifier                   |
+| Content Identifier                  | X400_S_CONTENT_IDENTIFIER         | Optional          | Content type identifier                        |
+| Object Type                         | X400_S_OBJECTTYPE                 | Required          | Type of X.400 object                           |
+
+### 1.2 Addressing Attributes
+| Attribute Name                      | Constant                          | Required/Optional | Description                                    |
+|-------------------------------------|-----------------------------------|-------------------|------------------------------------------------|
+| Originator Address (O/R Address)    | X400_S_OR_ADDRESS                 | Required          | Originator's O/R address                       |
+| Primary Recipients                  | X400_RECIP_PRIMARY                | Required          | List of primary recipients                     |
+| CC Recipients                       | X400_RECIP_CC                     | Optional          | Carbon copy recipients                         |
+| BCC Recipients                      | X400_RECIP_BCC                    | Optional          | Blind carbon copy recipients                   |
+| Envelope Recipients                 | X400_RECIP_ENVELOPE               | Required          | Actual delivery recipients                     |
+| Report Recipients                   | X400_RECIP_REPORT                 | Optional          | Recipients for delivery reports                |
+
+### 1.3 Message Content Attributes
+| Attribute Name                      | Constant                          | Required/Optional | Description                                    |
+|-------------------------------------|-----------------------------------|-------------------|------------------------------------------------|
+| Subject                             | X400_S_SUBJECT                    | Required          | Message subject line                           |
+| Body Data                           | X400_S_BODY_DATA                  | Required          | Actual message content                         |
+| Body Type                           | X400_N_BODY_TYPE                  | Required          | Type of body part (IA5, General Text, FTBP)    |
+| Priority                            | X400_N_PRIORITY                   | Required          | Message priority (0=LOW, 1=NORMAL, 2=HIGH)     |
+| Precedence                          | X400_N_PRECEDENCE                 | Optional          | Extended precedence value (14, 28, 57, 71, 107)|
+
+### 1.4 Timing Attributes
+| Attribute Name                      | Constant                          | Required/Optional | Description                                    |
+|-------------------------------------|-----------------------------------|-------------------|------------------------------------------------|
+| Message Submission Time             | X400_S_MESSAGE_SUBMISSION_TIME    | Auto-generated    | Time when message was submitted                |
+| Message Delivery Time               | X400_S_MESSAGE_DELIVERY_TIME      | Auto-generated    | Time when message was delivered                |
+| Receipt Time                        | X400_S_RECEIPT_TIME               | Auto-generated    | Time when receipt was generated                |
+
+### 1.5 Notification/Report Attributes
+| Attribute Name                      | Constant                          | Required/Optional | Description                                    |
+|-------------------------------------|-----------------------------------|-------------------|------------------------------------------------|
+| Notification Request                | X400_N_NOTIFICATION_REQUEST       | Optional          | Request for IPN (0-7 bit flags)                |
+| Report Request                      | X400_N_REPORT_REQUEST             | Optional          | Request for delivery report (0-3)              |
+| MTA Report Request                  | X400_N_MTA_REPORT_REQUEST         | Optional          | MTA-level report request                       |
+| Is IPN                              | X400_N_IS_IPN                     | Auto-generated    | Indicates if message is an IPN                 |
+| MS Sequence Number                  | X400_N_MS_SEQUENCE_NUMBER         | Auto-generated    | Message store sequence number                  |
+| MS Entry Status                     | X400_N_MS_ENTRY_STATUS            | Auto-generated    | Status of message in store                     |
+
+### 1.6 File Transfer Body Part (FTBP) Attributes
+| Attribute Name                      | Constant                          | Required/Optional | Description                                    |
+|-------------------------------------|-----------------------------------|-------------------|------------------------------------------------|
+| FTBP Filename                       | X400_S_FTBP_FILENAME              | Required (FTBP)   | Name of attached file                          |
+| FTBP Content Description            | X400_S_FTBP_CONTENT_DESCRIPTION   | Optional          | Description of file content                    |
+| FTBP Object Size                    | X400_N_FTBP_OBJECT_SIZE           | Auto-generated    | Size of file in bytes                          |
+| FTBP Modification Date              | X400_S_FTBP_MODIFICATION_DATE     | Optional          | Last modification date of file                 |
+| FTBP Application Reference OID      | X400_S_FTBP_APPLICATION_REFERENCE_OID | Optional       | Application-specific OID                       |
+
+### 1.7 Encoding Attributes
+| Attribute Name                      | Constant                          | Required/Optional | Description                                    |
+|-------------------------------------|-----------------------------------|-------------------|------------------------------------------------|
+| Original Encoded Information Types  | X400_S_ORIGINAL_ENCODED_INFORMATION_TYPES | Optional   | Original EIT before conversion                 |
+| Supplementary Info                  | X400_S_SUPPLEMENTARY_INFO         | Optional          | Additional information                         |
+| Type of User                        | X400_N_TYPE_OF_USER               | Optional          | User type classification                       |
+| Non-Delivery Diagnostic             | X400_N_NON_DELIVERY_DIAGNOSTIC    | Auto-generated    | Reason for non-delivery                        |
+| Non-Delivery Reason                 | X400_N_NON_DELIVERY_REASON        | Auto-generated    | Code for non-delivery reason                   |
+
+### 1.8 Message Type Constants
+| Constant                            | Value                             | Description                                    |
+|-------------------------------------|-----------------------------------|------------------------------------------------|
+| X400_MSG_MESSAGE                    | Message                           | Standard IPM message                           |
+| X400_MSG_REPORT                     | Report                            | Delivery report                                |
+| X400_MSG_PROBE                      | Probe                             | Probe message                                  |
+| X400_MSG_SUBMITTED_MESSAGE          | Submitted                         | Submitted message status                       |
+
+### 1.9 Body Type Constants
+| Constant                            | Value                             | Description                                    |
+|-------------------------------------|-----------------------------------|------------------------------------------------|
+| X400_T_IA5TEXT                      | IA5 Text                          | Basic ASCII text body part                     |
+| X400_T_GENERAL_TEXT                 | General Text                      | Extended text with charset support             |
+| X400_T_FTBP                         | File Transfer                     | File attachment body part                      |
+| X400_T_BINARY                       | Binary                            | Binary data body part                          |
+
+================================================================================
+## SECTION 2: AMHS-SPECIFIC ATTRIBUTES (AMHS_att constants)
+================================================================================
+
+### 2.1 ATS Message Header Attributes
+| Attribute Name                      | Constant                          | Required/Optional | Description                                    |
+|-------------------------------------|-----------------------------------|-------------------|------------------------------------------------|
+| Filing Time                         | ATS_S_FILING_TIME                 | Required (ATS)    | ATS filing time (YYMMDDHHMM format)            |
+| Priority Indicator                  | ATS_S_PRIORITY_INDICATOR          | Required (ATS)    | ATS priority code (KK, GG, FF, DD, SS)         |
+| Optional Heading Info (OHI)         | ATS_S_OPTIONAL_HEADING_INFO       | Optional          | Optional heading information text              |
+| Authorization Time                  | ATS_S_AUTHORIZATION_TIME          | Optional          | Time when message was authorized               |
+| Originator Reference                | ATS_S_ORIGINATOR_REFERENCE        | Optional          | Reference from originator                      |
+
+### 2.2 Extended IPM Attributes
+| Attribute Name                      | Constant                          | Required/Optional | Description                                    |
+|-------------------------------------|-----------------------------------|-------------------|------------------------------------------------|
+| Extended Flag                       | ATS_N_EXTENDED                    | Auto-generated    | Indicates extended IPM (-1 = extended)         |
+| Responsibility Indicator            | ATS_S_RESPONSIBILITY              | Optional          | Responsible/not-responsible flag               |
+| Notify Control Position             | ATS_S_NOTIFY_CONTROL_POSITION     | Optional          | Control position notification setting          |
+| Latest Delivery Time                | ATS_S_LATEST_DELIVERY_TIME        | Optional          | Maximum delivery time                          |
+| Subject IPM ID                      | ATS_S_SUBJECT_IPM_ID              | Optional          | Referenced IPM identifier                      |
+| Subject IPM Priority                | ATS_S_SUBJECT_IPM_PRIORITY        | Optional          | Priority of referenced IPM                     |
+
+### 2.3 Charset Configuration (for General Text Body Parts)
+| Attribute Name                      | Constant                          | Required/Optional | Description                                    |
+|-------------------------------------|-----------------------------------|-------------------|------------------------------------------------|
+| Charset Registration Number         | ATS_S_CHARSET_REG_NUMBER          | Optional          | ISO charset registration number                |
+| Charset Repertoire                  | ATS_S_CHARSET_REPERTOIRE          | Optional          | Character repertoire name                      |
+| Conversion With Loss Prohibited     | ATS_S_CONVERSION_WITH_LOSS_PROHIBITED | Optional       | Flag to prohibit lossy conversion              |
+
+### 2.4 Encoded Information Types (EIT)
+| Attribute Name                      | Constant                          | Required/Optional | Description                                    |
+|-------------------------------------|-----------------------------------|-------------------|------------------------------------------------|
+| EIT Type                            | ATS_S_EIT_TYPE                    | Optional          | builtin/extended/mixed                         |
+| EIT Built-in Value                  | ATS_S_EIT_BUILTIN                 | Optional          | Built-in EIT value (e.g., ia5-text(2))         |
+| EIT OID                             | ATS_S_EIT_OID                     | Optional          | Extended EIT object identifier                 |
+| EIT Authority                       | ATS_S_EIT_AUTHORITY               | Optional          | EIT authority identifier                       |
+
+### 2.5 Recipient Configuration
+| Attribute Name                      | Constant                          | Required/Optional | Description                                    |
+|-------------------------------------|-----------------------------------|-------------------|------------------------------------------------|
+| Primary Recipients List             | ATS_S_PRIMARY_RECIPIENTS          | Required          | List of primary recipient addresses            |
+| Copy Recipients List                | ATS_S_COPY_RECIPIENTS             | Optional          | List of CC recipient addresses                 |
+| Blind Copy Recipients List          | ATS_S_BCC_RECIPIENTS              | Optional          | List of BCC recipient addresses                |
+| Recipient File                      | ATS_S_RECIPIENT_FILE              | Optional          | File containing recipient list                 |
+
+### 2.6 Report Configuration
+| Attribute Name                      | Constant                          | Required/Optional | Description                                    |
+|-------------------------------------|-----------------------------------|-------------------|------------------------------------------------|
+| Originator Report Request           | ATS_S_ORIGINATOR_REPORT_REQUEST   | Optional          | Request for non-delivery report                |
+| Originating MTA Report Request      | ATS_S_ORIGINATING_MTA_REPORT_REQUEST | Optional       | MTA-level report request                       |
+| Exceeds Max Size                    | ATS_S_EXCEEDS_MAX_SIZE            | Optional          | Maximum message size indicator                 |
+| Should Reject                       | ATS_S_SHOULD_REJECT               | Optional          | Reject message flag                            |
+| Header Empty                        | ATS_S_HEADER_EMPTY                | Optional          | Empty header flag                              |
+
+================================================================================
+## SECTION 3: ATTRIBUTE REQUIREMENTS BY MESSAGE TYPE
+================================================================================
+
+### 3.1 Basic IPM Message (Standard ATS Message)
+REQUIRED ATTRIBUTES:
+- recipient (X400_RECIP_PRIMARY)
+- subject (X400_S_SUBJECT)
+- priority (X400_N_PRIORITY or ATS_S_PRIORITY_INDICATOR)
+- content/body (X400_S_BODY_DATA via BodypartIA5Text)
+- filing-time (ATS_S_FILING_TIME) - for ATS messages
+
+OPTIONAL ATTRIBUTES:
+- optional-heading-info (ATS_S_OPTIONAL_HEADING_INFO)
+- originator-reference (can be stored in OHI)
+- cc-recipients (X400_RECIP_CC)
+- bcc-recipients (X400_RECIP_BCC)
+- notification-request (X400_N_NOTIFICATION_REQUEST)
+- report-request (X400_N_REPORT_REQUEST)
+
+### 3.2 Extended IPM Message
+REQUIRED ATTRIBUTES (in addition to Basic IPM):
+- precedence (X400_N_PRECEDENCE) - values: 14, 28, 57, 71, 107
+- body-part-type = general-text-body-part (X400_T_GENERAL_TEXT)
+- authorization-time (ATS_S_AUTHORIZATION_TIME)
+
+OPTIONAL ATTRIBUTES:
+- responsibility (ATS_S_RESPONSIBILITY) - "responsible" or "not-responsible"
+- charset-reg-number (ATS_S_CHARSET_REG_NUMBER)
+- charset-repertoire (ATS_S_CHARSET_REPERTOIRE)
+- conversion-with-loss-prohibited (ATS_S_CONVERSION_WITH_LOSS_PROHIBITED)
+- notify-control-position (ATS_S_NOTIFY_CONTROL_POSITION)
+
+### 3.3 Message with File Attachment (FTBP)
+REQUIRED ATTRIBUTES:
+- body-part-type = ftbp or includes ftbp
+- ftbp-file-name (X400_S_FTBP_FILENAME)
+- ftbp-content (file content as byte array)
+
+OPTIONAL ATTRIBUTES:
+- ftbp-content-description (X400_S_FTBP_CONTENT_DESCRIPTION)
+
+### 3.4 Multi-part Message
+REQUIRED ATTRIBUTES:
+- body-part-type = comma-separated list (e.g., "ia5-text,ftbp")
+- Each body part must have appropriate content
+
+================================================================================
+## SECTION 4: PRIORITY MAPPING
+================================================================================
+
+### ATS Priority Codes to X.400 Priority
+| ATS Code | Description        | X.400 Priority Value |
+|----------|--------------------|----------------------|
+| KK       | Highest Priority   | HIGH_PRIORITY (2)    |
+| GG       | High Priority      | HIGH_PRIORITY (2)    |
+| FF       | Normal Priority    | NORMAL_PRIORITY (1)  |
+| DD       | Low Priority       | LOW_PRIORITY (0)     |
+| SS       | Special/Survival   | LOW_PRIORITY (0)     |
+
+### Extended Precedence Values
+| Precedence | Description              | Maps To            |
+|------------|--------------------------|--------------------|
+| 14         | Lowest                   | LOW_PRIORITY       |
+| 28         | Low                      | NORMAL_PRIORITY    |
+| 57         | Medium                   | HIGH_PRIORITY      |
+| 71         | High                     | HIGH_PRIORITY      |
+| 107        | Highest                  | HIGH_PRIORITY      |
+
+================================================================================
+## SECTION 5: EDITABLE ATTRIBUTES PER ICAO RULES
+================================================================================
+
+According to ICAO Doc 020 and EUR Doc 047, the following attributes MUST be 
+editable by the user/application when composing AMHS messages:
+
+### MUST BE EDITABLE:
+1. recipient - Primary recipient O/R address
+2. subject - Message subject line
+3. content - Message body content
+4. priority - Message priority (ATS codes or X.400 values)
+5. filing-time - ATS filing time
+6. body-part-type - Type of body part(s)
+7. optional-heading-info - OHI text
+8. originator-reference - Originator reference text
+9. precedence - For extended IPMs
+10. authorization-time - For extended IPMs
+11. responsibility - For extended IPMs
+12. charset configuration - For general text body parts
+13. eit configuration - For encoded information types
+14. ftbp configuration - For file attachments
+15. cc-recipients - Carbon copy recipients
+16. bcc-recipients - Blind copy recipients
+17. notification-request - IPN request settings
+18. report-request - Delivery report request settings
+
+### SYSTEM-GENERATED (NOT EDITABLE):
+1. message-identifier - Generated by system
+2. ipm-identifier - Generated by system
+3. submission-time - Generated at submission
+4. delivery-time - Generated at delivery
+5. sequence-number - Generated by message store
+6. is-extended - Determined by message type
+
+================================================================================
+## SECTION 6: IMPLEMENTATION NOTES
+================================================================================
+
+### Setting Attributes via ISODE API:
+- String parameters: message.setStringparam(AMHS_att.ATS_S_*, value)
+- Integer parameters: message.setIntParam(X400_att.X400_N_*, value)
+- Body parts: message.addBodypart(BodypartXXX)
+
+### Common AMHS_att Constants Used:
+- AMHS_att.ATS_S_FILING_TIME
+- AMHS_att.ATS_S_PRIORITY_INDICATOR
+- AMHS_att.ATS_S_OPTIONAL_HEADING_INFO
+
+### Common X400_att Constants Used:
+- X400_att.X400_N_PRIORITY
+- X400_att.X400_N_PRECEDENCE
+- X400_att.X400_S_SUBJECT
+- X400_att.X400_RECIP_PRIMARY
+- X400_att.X400_RECIP_CC
+- X400_att.X400_RECIP_BCC
+- X400_att.X400_N_NOTIFICATION_REQUEST
+- X400_att.X400_N_REPORT_REQUEST
+
+================================================================================
+END OF DOCUMENT
+================================================================================
