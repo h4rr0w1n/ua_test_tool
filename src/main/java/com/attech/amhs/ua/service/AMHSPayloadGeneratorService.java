@@ -599,6 +599,20 @@ public class AMHSPayloadGeneratorService {
                 String newOhi = existingOhi != null ? existingOhi + "\n" + fieldName.toUpperCase() + "=" + value : fieldName.toUpperCase() + "=" + value;
                 message.setStringparam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO, newOhi);
                 break;
+            case "latest-delivery-time":
+                // Use proper X.400 attribute for latest delivery time
+                message.setStringparam(X400_att.X400_S_LATEST_DELIVERY_TIME, value);
+                break;
+            case "subject-ipm-id":
+                // Use proper X.400 attribute for subject IPM identifier
+                message.setStringparam(X400_att.X400_S_SUBJECT_IPM, value);
+                break;
+            case "subject-ipm-priority":
+                // Store subject IPM priority in optional heading info as it's an ATS-specific extension
+                String existingOhiForPriority = getOptionalHeadingInfo(message);
+                String newOhiForPriority = existingOhiForPriority != null ? existingOhiForPriority + "\nSUBJECT-IPM-PRIORITY=" + value : "SUBJECT-IPM-PRIORITY=" + value;
+                message.setStringparam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO, newOhiForPriority);
+                break;
             default:
                 // For unknown fields, store in optional heading info
                 message.setStringparam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO, fieldName.toUpperCase() + "=" + value);
@@ -751,7 +765,6 @@ public class AMHSPayloadGeneratorService {
             if (reportValue >= 0) {
                 // Set originator report request using X400_att.X400_N_REPORT_REQUEST
                 message.setIntParam(X400_att.X400_N_REPORT_REQUEST, reportValue);
-                setExtendedHeaderField(message, "originator-report-request", originatorReportRequest);
             }
         }
         
@@ -760,7 +773,6 @@ public class AMHSPayloadGeneratorService {
             if (mtaReportValue >= 0) {
                 // Set MTA report request using X400_att.X400_N_MTA_REPORT_REQUEST
                 message.setIntParam(X400_att.X400_N_MTA_REPORT_REQUEST, mtaReportValue);
-                setExtendedHeaderField(message, "originating-mta-report-request", originatingMtaReportRequest);
             }
         }
     }
