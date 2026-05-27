@@ -1,21 +1,23 @@
 ```
-# Compiled Java classes
+# Compiled and build artifacts
 *.class
-
-# Maven/Gradle build directory
 target/
 
-# IDE files
+# Dependencies
+.m2/
+.gradle/
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Editors
 .vscode/
 .idea/
-*.swp
-*.swo
 
-# Logs
-*.log
-
-# Environment files
+# Environment
 .env
 .env.local
-*.env.*
+.env.
 ```

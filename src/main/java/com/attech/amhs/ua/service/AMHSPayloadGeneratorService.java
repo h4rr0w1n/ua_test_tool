@@ -26,14 +26,77 @@ public class AMHSPayloadGeneratorService {
 
     /**
      * Default empty AMHS message fields for first boot
+     * Includes all required and optional attributes per ICAO Doc 020
      */
     private static final Map<String, String> EMPTY_DEFAULTS = new HashMap<>();
 
     static {
+        // Required attributes - Basic IPM
         EMPTY_DEFAULTS.put("recipient", "");
         EMPTY_DEFAULTS.put("subject", "");
         EMPTY_DEFAULTS.put("content", "");
-        EMPTY_DEFAULTS.put("priority", "NORMAL");
+        EMPTY_DEFAULTS.put("priority", "FF");  // Default to FF (Normal) ATS priority
+        EMPTY_DEFAULTS.put("filing-time", "");  // Required for ATS messages
+        
+        // Required for Extended IPM
+        EMPTY_DEFAULTS.put("precedence", "");
+        EMPTY_DEFAULTS.put("authorization-time", "");
+        
+        // Body part configuration
+        EMPTY_DEFAULTS.put("body-part-type", "ia5-text");  // Default to ia5-text
+        EMPTY_DEFAULTS.put("charset-reg-number", "");
+        EMPTY_DEFAULTS.put("charset-repertoire", "");
+        EMPTY_DEFAULTS.put("conversion-with-loss-prohibited", "");
+        
+        // Header fields (optional but commonly used)
+        EMPTY_DEFAULTS.put("originator-reference", "");
+        EMPTY_DEFAULTS.put("optional-heading-info", "");
+        EMPTY_DEFAULTS.put("responsibility", "");
+        EMPTY_DEFAULTS.put("notify-control-position", "");
+        
+        // EIT (Encoded Information Types)
+        EMPTY_DEFAULTS.put("eit-type", "");
+        EMPTY_DEFAULTS.put("eit-value", "");
+        EMPTY_DEFAULTS.put("eit-oid", "");
+        EMPTY_DEFAULTS.put("eit-oids", "");
+        EMPTY_DEFAULTS.put("eit-builtin", "");
+        EMPTY_DEFAULTS.put("eit-authority", "");
+        
+        // FTBP (File Transfer Body Part)
+        EMPTY_DEFAULTS.put("ftbp-file-name", "");
+        EMPTY_DEFAULTS.put("ftbp-content", "");
+        
+        // Report configuration
+        EMPTY_DEFAULTS.put("originator-report-request", "");
+        EMPTY_DEFAULTS.put("originating-mta-report-request", "");
+        
+        // Timing attributes
+        EMPTY_DEFAULTS.put("latest-delivery-time", "");
+        
+        // Subject IPM references
+        EMPTY_DEFAULTS.put("subject-ipm-id", "");
+        EMPTY_DEFAULTS.put("subject-ipm-priority", "");
+        
+        // Recipient lists
+        EMPTY_DEFAULTS.put("primary-recipients", "");
+        EMPTY_DEFAULTS.put("copy-recipients", "");
+        EMPTY_DEFAULTS.put("bcc-recipients", "");
+        EMPTY_DEFAULTS.put("recipient-file", "");
+        
+        // Additional charset support
+        EMPTY_DEFAULTS.put("charset-reg-numbers", "");
+        EMPTY_DEFAULTS.put("repertoire", "");
+        EMPTY_DEFAULTS.put("content-type", "");
+        
+        // Header empty flag
+        EMPTY_DEFAULTS.put("header-empty", "");
+        
+        // Size validation
+        EMPTY_DEFAULTS.put("exceeds-max-size", "");
+        EMPTY_DEFAULTS.put("should-reject", "");
+        
+        // Multiple body parts support
+        EMPTY_DEFAULTS.put("second-body-content", "");
     }
 
     private static final Logger logger = LoggerFactory.getLogger(AMHSPayloadGeneratorService.class);
@@ -210,6 +273,20 @@ public class AMHSPayloadGeneratorService {
             setExtendedHeaderField(message, "filing-time", filingTime);
         }
         
+        // Handle priority-indicator (ATS priority codes: KK, GG, FF, DD, SS)
+        // This is REQUIRED for ATS messages per ICAO Doc 020 Section 2.1
+        String priorityIndicator = amhsDefaults.get("priority-indicator");
+        if (priorityIndicator != null && !priorityIndicator.isEmpty()) {
+            // Set ATS priority indicator using AMHS_att.ATS_S_PRIORITY_INDICATOR
+            message.setStringparam(AMHS_att.ATS_S_PRIORITY_INDICATOR, priorityIndicator.toUpperCase());
+        } else {
+            // Check if priority field contains ATS code and use it as priority indicator
+            String priority = amhsDefaults.get("priority");
+            if (priority != null && !priority.isEmpty() && isAtsPriorityCode(priority)) {
+                message.setStringparam(AMHS_att.ATS_S_PRIORITY_INDICATOR, priority.toUpperCase());
+            }
+        }
+        
         // Handle precedence (Extended IPM precedence values: 14, 28, 57, 71, 107)
         String precedence = amhsDefaults.get("precedence");
         if (precedence != null && !precedence.isEmpty()) {
@@ -265,6 +342,21 @@ public class AMHSPayloadGeneratorService {
         
         // Handle subject IPM references (from ICAO Doc 020 Section 2.2)
         applySubjectIpmReferences(message, amhsDefaults);
+    }
+    
+    /**
+     * Check if a priority string is an ATS priority code (KK, GG, FF, DD, SS)
+     * 
+     * @param priority Priority string to check
+     * @return true if it's an ATS priority code
+     */
+    private boolean isAtsPriorityCode(String priority) {
+        if (priority == null || priority.length() != 2) {
+            return false;
+        }
+        String upper = priority.toUpperCase();
+        return "KK".equals(upper) || "GG".equals(upper) || "FF".equals(upper) || 
+               "DD".equals(upper) || "SS".equals(upper);
     }
     
     /**
