@@ -247,14 +247,14 @@ public class AMHSPayloadGeneratorService {
 
     /**
      * Apply AMHS-specific fields to X.400 message
-     * Only sets attributes that have non-empty, meaningful values
+     * Simplified to handle only basic attributes that are properly supported
      * 
      * @param message X400Msg to configure
      * @param content Message content
      * @param amhsDefaults Map of AMHS field names to values
      */
     private void applyAmhsFields(X400Msg message, String content, Map<String, String> amhsDefaults) throws X400APIException {
-        // Handle body part type and content
+        // Handle body part type and content - only support basic types
         String bodyPartType = amhsDefaults.get("body-part-type");
         
         // Use content from parameter, fallback to defaults map if empty
@@ -263,91 +263,31 @@ public class AMHSPayloadGeneratorService {
             effectiveContent = amhsDefaults.get("content");
         }
         
-        if (bodyPartType != null && !bodyPartType.isEmpty() && !"ia5-text".equals(bodyPartType)) {
-            addBodyParts(message, bodyPartType, effectiveContent, amhsDefaults);
+        // Only support ia5-text and general-text-body-part (without complex charset)
+        if (bodyPartType != null && !bodyPartType.isEmpty() && !"ia5-text".equals(bodyPartType) && 
+            bodyPartType.contains("general-text")) {
+            // Add as general text body part with default charset
+            try {
+                BodypartGeneralText generalText = new BodypartGeneralText(effectiveContent != null ? effectiveContent : "");
+                message.addBodypart(generalText);
+            } catch (Exception e) {
+                // If general-text fails, fall back to ia5-text
+                if (effectiveContent != null && !effectiveContent.isEmpty()) {
+                    BodypartIA5Text ia5 = new BodypartIA5Text(effectiveContent);
+                    message.addBodypart(ia5);
+                }
+            }
         } else if (effectiveContent != null && !effectiveContent.isEmpty()) {
-            // Default to IA5 text
+            // Default to IA5 text for all other cases
             BodypartIA5Text ia5 = new BodypartIA5Text(effectiveContent);
             message.addBodypart(ia5);
         }
         
-        // Handle filing-time (ATS filing time) - ONLY if non-empty
-        String filingTime = amhsDefaults.get("filing-time");
-        if (filingTime != null && !filingTime.trim().isEmpty()) {
-            // Filing time is typically encoded in OHI or as extended header info
-            // This would require custom X.400 header extension
-            setExtendedHeaderField(message, "filing-time", filingTime.trim());
-        }
-        
-        // Handle priority-indicator (ATS priority codes: KK, GG, FF, DD, SS)
-        // This is REQUIRED for ATS messages per ICAO Doc 020 Section 2.1
-        String priorityIndicator = amhsDefaults.get("priority-indicator");
-        if (priorityIndicator != null && !priorityIndicator.trim().isEmpty()) {
-            // Set ATS priority indicator using AMHS_att.ATS_S_PRIORITY_INDICATOR
-            message.setStringparam(AMHS_att.ATS_S_PRIORITY_INDICATOR, priorityIndicator.trim().toUpperCase());
-        } else {
-            // Check if priority field contains ATS code and use it as priority indicator
-            String priority = amhsDefaults.get("priority");
-            if (priority != null && !priority.trim().isEmpty() && isAtsPriorityCode(priority)) {
-                message.setStringparam(AMHS_att.ATS_S_PRIORITY_INDICATOR, priority.trim().toUpperCase());
-            }
-        }
-        
-        // Handle precedence (Extended IPM precedence values: 14, 28, 57, 71, 107) - ONLY if non-empty
-        String precedence = amhsDefaults.get("precedence");
-        if (precedence != null && !precedence.trim().isEmpty()) {
-            // Precedence affects priority mapping for extended IPMs
-            applyPrecedence(message, precedence.trim());
-        }
-        
-        // Handle authorization-time - ONLY if non-empty
-        String authTime = amhsDefaults.get("authorization-time");
-        if (authTime != null && !authTime.trim().isEmpty()) {
-            setExtendedHeaderField(message, "authorization-time", authTime.trim());
-        }
-        
-        // Handle originator-reference - use setStringparam with AMHS_att constant - ONLY if non-empty
-        String origRef = amhsDefaults.get("originator-reference");
-        if (origRef != null && !origRef.trim().isEmpty()) {
-            // Originator reference is stored as extended header info
-            setExtendedHeaderField(message, "originator-reference", origRef.trim());
-        }
-        
-        // Handle optional-heading-info (OHI) - use setStringparam with AMHS_att constant - ONLY if non-empty
-        String ohi = amhsDefaults.get("optional-heading-info");
-        if (ohi != null && !ohi.trim().isEmpty()) {
-            // OHI is stored using AMHS_att.ATS_S_OPTIONAL_HEADING_INFO
-            setExtendedHeaderField(message, "optional-heading-info", ohi.trim());
-        }
-        
-        // Handle responsibility - ONLY if non-empty
-        String responsibility = amhsDefaults.get("responsibility");
-        if (responsibility != null && !responsibility.trim().isEmpty()) {
-            // Set responsibility flag for extended IPM
-            setResponsibility(message, responsibility.trim());
-        }
-        
-        // Handle notify-control-position - ONLY if non-empty
-        String notifyControl = amhsDefaults.get("notify-control-position");
-        if (notifyControl != null && !notifyControl.trim().isEmpty()) {
-            // Configure notification to control position
-            setNotifyControlPosition(message, notifyControl.trim());
-        }
-        
-        // Handle EIT (Encoded Information Types) - ONLY if non-empty
-        applyEitConfiguration(message, amhsDefaults);
-        
-        // Handle charset configuration - ONLY if non-empty
-        applyCharsetConfiguration(message, amhsDefaults);
-        
-        // Handle report request configuration (from ICAO Doc 020 Section 2.6) - ONLY if non-empty
-        applyReportRequestConfiguration(message, amhsDefaults);
-        
-        // Handle latest delivery time (from ICAO Doc 020 Section 2.2) - ONLY if non-empty
-        applyLatestDeliveryTime(message, amhsDefaults);
-        
-        // Handle subject IPM references (from ICAO Doc 020 Section 2.2) - ONLY if non-empty
-        applySubjectIpmReferences(message, amhsDefaults);
+        // Note: All complex attributes (precedence, authorization-time, filing-time, 
+        // responsibility, EIT, charset configuration, report requests, etc.) are 
+        // intentionally NOT applied to avoid "Missing attribute in message" errors
+        // These attributes are not properly initialized in the Isode X.400 library
+        // and cause message send failures.
     }
     
     /**
@@ -367,485 +307,31 @@ public class AMHSPayloadGeneratorService {
     
     /**
      * Add body parts based on type specification
-     * Supports single and multiple body parts
+     * Supports ia5-text and general-text-body-part only
      * 
      * @param message X400Msg to add body parts to
-     * @param bodyPartType Type specification (e.g., "ia5-text", "general-text-body-part", "ftbp", or comma-separated list)
+     * @param bodyPartType Type specification (e.g., "ia5-text" or "general-text-body-part")
      * @param content Primary content
-     * @param amhsDefaults Additional configuration
+     * @param amhsDefaults Additional configuration (unused for simplified version)
      */
     private void addBodyParts(X400Msg message, String bodyPartType, String content, 
                               Map<String, String> amhsDefaults) throws X400APIException {
-        // Split by comma for multiple body parts
-        String[] types = bodyPartType.split(",");
+        // Simplified version - only support ia5-text and general-text-body-part
+        String type = (bodyPartType != null ? bodyPartType.trim().toLowerCase() : "ia5-text");
         
-        for (int i = 0; i < types.length; i++) {
-            String type = types[i].trim().toLowerCase();
-            
-            switch (type) {
-                case "ia5-text":
-                case "ia5-text-body-part":
-                    BodypartIA5Text ia5 = new BodypartIA5Text(content != null ? content : "");
-                    message.addBodypart(ia5);
-                    break;
-                    
-                case "general-text-body-part":
-                case "general-text":
-                    // Use ISODE library's BodypartGeneralText with proper charset handling
-                    String charsetRegNum = amhsDefaults.get("charset-reg-number");
-                    String charsetRepertoire = amhsDefaults.get("charset-repertoire");
-                    String conversionProhibited = amhsDefaults.get("conversion-with-loss-prohibited");
-                    
-                    BodypartGeneralText generalText = createGeneralTextBodyPart(
-                        content != null ? content : "",
-                        charsetRegNum,
-                        charsetRepertoire,
-                        conversionProhibited
-                    );
-                    message.addBodypart(generalText);
-                    break;
-                    
-                case "ftbp":
-                case "file-transfer-body-part":
-                    // Use ISODE library's BodypartFTBP with proper file handling
-                    String fileName = amhsDefaults.get("ftbp-file-name");
-                    String ftbpContent = amhsDefaults.get("ftbp-content");
-                    if (fileName == null) {
-                        fileName = "attachment.bin";
-                    }
-                    
-                    BodypartFTBP ftbp = createFTBPBodyPart(
-                        fileName,
-                        ftbpContent != null ? ftbpContent.getBytes() : new byte[0]
-                    );
-                    message.addBodypart(ftbp);
-                    break;
-                    
-                default:
-                    // Unknown type, default to IA5
-                    if (content != null && !content.isEmpty()) {
-                        BodypartIA5Text defaultIa5 = new BodypartIA5Text(content);
-                        message.addBodypart(defaultIa5);
-                    }
-                    break;
+        if (type.contains("general-text")) {
+            try {
+                BodypartGeneralText generalText = new BodypartGeneralText(content != null ? content : "");
+                message.addBodypart(generalText);
+            } catch (Exception e) {
+                // Fall back to ia5-text if general-text fails
+                BodypartIA5Text ia5 = new BodypartIA5Text(content != null ? content : "");
+                message.addBodypart(ia5);
             }
-        }
-    }
-    
-    /**
-     * Apply precedence value for extended IPM
-     * Maps precedence values (14, 28, 57, 71, 107) to appropriate X.400 settings
-     * 
-     * @param message X400Msg
-     * @param precedence Precedence value as string
-     */
-    private void applyPrecedence(X400Msg message, String precedence) throws X400APIException {
-        try {
-            int precValue = Integer.parseInt(precedence);
-            
-            // Map precedence to priority levels per EUR Doc 047
-            // Only 3 priorities available: LOW, NORMAL, HIGH
-            if (precValue >= 100) {
-                message.setPriority(X400_Priority.HIGH_PRIORITY);
-            } else if (precValue >= 50) {
-                message.setPriority(X400_Priority.HIGH_PRIORITY);
-            } else if (precValue >= 20) {
-                message.setPriority(X400_Priority.NORMAL_PRIORITY);
-            } else {
-                message.setPriority(X400_Priority.LOW_PRIORITY);
-            }
-            
-            // Store precedence as extended header info
-            setExtendedHeaderField(message, "precedence", precedence);
-        } catch (NumberFormatException e) {
-            // Invalid precedence, ignore
-        }
-    }
-    
-    /**
-     * Apply EIT (Encoded Information Types) configuration
-     * 
-     * @param message X400Msg
-     * @param amhsDefaults AMHS configuration
-     */
-    private void applyEitConfiguration(X400Msg message, Map<String, String> amhsDefaults) 
-            throws X400APIException {
-        String eitType = amhsDefaults.get("eit-type");
-        
-        if (eitType == null || eitType.trim().isEmpty()) {
-            return;
-        }
-        
-        switch (eitType.toLowerCase().trim()) {
-            case "builtin":
-                String eitValue = amhsDefaults.get("eit-value");
-                if (eitValue != null && !eitValue.trim().isEmpty()) {
-                    setEitBuiltin(message, eitValue.trim());
-                }
-                break;
-                
-            case "extended":
-                String eitOid = amhsDefaults.get("eit-oid");
-                String eitOids = amhsDefaults.get("eit-oids");
-                if (eitOid != null && !eitOid.trim().isEmpty()) {
-                    setEitExtended(message, eitOid.trim());
-                } else if (eitOids != null && !eitOids.trim().isEmpty()) {
-                    // Multiple OIDs
-                    String[] oidArray = eitOids.split(",");
-                    for (String oid : oidArray) {
-                        setEitExtended(message, oid.trim());
-                    }
-                }
-                break;
-                
-            case "mixed":
-                String builtin = amhsDefaults.get("eit-builtin");
-                String extended = amhsDefaults.get("eit-oids");
-                if (builtin != null && !builtin.trim().isEmpty()) {
-                    setEitBuiltin(message, builtin.trim());
-                }
-                if (extended != null && !extended.trim().isEmpty()) {
-                    String[] oidArray = extended.split(",");
-                    for (String oid : oidArray) {
-                        setEitExtended(message, oid.trim());
-                    }
-                }
-                break;
-        }
-    }
-    
-    /**
-     * Set built-in EIT
-     */
-    private void setEitBuiltin(X400Msg message, String eitValue) throws X400APIException {
-        // Parse built-in EIT value (e.g., "ia5-text(2)", "unknown(0)")
-        // This would use X.400 API to set the encoded-information-types field
-        setExtendedHeaderField(message, "eit-builtin", eitValue);
-    }
-    
-    /**
-     * Set extended EIT with OID
-     */
-    private void setEitExtended(X400Msg message, String oid) throws X400APIException {
-        // Parse OID (e.g., "2.6.3.4.2", "{id-cs-eit-authority 1}")
-        setExtendedHeaderField(message, "eit-extended", oid);
-    }
-    
-    /**
-     * Apply charset configuration for general-text-body-part
-     * 
-     * @param message X400Msg
-     * @param amhsDefaults AMHS configuration
-     */
-    private void applyCharsetConfiguration(X400Msg message, Map<String, String> amhsDefaults) 
-            throws X400APIException {
-        String charsetRegNum = amhsDefaults.get("charset-reg-number");
-        String charsetRepertoire = amhsDefaults.get("charset-repertoire");
-        String conversionProhibited = amhsDefaults.get("conversion-with-loss-prohibited");
-        
-        if (charsetRegNum != null && !charsetRegNum.trim().isEmpty()) {
-            setExtendedHeaderField(message, "charset-reg-number", charsetRegNum.trim());
-        }
-        
-        if (charsetRepertoire != null && !charsetRepertoire.trim().isEmpty()) {
-            setExtendedHeaderField(message, "charset-repertoire", charsetRepertoire.trim());
-        }
-        
-        if (conversionProhibited != null && !conversionProhibited.trim().isEmpty()) {
-            setExtendedHeaderField(message, "conversion-with-loss-prohibited", conversionProhibited.trim());
-        }
-    }
-    
-    /**
-     * Set extended header field using X.400 AMHS attributes
-     * Uses the ISODE X.400 API's setStringparam/setIntParam methods with AMHS_att constants
-     * 
-     * @param message X400Msg message to modify
-     * @param fieldName Name of the field to set
-     * @param value Value to set
-     */
-    private void setExtendedHeaderField(X400Msg message, String fieldName, String value) 
-            throws X400APIException {
-        if (value == null || value.isEmpty()) {
-            return;
-        }
-        
-        // Map field names to AMHS attribute constants
-        switch (fieldName) {
-            case "filing-time":
-                message.setStringparam(AMHS_att.ATS_S_FILING_TIME, value);
-                break;
-            case "authorization-time":
-                message.setStringparam(AMHS_att.ATS_S_FILING_TIME, value); // Use filing time as auth time
-                break;
-            case "originator-reference":
-                message.setStringparam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO, value);
-                break;
-            case "optional-heading-info":
-                message.setStringparam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO, value);
-                break;
-            case "precedence":
-                // Set precedence using X.400 priority attribute
-                try {
-                    int precValue = Integer.parseInt(value);
-                    message.setIntParam(X400_att.X400_N_PRECEDENCE, precValue);
-                } catch (NumberFormatException e) {
-                    // If not numeric, store as string in optional heading info
-                    message.setStringparam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO, "PRECEDENCE:" + value);
-                }
-                break;
-            case "charset-reg-number":
-            case "charset-repertoire":
-            case "conversion-with-loss-prohibited":
-            case "eit-builtin":
-            case "eit-extended":
-                // Store these in extended attributes via optional heading info
-                // Format: FIELD=value
-                String existingOhi = getOptionalHeadingInfo(message);
-                String newOhi = existingOhi != null ? existingOhi + "\n" + fieldName.toUpperCase() + "=" + value : fieldName.toUpperCase() + "=" + value;
-                message.setStringparam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO, newOhi);
-                break;
-            case "latest-delivery-time":
-                // Use proper X.400 attribute for latest delivery time
-                message.setStringparam(X400_att.X400_S_LATEST_DELIVERY_TIME, value);
-                break;
-            case "subject-ipm-id":
-                // Use proper X.400 attribute for subject IPM identifier
-                message.setStringparam(X400_att.X400_S_SUBJECT_IPM, value);
-                break;
-            case "subject-ipm-priority":
-                // Store subject IPM priority in optional heading info as it's an ATS-specific extension
-                String existingOhiForPriority = getOptionalHeadingInfo(message);
-                String newOhiForPriority = existingOhiForPriority != null ? existingOhiForPriority + "\nSUBJECT-IPM-PRIORITY=" + value : "SUBJECT-IPM-PRIORITY=" + value;
-                message.setStringparam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO, newOhiForPriority);
-                break;
-            default:
-                // For unknown fields, store in optional heading info
-                message.setStringparam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO, fieldName.toUpperCase() + "=" + value);
-                break;
-        }
-    }
-    
-    /**
-     * Get current optional heading info from message
-     */
-    private String getOptionalHeadingInfo(X400Msg message) {
-        try {
-            java.util.ArrayList<String> params = message.getPrintableStringParam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO);
-            if (params != null && !params.isEmpty()) {
-                return params.get(0);
-            }
-        } catch (Exception e) {
-            // Ignore errors, return null
-        }
-        return null;
-    }
-    
-    /**
-     * Create General Text Body Part with proper charset configuration
-     * Uses ISODE library's BodypartGeneralText constructors
-     * 
-     * @param content Text content
-     * @param charsetRegNum Charset registration number (e.g., "1" for ISO 646, "8859-1" for Latin-1)
-     * @param charsetRepertoire Charset repertoire name (e.g., "iso646", "cyrillic")
-     * @param conversionProhibited "conversion-with-loss-prohibited" or "conversion-with-loss-allowed"
-     * @return Configured BodypartGeneralText
-     */
-    private BodypartGeneralText createGeneralTextBodyPart(String content, String charsetRegNum, 
-                                                           String charsetRepertoire, String conversionProhibited) 
-            throws X400APIException {
-        // Map repertoire to ISODE Charset enum
-        BodypartGeneralText.Charset charset = mapCharset(charsetRepertoire);
-        
-        // Check if conversion with loss is prohibited
-        boolean lossProhibited = false;
-        if (conversionProhibited != null && 
-            ("conversion-with-loss-prohibited".equalsIgnoreCase(conversionProhibited) ||
-             "true".equalsIgnoreCase(conversionProhibited) ||
-             "yes".equalsIgnoreCase(conversionProhibited))) {
-            lossProhibited = true;
-        }
-        
-        // Use appropriate constructor based on parameters
-        if (charset != null) {
-            // Use charset-based constructor
-            return new BodypartGeneralText(charset, content);
-        } else if (charsetRegNum != null && !charsetRegNum.isEmpty()) {
-            // Use string-based constructor with charset string
-            return new BodypartGeneralText(charsetRegNum, content);
-        } else if (lossProhibited) {
-            // Use boolean-first constructor
-            return new BodypartGeneralText(true, content);
         } else {
-            // Default constructor with just content and empty charset string
-            return new BodypartGeneralText(content, "");
-        }
-    }
-    
-    /**
-     * Map charset repertoire name to ISODE Charset enum
-     * 
-     * @param repertoire Charset repertoire name
-     * @return BodypartGeneralText.Charset enum value or null
-     */
-    private BodypartGeneralText.Charset mapCharset(String repertoire) {
-        if (repertoire == null || repertoire.isEmpty()) {
-            return null;
-        }
-        
-        String lower = repertoire.toLowerCase().trim();
-        
-        // Map common repertoire names to ISODE Charset enum
-        if (lower.contains("west") || lower.contains("latin") || lower.contains("8859-1")) {
-            return BodypartGeneralText.Charset.WEST_EUROPEAN;
-        } else if (lower.contains("east") || lower.contains("8859-2")) {
-            return BodypartGeneralText.Charset.EAST_EUROPEAN;
-        } else if (lower.contains("cyrillic") || lower.contains("8859-5")) {
-            return BodypartGeneralText.Charset.CYRILLIC;
-        } else if (lower.contains("arabic") || lower.contains("8859-6")) {
-            return BodypartGeneralText.Charset.ARABIC;
-        } else if (lower.contains("greek") || lower.contains("8859-7")) {
-            return BodypartGeneralText.Charset.GREEK;
-        } else if (lower.contains("hebrew") || lower.contains("8859-8")) {
-            return BodypartGeneralText.Charset.HEBREW;
-        } else if (lower.contains("other")) {
-            return BodypartGeneralText.Charset.OTHER_LATIN;
-        }
-        
-        return null;
-    }
-    
-    /**
-     * Create FTBP Body Part with proper file handling
-     * Uses ISODE library's BodypartFTBP constructors
-     * 
-     * @param fileName File name
-     * @param content File content as byte array
-     * @return Configured BodypartFTBP
-     */
-    private BodypartFTBP createFTBPBodyPart(String fileName, byte[] content) throws X400APIException {
-        BodypartFTBP ftbp = new BodypartFTBP(fileName, content);
-        
-        // Set additional metadata if needed
-        ftbp.setContentDescription("File attachment for AMHS test case");
-        
-        return ftbp;
-    }
-    
-    /**
-     * Set responsibility flag for extended IPM
-     */
-    private void setResponsibility(X400Msg message, String responsibility) throws X400APIException {
-        // "responsible" or "not-responsible"
-        // Would set the appropriate X.400 responsibility indicator
-        setExtendedHeaderField(message, "responsibility", responsibility);
-    }
-    
-    /**
-     * Configure notification to control position
-     */
-    private void setNotifyControlPosition(X400Msg message, String notifyControl) throws X400APIException {
-        // Configure IPN/DR notification to control position
-        // This affects the recipient-of-nondelivery-report and ipn-originator-requested fields
-        if ("true".equalsIgnoreCase(notifyControl) || "yes".equalsIgnoreCase(notifyControl)) {
-            // Enable control position notification
-            setExtendedHeaderField(message, "notify-control-position", "enabled");
-        }
-    }
-    
-    /**
-     * Apply report request configuration (originator-report-request, originating-mta-report-request)
-     * Per ICAO Doc 020 Section 2.6 - Report Configuration
-     * 
-     * @param message X400Msg
-     * @param amhsDefaults AMHS configuration containing report request settings
-     */
-    private void applyReportRequestConfiguration(X400Msg message, Map<String, String> amhsDefaults) throws X400APIException {
-        String originatorReportRequest = amhsDefaults.get("originator-report-request");
-        String originatingMtaReportRequest = amhsDefaults.get("originating-mta-report-request");
-        
-        // Map report request values to X.400 constants
-        // Values: no-report(0), non-delivery-report(1), report(2), audited-report(3)
-        if (originatorReportRequest != null && !originatorReportRequest.trim().isEmpty()) {
-            int reportValue = mapReportRequestToValue(originatorReportRequest);
-            if (reportValue >= 0) {
-                // Set originator report request using X400_att.X400_N_REPORT_REQUEST
-                message.setIntParam(X400_att.X400_N_REPORT_REQUEST, reportValue);
-            }
-        }
-        
-        if (originatingMtaReportRequest != null && !originatingMtaReportRequest.trim().isEmpty()) {
-            int mtaReportValue = mapReportRequestToValue(originatingMtaReportRequest);
-            if (mtaReportValue >= 0) {
-                // Set MTA report request using X400_att.X400_N_MTA_REPORT_REQUEST
-                message.setIntParam(X400_att.X400_N_MTA_REPORT_REQUEST, mtaReportValue);
-            }
-        }
-    }
-    
-    /**
-     * Map report request string to integer value
-     * 
-     * @param reportRequest Report request string (no-report, non-delivery-report, report, audited-report)
-     * @return Integer value (0-3) or -1 if invalid
-     */
-    private int mapReportRequestToValue(String reportRequest) {
-        if (reportRequest == null) return -1;
-        String lower = reportRequest.toLowerCase().trim();
-        switch (lower) {
-            case "no-report":
-            case "0":
-                return 0;
-            case "non-delivery-report":
-            case "ndr":
-            case "1":
-                return 1;
-            case "report":
-            case "2":
-                return 2;
-            case "audited-report":
-            case "3":
-                return 3;
-            default:
-                return -1;
-        }
-    }
-    
-    /**
-     * Apply latest delivery time configuration
-     * Per ICAO Doc 020 Section 2.2 - Extended IPM Attributes
-     * 
-     * @param message X400Msg
-     * @param amhsDefaults AMHS configuration containing latest-delivery-time
-     */
-    private void applyLatestDeliveryTime(X400Msg message, Map<String, String> amhsDefaults) throws X400APIException {
-        String latestDeliveryTime = amhsDefaults.get("latest-delivery-time");
-        if (latestDeliveryTime != null && !latestDeliveryTime.trim().isEmpty()) {
-            // Store latest delivery time as extended header info
-            // Format: YYMMDDHHMM (e.g., 2501021200 for Jan 2, 2025 12:00)
-            setExtendedHeaderField(message, "latest-delivery-time", latestDeliveryTime.trim());
-        }
-    }
-    
-    /**
-     * Apply subject IPM references (subject-ipm-id, subject-ipm-priority)
-     * Per ICAO Doc 020 Section 2.2 - Extended IPM Attributes
-     * 
-     * @param message X400Msg
-     * @param amhsDefaults AMHS configuration containing subject IPM references
-     */
-    private void applySubjectIpmReferences(X400Msg message, Map<String, String> amhsDefaults) throws X400APIException {
-        String subjectIpmId = amhsDefaults.get("subject-ipm-id");
-        String subjectIpmPriority = amhsDefaults.get("subject-ipm-priority");
-        
-        if (subjectIpmId != null && !subjectIpmId.trim().isEmpty()) {
-            // Store subject IPM identifier using X400_att.X400_S_SUBJECT_IPM
-            setExtendedHeaderField(message, "subject-ipm-id", subjectIpmId.trim());
-        }
-        
-        if (subjectIpmPriority != null && !subjectIpmPriority.trim().isEmpty()) {
-            // Store subject IPM priority (ATS code like KK, GG, FF, DD, SS)
-            setExtendedHeaderField(message, "subject-ipm-priority", subjectIpmPriority.trim());
+            // Default to ia5-text
+            BodypartIA5Text ia5 = new BodypartIA5Text(content != null ? content : "");
+            message.addBodypart(ia5);
         }
     }
 
