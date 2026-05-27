@@ -265,82 +265,82 @@ public class AMHSPayloadGeneratorService {
             message.addBodypart(ia5);
         }
         
-        // Handle filing-time (ATS filing time)
+        // Handle filing-time (ATS filing time) - ONLY if non-empty
         String filingTime = amhsDefaults.get("filing-time");
-        if (filingTime != null && !filingTime.isEmpty()) {
+        if (filingTime != null && !filingTime.trim().isEmpty()) {
             // Filing time is typically encoded in OHI or as extended header info
             // This would require custom X.400 header extension
-            setExtendedHeaderField(message, "filing-time", filingTime);
+            setExtendedHeaderField(message, "filing-time", filingTime.trim());
         }
         
         // Handle priority-indicator (ATS priority codes: KK, GG, FF, DD, SS)
         // This is REQUIRED for ATS messages per ICAO Doc 020 Section 2.1
         String priorityIndicator = amhsDefaults.get("priority-indicator");
-        if (priorityIndicator != null && !priorityIndicator.isEmpty()) {
+        if (priorityIndicator != null && !priorityIndicator.trim().isEmpty()) {
             // Set ATS priority indicator using AMHS_att.ATS_S_PRIORITY_INDICATOR
-            message.setStringparam(AMHS_att.ATS_S_PRIORITY_INDICATOR, priorityIndicator.toUpperCase());
+            message.setStringparam(AMHS_att.ATS_S_PRIORITY_INDICATOR, priorityIndicator.trim().toUpperCase());
         } else {
             // Check if priority field contains ATS code and use it as priority indicator
             String priority = amhsDefaults.get("priority");
-            if (priority != null && !priority.isEmpty() && isAtsPriorityCode(priority)) {
-                message.setStringparam(AMHS_att.ATS_S_PRIORITY_INDICATOR, priority.toUpperCase());
+            if (priority != null && !priority.trim().isEmpty() && isAtsPriorityCode(priority)) {
+                message.setStringparam(AMHS_att.ATS_S_PRIORITY_INDICATOR, priority.trim().toUpperCase());
             }
         }
         
-        // Handle precedence (Extended IPM precedence values: 14, 28, 57, 71, 107)
+        // Handle precedence (Extended IPM precedence values: 14, 28, 57, 71, 107) - ONLY if non-empty
         String precedence = amhsDefaults.get("precedence");
-        if (precedence != null && !precedence.isEmpty()) {
+        if (precedence != null && !precedence.trim().isEmpty()) {
             // Precedence affects priority mapping for extended IPMs
-            applyPrecedence(message, precedence);
+            applyPrecedence(message, precedence.trim());
         }
         
-        // Handle authorization-time
+        // Handle authorization-time - ONLY if non-empty
         String authTime = amhsDefaults.get("authorization-time");
-        if (authTime != null && !authTime.isEmpty()) {
-            setExtendedHeaderField(message, "authorization-time", authTime);
+        if (authTime != null && !authTime.trim().isEmpty()) {
+            setExtendedHeaderField(message, "authorization-time", authTime.trim());
         }
         
-        // Handle originator-reference - use setStringparam with AMHS_att constant
+        // Handle originator-reference - use setStringparam with AMHS_att constant - ONLY if non-empty
         String origRef = amhsDefaults.get("originator-reference");
-        if (origRef != null && !origRef.isEmpty()) {
+        if (origRef != null && !origRef.trim().isEmpty()) {
             // Originator reference is stored as extended header info
-            setExtendedHeaderField(message, "originator-reference", origRef);
+            setExtendedHeaderField(message, "originator-reference", origRef.trim());
         }
         
-        // Handle optional-heading-info (OHI) - use setStringparam with AMHS_att constant
+        // Handle optional-heading-info (OHI) - use setStringparam with AMHS_att constant - ONLY if non-empty
         String ohi = amhsDefaults.get("optional-heading-info");
-        if (ohi != null && !ohi.isEmpty()) {
+        if (ohi != null && !ohi.trim().isEmpty()) {
             // OHI is stored using AMHS_att.ATS_S_OPTIONAL_HEADING_INFO
-            setExtendedHeaderField(message, "optional-heading-info", ohi);
+            setExtendedHeaderField(message, "optional-heading-info", ohi.trim());
         }
         
-        // Handle responsibility
+        // Handle responsibility - ONLY if non-empty
         String responsibility = amhsDefaults.get("responsibility");
-        if (responsibility != null && !responsibility.isEmpty()) {
+        if (responsibility != null && !responsibility.trim().isEmpty()) {
             // Set responsibility flag for extended IPM
-            setResponsibility(message, responsibility);
+            setResponsibility(message, responsibility.trim());
         }
         
-        // Handle notify-control-position
+        // Handle notify-control-position - ONLY if non-empty
         String notifyControl = amhsDefaults.get("notify-control-position");
-        if (notifyControl != null && !notifyControl.isEmpty()) {
+        if (notifyControl != null && !notifyControl.trim().isEmpty()) {
             // Configure notification to control position
-            setNotifyControlPosition(message, notifyControl);
+            setNotifyControlPosition(message, notifyControl.trim());
         }
         
-        // Handle EIT (Encoded Information Types)
+        // Handle EIT (Encoded Information Types) - ONLY if non-empty
         applyEitConfiguration(message, amhsDefaults);
         
-        // Handle charset configuration
+        // Handle charset configuration - ONLY if non-empty
         applyCharsetConfiguration(message, amhsDefaults);
         
-        // Handle report request configuration (from ICAO Doc 020 Section 2.6)
+        // Handle report request configuration (from ICAO Doc 020 Section 2.6) - ONLY if non-empty
         applyReportRequestConfiguration(message, amhsDefaults);
         
-        // Handle latest delivery time (from ICAO Doc 020 Section 2.2)
+        // Handle latest delivery time (from ICAO Doc 020 Section 2.2) - ONLY if non-empty
         applyLatestDeliveryTime(message, amhsDefaults);
         
-        // Handle subject IPM references (from ICAO Doc 020 Section 2.2)
+        // Handle subject IPM references (from ICAO Doc 020 Section 2.2) - ONLY if non-empty
         applySubjectIpmReferences(message, amhsDefaults);
     }
     
@@ -466,24 +466,24 @@ public class AMHSPayloadGeneratorService {
             throws X400APIException {
         String eitType = amhsDefaults.get("eit-type");
         
-        if (eitType == null || eitType.isEmpty()) {
+        if (eitType == null || eitType.trim().isEmpty()) {
             return;
         }
         
-        switch (eitType.toLowerCase()) {
+        switch (eitType.toLowerCase().trim()) {
             case "builtin":
                 String eitValue = amhsDefaults.get("eit-value");
-                if (eitValue != null && !eitValue.isEmpty()) {
-                    setEitBuiltin(message, eitValue);
+                if (eitValue != null && !eitValue.trim().isEmpty()) {
+                    setEitBuiltin(message, eitValue.trim());
                 }
                 break;
                 
             case "extended":
                 String eitOid = amhsDefaults.get("eit-oid");
                 String eitOids = amhsDefaults.get("eit-oids");
-                if (eitOid != null && !eitOid.isEmpty()) {
-                    setEitExtended(message, eitOid);
-                } else if (eitOids != null && !eitOids.isEmpty()) {
+                if (eitOid != null && !eitOid.trim().isEmpty()) {
+                    setEitExtended(message, eitOid.trim());
+                } else if (eitOids != null && !eitOids.trim().isEmpty()) {
                     // Multiple OIDs
                     String[] oidArray = eitOids.split(",");
                     for (String oid : oidArray) {
@@ -495,10 +495,10 @@ public class AMHSPayloadGeneratorService {
             case "mixed":
                 String builtin = amhsDefaults.get("eit-builtin");
                 String extended = amhsDefaults.get("eit-oids");
-                if (builtin != null && !builtin.isEmpty()) {
-                    setEitBuiltin(message, builtin);
+                if (builtin != null && !builtin.trim().isEmpty()) {
+                    setEitBuiltin(message, builtin.trim());
                 }
-                if (extended != null && !extended.isEmpty()) {
+                if (extended != null && !extended.trim().isEmpty()) {
                     String[] oidArray = extended.split(",");
                     for (String oid : oidArray) {
                         setEitExtended(message, oid.trim());
@@ -537,16 +537,16 @@ public class AMHSPayloadGeneratorService {
         String charsetRepertoire = amhsDefaults.get("charset-repertoire");
         String conversionProhibited = amhsDefaults.get("conversion-with-loss-prohibited");
         
-        if (charsetRegNum != null && !charsetRegNum.isEmpty()) {
-            setExtendedHeaderField(message, "charset-reg-number", charsetRegNum);
+        if (charsetRegNum != null && !charsetRegNum.trim().isEmpty()) {
+            setExtendedHeaderField(message, "charset-reg-number", charsetRegNum.trim());
         }
         
-        if (charsetRepertoire != null && !charsetRepertoire.isEmpty()) {
-            setExtendedHeaderField(message, "charset-repertoire", charsetRepertoire);
+        if (charsetRepertoire != null && !charsetRepertoire.trim().isEmpty()) {
+            setExtendedHeaderField(message, "charset-repertoire", charsetRepertoire.trim());
         }
         
-        if (conversionProhibited != null && !conversionProhibited.isEmpty()) {
-            setExtendedHeaderField(message, "conversion-with-loss-prohibited", conversionProhibited);
+        if (conversionProhibited != null && !conversionProhibited.trim().isEmpty()) {
+            setExtendedHeaderField(message, "conversion-with-loss-prohibited", conversionProhibited.trim());
         }
     }
     
@@ -760,7 +760,7 @@ public class AMHSPayloadGeneratorService {
         
         // Map report request values to X.400 constants
         // Values: no-report(0), non-delivery-report(1), report(2), audited-report(3)
-        if (originatorReportRequest != null && !originatorReportRequest.isEmpty()) {
+        if (originatorReportRequest != null && !originatorReportRequest.trim().isEmpty()) {
             int reportValue = mapReportRequestToValue(originatorReportRequest);
             if (reportValue >= 0) {
                 // Set originator report request using X400_att.X400_N_REPORT_REQUEST
@@ -768,7 +768,7 @@ public class AMHSPayloadGeneratorService {
             }
         }
         
-        if (originatingMtaReportRequest != null && !originatingMtaReportRequest.isEmpty()) {
+        if (originatingMtaReportRequest != null && !originatingMtaReportRequest.trim().isEmpty()) {
             int mtaReportValue = mapReportRequestToValue(originatingMtaReportRequest);
             if (mtaReportValue >= 0) {
                 // Set MTA report request using X400_att.X400_N_MTA_REPORT_REQUEST
@@ -814,10 +814,10 @@ public class AMHSPayloadGeneratorService {
      */
     private void applyLatestDeliveryTime(X400Msg message, Map<String, String> amhsDefaults) throws X400APIException {
         String latestDeliveryTime = amhsDefaults.get("latest-delivery-time");
-        if (latestDeliveryTime != null && !latestDeliveryTime.isEmpty()) {
+        if (latestDeliveryTime != null && !latestDeliveryTime.trim().isEmpty()) {
             // Store latest delivery time as extended header info
             // Format: YYMMDDHHMM (e.g., 2501021200 for Jan 2, 2025 12:00)
-            setExtendedHeaderField(message, "latest-delivery-time", latestDeliveryTime);
+            setExtendedHeaderField(message, "latest-delivery-time", latestDeliveryTime.trim());
         }
     }
     
@@ -832,14 +832,14 @@ public class AMHSPayloadGeneratorService {
         String subjectIpmId = amhsDefaults.get("subject-ipm-id");
         String subjectIpmPriority = amhsDefaults.get("subject-ipm-priority");
         
-        if (subjectIpmId != null && !subjectIpmId.isEmpty()) {
+        if (subjectIpmId != null && !subjectIpmId.trim().isEmpty()) {
             // Store subject IPM identifier using X400_att.X400_S_SUBJECT_IPM
-            setExtendedHeaderField(message, "subject-ipm-id", subjectIpmId);
+            setExtendedHeaderField(message, "subject-ipm-id", subjectIpmId.trim());
         }
         
-        if (subjectIpmPriority != null && !subjectIpmPriority.isEmpty()) {
+        if (subjectIpmPriority != null && !subjectIpmPriority.trim().isEmpty()) {
             // Store subject IPM priority (ATS code like KK, GG, FF, DD, SS)
-            setExtendedHeaderField(message, "subject-ipm-priority", subjectIpmPriority);
+            setExtendedHeaderField(message, "subject-ipm-priority", subjectIpmPriority.trim());
         }
     }
 
