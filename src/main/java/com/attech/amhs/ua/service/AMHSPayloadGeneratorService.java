@@ -200,17 +200,17 @@ public class AMHSPayloadGeneratorService {
                 }
             }
             
-            // Apply additional AMHS fields from defaults
+            // Apply additional AMHS fields from defaults - ALWAYS use applyAmhsFields to ensure body parts are added
             if (amhsDefaults != null && !amhsDefaults.isEmpty()) {
                 applyAmhsFields(message, content, amhsDefaults);
             } else {
-                // Set content as IA5 text by default
+                // Set content as IA5 text by default when no amhsDefaults provided
                 if (content != null && !content.isEmpty()) {
                     message.setTextBody(content);
                 }
             }
             
-            // Always ensure message is built before sending
+            // Always build the message before sending - this is critical to ensure all attributes are properly set
             if (session != null) {
                 try {
                     message.buildMsg(session);
@@ -222,6 +222,7 @@ public class AMHSPayloadGeneratorService {
         } catch (X400APIException e) {
             // Handle or log exception
             logger.error("Error building X.400 message: " + e.getMessage(), e);
+            throw e;  // Re-throw to allow caller to handle retry logic
         }
         
         return message;
@@ -256,6 +257,11 @@ public class AMHSPayloadGeneratorService {
     private void applyAmhsFields(X400Msg message, String content, Map<String, String> amhsDefaults) throws X400APIException {
         // Handle body part type and content - support all required types
         String bodyPartType = amhsDefaults.get("body-part-type");
+        
+        // Default to ia5-text if not specified
+        if (bodyPartType == null || bodyPartType.trim().isEmpty()) {
+            bodyPartType = "ia5-text";
+        }
         
         // Use content from parameter, fallback to defaults map if empty
         String effectiveContent = content;
