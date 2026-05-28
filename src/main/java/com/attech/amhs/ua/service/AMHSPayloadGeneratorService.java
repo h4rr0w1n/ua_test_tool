@@ -212,12 +212,7 @@ public class AMHSPayloadGeneratorService {
             
             // Always build the message before sending - this is critical to ensure all attributes are properly set
             if (session != null) {
-                try {
-                    message.buildMsg(session);
-                } catch (X400APIException e) {
-                    logger.error("Error building message: " + e.getMessage(), e);
-                    throw e;
-                }
+                message.buildMsg(session);
             }
         } catch (X400APIException e) {
             // Handle or log exception
