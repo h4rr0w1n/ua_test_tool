@@ -598,7 +598,11 @@ public class AMHSMessageUI extends JFrame {
                 String msgId = messageService.sendMessage(recipient, subject, content, priority, getSelectedSubcase() != null ? getSelectedSubcase().getAmhsDefaults() : null);
                 SwingUtilities.invokeLater(() -> {
                     appendOutput("Message sent! ID: " + msgId);
-                        addMessageToMarkingPanel(recipient, subject, content,
+                    String filingTime = messageService.getLastSentFilingTime();
+                    if (filingTime != null && !filingTime.isEmpty()) {
+                        appendOutput("Filing-time used: " + filingTime);
+                    }
+                    addMessageToMarkingPanel(recipient, subject, content,
                             priority.toString(), true, null, false, 
                             getSelectedSubcase() != null ? getSelectedSubcase().getAmhsDefaults() : null);
                 });
@@ -737,15 +741,14 @@ public class AMHSMessageUI extends JFrame {
         if (defaults.containsKey("priority")) {
             String p = defaults.get("priority");
             // Handle ICAO ATS priority codes and generic priority levels
-            if ("KK".equalsIgnoreCase(p) || "LOW".equalsIgnoreCase(p))
-                comboPriority.setSelectedItem(X400_Priority.LOW_PRIORITY);
-            else if ("GG".equalsIgnoreCase(p) || "DD".equalsIgnoreCase(p) || "FF".equalsIgnoreCase(p) ||
-                    "HIGH".equalsIgnoreCase(p) || "URGENT".equalsIgnoreCase(p))
+            if ("KK".equalsIgnoreCase(p) || "GG".equalsIgnoreCase(p) || "HIGH".equalsIgnoreCase(p) || "URGENT".equalsIgnoreCase(p))
                 comboPriority.setSelectedItem(X400_Priority.HIGH_PRIORITY);
-            else if ("SS".equalsIgnoreCase(p))
-                // SS priority maps to Normal (Special Service in ICAO, but AMQP uses discrete
-                // levels)
+            else if ("FF".equalsIgnoreCase(p) || "NORMAL".equalsIgnoreCase(p))
                 comboPriority.setSelectedItem(X400_Priority.NORMAL_PRIORITY);
+            else if ("DD".equalsIgnoreCase(p) || "LOW".equalsIgnoreCase(p))
+                comboPriority.setSelectedItem(X400_Priority.LOW_PRIORITY);
+            else if ("SS".equalsIgnoreCase(p))
+                comboPriority.setSelectedItem(X400_Priority.HIGH_PRIORITY);
             else
                 comboPriority.setSelectedItem(X400_Priority.NORMAL_PRIORITY);
         }

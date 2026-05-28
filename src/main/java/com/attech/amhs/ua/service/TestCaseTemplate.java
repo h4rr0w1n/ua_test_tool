@@ -101,14 +101,14 @@ public class TestCaseTemplate {
         
         TestSubcase sub1 = tc.getSubcases().get(0);
         sub1.setDescription("Send basic AMHS message with normal priority");
-        sub1.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub1.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub1.setAmhsDefault("subject", "CTSW001.1 - Basic Message Test");
         sub1.setAmhsDefault("priority", "NORMAL");
         sub1.setAmhsDefault("content", "This is a basic test message to verify AMHS message sending capability.");
         
         TestSubcase sub2 = tc.getSubcases().get(1);
         sub2.setDescription("Send basic AMHS message with high priority");
-        sub2.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub2.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub2.setAmhsDefault("subject", "CTSW001.2 - High Priority Message");
         sub2.setAmhsDefault("priority", "HIGH");
         sub2.setAmhsDefault("content", "This is a high priority test message.");
@@ -121,14 +121,14 @@ public class TestCaseTemplate {
         
         TestSubcase sub1 = tc.getSubcases().get(0);
         sub1.setDescription("Test LOW priority message");
-        sub1.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub1.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub1.setAmhsDefault("subject", "CTSW002.1 - Low Priority");
         sub1.setAmhsDefault("priority", "LOW");
         sub1.setAmhsDefault("content", "Low priority message test.");
         
         TestSubcase sub2 = tc.getSubcases().get(1);
         sub2.setDescription("Test URGENT priority message");
-        sub2.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub2.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub2.setAmhsDefault("subject", "CTSW002.2 - Urgent Priority");
         sub2.setAmhsDefault("priority", "URGENT");
         sub2.setAmhsDefault("content", "Urgent priority message test.");
@@ -144,7 +144,7 @@ public class TestCaseTemplate {
         TestCase tc = TestCaseLoader.createTestCase("CTSW003", "Recipient Addressing", 1);
         TestSubcase sub = tc.getSubcases().get(0);
         sub.setDescription("Test recipient address handling");
-        sub.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub.setAmhsDefault("subject", "CTSW003 - Recipient Test");
         sub.setAmhsDefault("priority", "NORMAL");
         sub.setAmhsDefault("content", "Recipient addressing test message.");
@@ -156,7 +156,7 @@ public class TestCaseTemplate {
         TestCase tc = TestCaseLoader.createTestCase("CTSW004", "Message Subject Handling", 1);
         TestSubcase sub = tc.getSubcases().get(0);
         sub.setDescription("Test subject field handling");
-        sub.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub.setAmhsDefault("subject", "CTSW004 - Subject Handling Test");
         sub.setAmhsDefault("priority", "NORMAL");
         sub.setAmhsDefault("content", "Subject handling test message.");
@@ -168,7 +168,7 @@ public class TestCaseTemplate {
         TestCase tc = TestCaseLoader.createTestCase("CTSW005", "Large Message Content", 1);
         TestSubcase sub = tc.getSubcases().get(0);
         sub.setDescription("Test large message content handling");
-        sub.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub.setAmhsDefault("subject", "CTSW005 - Large Content Test");
         sub.setAmhsDefault("priority", "NORMAL");
         sub.setAmhsDefault("content", "Lorem ipsum dolor sit amet... [LARGE CONTENT]");
@@ -179,7 +179,7 @@ public class TestCaseTemplate {
         TestCase tc = TestCaseLoader.createTestCase("CTSW006", "Special Characters in Content", 1);
         TestSubcase sub = tc.getSubcases().get(0);
         sub.setDescription("Test special characters");
-        sub.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub.setAmhsDefault("subject", "CTSW006 - Special Characters: !@#$%^&*()");
         sub.setAmhsDefault("priority", "NORMAL");
         sub.setAmhsDefault("content", "Special characters test: !@#$%^&*()_+-=[]{}|;:',.<>?/");
@@ -190,7 +190,7 @@ public class TestCaseTemplate {
         TestCase tc = TestCaseLoader.createTestCase("CTSW007", "Multiple Recipients", 1);
         TestSubcase sub = tc.getSubcases().get(0);
         sub.setDescription("Test multiple recipients");
-        sub.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub.setAmhsDefault("subject", "CTSW007 - Multiple Recipients Test");
         sub.setAmhsDefault("priority", "NORMAL");
         sub.setAmhsDefault("content", "Multiple recipients test message.");
@@ -201,7 +201,7 @@ public class TestCaseTemplate {
         TestCase tc = TestCaseLoader.createTestCase("CTSW008", "Return Notification Request", 1);
         TestSubcase sub = tc.getSubcases().get(0);
         sub.setDescription("Test return notification request");
-        sub.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub.setAmhsDefault("subject", "CTSW008 - Return Notification");
         sub.setAmhsDefault("priority", "NORMAL");
         sub.setAmhsDefault("content", "Return notification request test.");
@@ -212,7 +212,7 @@ public class TestCaseTemplate {
         TestCase tc = TestCaseLoader.createTestCase("CTSW009", "Delivery Notification Request", 1);
         TestSubcase sub = tc.getSubcases().get(0);
         sub.setDescription("Test delivery notification request");
-        sub.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub.setAmhsDefault("subject", "CTSW009 - Delivery Notification");
         sub.setAmhsDefault("priority", "NORMAL");
         sub.setAmhsDefault("content", "Delivery notification test.");
@@ -223,7 +223,7 @@ public class TestCaseTemplate {
         TestCase tc = TestCaseLoader.createTestCase("CTSW010", "Non-Delivery Notification", 1);
         TestSubcase sub = tc.getSubcases().get(0);
         sub.setDescription("Test non-delivery notification");
-        sub.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub.setAmhsDefault("subject", "CTSW010 - Non-Delivery Test");
         sub.setAmhsDefault("priority", "NORMAL");
         sub.setAmhsDefault("content", "Non-delivery notification test.");
@@ -234,7 +234,7 @@ public class TestCaseTemplate {
         TestCase tc = TestCaseLoader.createTestCase("CTSW011", "Read Notification Request", 1);
         TestSubcase sub = tc.getSubcases().get(0);
         sub.setDescription("Test read notification request");
-        sub.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub.setAmhsDefault("subject", "CTSW011 - Read Notification");
         sub.setAmhsDefault("priority", "NORMAL");
         sub.setAmhsDefault("content", "Read notification test.");
@@ -245,7 +245,7 @@ public class TestCaseTemplate {
         TestCase tc = TestCaseLoader.createTestCase("CTSW012", "Message with Attachments", 1);
         TestSubcase sub = tc.getSubcases().get(0);
         sub.setDescription("Test message with attachments");
-        sub.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub.setAmhsDefault("subject", "CTSW012 - Message with Attachments");
         sub.setAmhsDefault("priority", "NORMAL");
         sub.setAmhsDefault("content", "Message with attachments test.");
@@ -256,7 +256,7 @@ public class TestCaseTemplate {
         TestCase tc = TestCaseLoader.createTestCase("CTSW013", "Encrypted Message", 1);
         TestSubcase sub = tc.getSubcases().get(0);
         sub.setDescription("Test encrypted message");
-        sub.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub.setAmhsDefault("subject", "CTSW013 - Encrypted Message");
         sub.setAmhsDefault("priority", "NORMAL");
         sub.setAmhsDefault("content", "Encrypted message test.");
@@ -267,7 +267,7 @@ public class TestCaseTemplate {
         TestCase tc = TestCaseLoader.createTestCase("CTSW014", "Signed Message", 1);
         TestSubcase sub = tc.getSubcases().get(0);
         sub.setDescription("Test signed message");
-        sub.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub.setAmhsDefault("subject", "CTSW014 - Signed Message");
         sub.setAmhsDefault("priority", "NORMAL");
         sub.setAmhsDefault("content", "Signed message test.");
@@ -278,7 +278,7 @@ public class TestCaseTemplate {
         TestCase tc = TestCaseLoader.createTestCase("CTSW015", "Message Expiry", 1);
         TestSubcase sub = tc.getSubcases().get(0);
         sub.setDescription("Test message expiry");
-        sub.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub.setAmhsDefault("subject", "CTSW015 - Message Expiry");
         sub.setAmhsDefault("priority", "NORMAL");
         sub.setAmhsDefault("content", "Message expiry test.");
@@ -289,7 +289,7 @@ public class TestCaseTemplate {
         TestCase tc = TestCaseLoader.createTestCase("CTSW016", "Reply to Message", 1);
         TestSubcase sub = tc.getSubcases().get(0);
         sub.setDescription("Test reply to message");
-        sub.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub.setAmhsDefault("subject", "RE: CTSW016 - Reply Test");
         sub.setAmhsDefault("priority", "NORMAL");
         sub.setAmhsDefault("content", "Reply to message test.");
@@ -300,7 +300,7 @@ public class TestCaseTemplate {
         TestCase tc = TestCaseLoader.createTestCase("CTSW017", "Forward Message", 1);
         TestSubcase sub = tc.getSubcases().get(0);
         sub.setDescription("Test forward message");
-        sub.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub.setAmhsDefault("subject", "FWD: CTSW017 - Forward Test");
         sub.setAmhsDefault("priority", "NORMAL");
         sub.setAmhsDefault("content", "Forward message test.");
@@ -311,7 +311,7 @@ public class TestCaseTemplate {
         TestCase tc = TestCaseLoader.createTestCase("CTSW018", "Message Recall", 1);
         TestSubcase sub = tc.getSubcases().get(0);
         sub.setDescription("Test message recall");
-        sub.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub.setAmhsDefault("subject", "CTSW018 - Message Recall");
         sub.setAmhsDefault("priority", "NORMAL");
         sub.setAmhsDefault("content", "Message recall test.");
@@ -322,7 +322,7 @@ public class TestCaseTemplate {
         TestCase tc = TestCaseLoader.createTestCase("CTSW019", "Urgent Message Handling", 1);
         TestSubcase sub = tc.getSubcases().get(0);
         sub.setDescription("Test urgent message handling");
-        sub.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub.setAmhsDefault("subject", "CTSW019 - URGENT MESSAGE");
         sub.setAmhsDefault("priority", "URGENT");
         sub.setAmhsDefault("content", "Urgent message handling test.");
@@ -333,7 +333,7 @@ public class TestCaseTemplate {
         TestCase tc = TestCaseLoader.createTestCase("CTSW020", "Mailbox Operations", 1);
         TestSubcase sub = tc.getSubcases().get(0);
         sub.setDescription("Test mailbox operations");
-        sub.setAmhsDefault("recipient", "/CN=VVTSOPTC/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
+        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
         sub.setAmhsDefault("subject", "CTSW020 - Mailbox Operations");
         sub.setAmhsDefault("priority", "NORMAL");
         sub.setAmhsDefault("content", "Mailbox operations test.");

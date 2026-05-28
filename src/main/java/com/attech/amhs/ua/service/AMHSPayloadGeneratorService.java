@@ -11,6 +11,8 @@ import com.isode.x400.highlevel.BodypartFTBP;
 import com.isode.x400api.AMHS_att;
 import com.isode.x400api.MSMessage;
 import com.isode.x400api.X400_att;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Arrays;
@@ -114,7 +116,7 @@ public class AMHSPayloadGeneratorService {
         ATS_PRIORITY_MAP.put("GG", X400_Priority.HIGH_PRIORITY);
         ATS_PRIORITY_MAP.put("FF", X400_Priority.NORMAL_PRIORITY);
         ATS_PRIORITY_MAP.put("DD", X400_Priority.LOW_PRIORITY);
-        ATS_PRIORITY_MAP.put("SS", X400_Priority.LOW_PRIORITY);   // Non-standard maps to LOW
+        ATS_PRIORITY_MAP.put("SS", X400_Priority.HIGH_PRIORITY);   // Special Service should be treated above normal
         
         // Standard X.400 priorities - only these 3 exist in the library
         ATS_PRIORITY_MAP.put("LOW", X400_Priority.LOW_PRIORITY);
@@ -270,14 +272,12 @@ public class AMHSPayloadGeneratorService {
         // === ATS MESSAGE HEADER ATTRIBUTES (Required for ATS messages) ===
         
         // Filing Time - Required for ATS messages (format: YYMMDDHHMM)
-        String filingTime = amhsDefaults.get("filing-time");
-        if (filingTime != null && !filingTime.trim().isEmpty()) {
-            try {
-                message.setStringparam(AMHS_att.ATS_S_FILING_TIME, filingTime.trim());
-                logger.debug("Set filing-time: {}", filingTime);
-            } catch (Exception e) {
-                logger.warn("Failed to set filing-time: {}", e.getMessage());
-            }
+        String filingTime = resolveFilingTime(amhsDefaults);
+        try {
+            message.setStringparam(AMHS_att.ATS_S_FILING_TIME, filingTime);
+            logger.debug("Set filing-time: {}", filingTime);
+        } catch (Exception e) {
+            logger.warn("Failed to set filing-time: {}", e.getMessage());
         }
         
         // Optional Heading Info (OHI)
@@ -475,6 +475,24 @@ public class AMHSPayloadGeneratorService {
         if ("true".equalsIgnoreCase(exceedsMaxSize) || "true".equalsIgnoreCase(shouldReject)) {
             logger.debug("Size validation flags: exceeds={}, reject={}", exceedsMaxSize, shouldReject);
         }
+    }
+
+    String resolveFilingTime(Map<String, String> amhsDefaults) {
+        String filingTime = null;
+        if (amhsDefaults != null) {
+            filingTime = amhsDefaults.get("filing-time");
+        }
+        if (filingTime == null || filingTime.trim().isEmpty()) {
+            filingTime = formatCurrentFilingTime();
+            logger.debug("Default filing-time generated: {}", filingTime);
+        }
+        return filingTime.trim();
+    }
+
+    private String formatCurrentFilingTime() {
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyMMddHHmm");
+        return now.format(formatter);
     }
     
     /**

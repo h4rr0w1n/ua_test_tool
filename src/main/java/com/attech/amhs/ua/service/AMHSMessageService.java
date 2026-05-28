@@ -25,6 +25,7 @@ public class AMHSMessageService {
     private boolean isConnected;
     private P3BindSession session;
     private AMHSPayloadGeneratorService payloadGenerator = new AMHSPayloadGeneratorService();
+    private String lastSentFilingTime;
     
     // Configuration
     private String presentationAddress;
@@ -246,6 +247,10 @@ public class AMHSMessageService {
         return isConnected;
     }
     
+    public String getLastSentFilingTime() {
+        return lastSentFilingTime;
+    }
+    
     /**
      * Send an X.400 message with full AMHS configuration
      * @param recipient O/R Address of the recipient
@@ -262,13 +267,23 @@ public class AMHSMessageService {
         }
         
         X400APIException lastException = null;
+        String filingTimeUsed = payloadGenerator.resolveFilingTime(amhsDefaults);
+        lastSentFilingTime = filingTimeUsed;
+        logger.log(Level.INFO, "Using filing-time: " + filingTimeUsed);
+        System.out.println("DEBUG: Filing-time used: " + filingTimeUsed);
         
         for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             P7BindSession bindSession = null;
             try {
                 logger.log(Level.INFO, "Attempting to send AMHS message (attempt " + attempt + "/" + MAX_RETRIES + ")");
                 
-                bindSession = new P7BindSession(presentationAddress, userOrAddress, password);
+                String addressToUse = normalizePresentationAddress(presentationAddress);
+                if (!addressToUse.equals(presentationAddress)) {
+                    logger.log(Level.INFO, "Normalized presentation address for send: " + addressToUse);
+                    System.out.println("DEBUG: Normalized presentation address for send: " + addressToUse);
+                }
+                
+                bindSession = new P7BindSession(addressToUse, userOrAddress, password);
                 bindSession.bind();
                 
                 // Use payload generator to build a fully configured AMHS message
