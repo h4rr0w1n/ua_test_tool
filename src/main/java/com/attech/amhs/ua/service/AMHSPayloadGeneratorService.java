@@ -217,7 +217,7 @@ public class AMHSPayloadGeneratorService {
         } catch (X400APIException e) {
             // Handle or log exception
             logger.error("Error building X.400 message: " + e.getMessage(), e);
-            throw e;  // Re-throw to allow caller to handle retry logic
+            throw new RuntimeException("Failed to build X.400 message", e);
         }
         
         return message;
