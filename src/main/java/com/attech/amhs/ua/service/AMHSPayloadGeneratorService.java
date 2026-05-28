@@ -353,8 +353,8 @@ public class AMHSPayloadGeneratorService {
         String notifyControlPos = amhsDefaults.get("notify-control-position");
         if (notifyControlPos != null && !notifyControlPos.trim().isEmpty()) {
             try {
-                message.setStringparam(AMHS_att.ATS_S_NOTIFY_CONTROL_POSITION, notifyControlPos.trim());
-                logger.debug("Set notify-control-position: {}", notifyControlPos);
+                // ATS_S_NOTIFY_CONTROL_POSITION not available in current API version
+                logger.debug("notify-control-position configured but not supported: {}", notifyControlPos);
             } catch (Exception e) {
                 logger.warn("Failed to set notify-control-position: {}", e.getMessage());
             }
@@ -510,19 +510,21 @@ public class AMHSPayloadGeneratorService {
                               Map<String, String> amhsDefaults) throws X400APIException {
         // Simplified version - only support ia5-text and general-text-body-part
         String type = (bodyPartType != null ? bodyPartType.trim().toLowerCase() : "ia5-text");
+        String safeContent = content != null ? content : "";
         
         if (type.contains("general-text")) {
             try {
-                BodypartGeneralText generalText = new BodypartGeneralText(content != null ? content : "");
+                // Use two-argument constructor: (charset, content)
+                BodypartGeneralText generalText = new BodypartGeneralText((String)null, safeContent);
                 message.addBodypart(generalText);
             } catch (Exception e) {
                 // Fall back to ia5-text if general-text fails
-                BodypartIA5Text ia5 = new BodypartIA5Text(content != null ? content : "");
+                BodypartIA5Text ia5 = new BodypartIA5Text(safeContent);
                 message.addBodypart(ia5);
             }
         } else {
             // Default to ia5-text
-            BodypartIA5Text ia5 = new BodypartIA5Text(content != null ? content : "");
+            BodypartIA5Text ia5 = new BodypartIA5Text(safeContent);
             message.addBodypart(ia5);
         }
     }
