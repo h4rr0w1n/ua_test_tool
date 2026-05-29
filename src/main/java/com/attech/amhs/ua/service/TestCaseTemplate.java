@@ -3,7 +3,12 @@ package com.attech.amhs.ua.service;
 import com.attech.amhs.ua.model.TestCase;
 import com.attech.amhs.ua.model.TestSubcase;
 import java.util.ArrayList;
+import com.attech.amhs.ua.service.TestCaseConfigLoader;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.function.BiFunction;
 
 /**
  * Template for ICAO EUR Doc 047 Appendix A test cases CTSW001-CTSW020
@@ -153,71 +158,237 @@ public class TestCaseTemplate {
 
     private static TestCase createCTSW004() {
         // TODO: Replace with ICAO EUR Doc 047 CTSW004 specifications
-        TestCase tc = TestCaseLoader.createTestCase("CTSW004", "Message Subject Handling", 1);
-        TestSubcase sub = tc.getSubcases().get(0);
-        sub.setDescription("Test subject field handling");
-        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
-        sub.setAmhsDefault("subject", "CTSW004 - Subject Handling Test");
-        sub.setAmhsDefault("priority", "NORMAL");
-        sub.setAmhsDefault("content", "Subject handling test message.");
+        // Load defaults from properties
+        java.util.Map<String, String> defaults = TestCaseConfigLoader.loadDefaults("CTSW004");
+        TestCase tc = TestCaseLoader.createTestCase("CTSW004", "Message Subject Handling", 6);
+        // Subcase 1 – empty ATS-message-priority
+        TestSubcase sub1 = tc.getSubcases().get(0);
+        sub1.setDescription("Empty ATS-message-priority");
+        sub1.setAmhsDefault("recipient", defaults.getOrDefault("recipient", "/CN=TestRecipient/OU=Test/O=TestOrg/PRMD=TestPRMD/ADMD=/C=US/"));
+        sub1.setAmhsDefault("subject", defaults.getOrDefault("subject", "CTSW004 - Empty Priority"));
+        sub1.setAmhsDefault("priority", ""); // empty
+        sub1.setAmhsDefault("content", defaults.getOrDefault("content", ""));
+        // Subcase 2 – invalid ATS-message-priority
+        TestSubcase sub2 = tc.getSubcases().get(1);
+        sub2.setDescription("Invalid ATS-message-priority");
+        sub2.setAmhsDefault("recipient", defaults.get("recipient"));
+        sub2.setAmhsDefault("subject", defaults.get("subject"));
+        sub2.setAmhsDefault("priority", "INVALID");
+        sub2.setAmhsDefault("content", defaults.get("content"));
+        // Subcase 3 – empty ATS-message-filing-time
+        TestSubcase sub3 = tc.getSubcases().get(2);
+        sub3.setDescription("Empty ATS-message-filing-time");
+        sub3.setAmhsDefault("recipient", defaults.get("recipient"));
+        sub3.setAmhsDefault("subject", defaults.get("subject"));
+        sub3.setAmhsDefault("priority", defaults.get("priority"));
+        sub3.setAmhsDefault("filingTime", ""); // empty filing time
+        sub3.setAmhsDefault("content", defaults.get("content"));
+        // Subcase 4 – invalid ATS-message-filing-time
+        TestSubcase sub4 = tc.getSubcases().get(3);
+        sub4.setDescription("Invalid ATS-message-filing-time");
+        sub4.setAmhsDefault("recipient", defaults.get("recipient"));
+        sub4.setAmhsDefault("subject", defaults.get("subject"));
+        sub4.setAmhsDefault("priority", defaults.get("priority"));
+        sub4.setAmhsDefault("filingTime", "INVALID");
+        sub4.setAmhsDefault("content", defaults.get("content"));
+        // Subcase 5 – empty ATS-message-header and no IHE
+        TestSubcase sub5 = tc.getSubcases().get(4);
+        sub5.setDescription("Empty header & no IHE");
+        sub5.setAmhsDefault("recipient", defaults.get("recipient"));
+        sub5.setAmhsDefault("subject", defaults.get("subject"));
+        sub5.setAmhsDefault("priority", defaults.get("priority"));
+        sub5.setAmhsDefault("header", ""); // empty header
+        // No IHE field set
+        sub5.setAmhsDefault("content", defaults.get("content"));
+        // Subcase 6 – placeholder for future extensions (keep same defaults)
+        TestSubcase sub6 = tc.getSubcases().get(5);
+        sub6.setDescription("Default subcase");
+        sub6.setAmhsDefault("recipient", defaults.get("recipient"));
+        sub6.setAmhsDefault("subject", defaults.get("subject"));
+        sub6.setAmhsDefault("priority", defaults.get("priority"));
+        sub6.setAmhsDefault("content", defaults.get("content"));
         return tc;
     }
 
     private static TestCase createCTSW005() {
         // TODO: Replace with ICAO EUR Doc 047 CTSW005 specifications
-        TestCase tc = TestCaseLoader.createTestCase("CTSW005", "Large Message Content", 1);
-        TestSubcase sub = tc.getSubcases().get(0);
-        sub.setDescription("Test large message content handling");
-        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
-        sub.setAmhsDefault("subject", "CTSW005 - Large Content Test");
-        sub.setAmhsDefault("priority", "NORMAL");
-        sub.setAmhsDefault("content", "Lorem ipsum dolor sit amet... [LARGE CONTENT]");
+        // Load defaults
+        java.util.Map<String, String> defaults = TestCaseConfigLoader.loadDefaults("CTSW005");
+        TestCase tc = TestCaseLoader.createTestCase("CTSW005", "Large Message Content", 2);
+        // Subcase 1 – latest-delivery-time in the past
+        TestSubcase subPast = tc.getSubcases().get(0);
+        subPast.setDescription("latest-delivery-time in the past");
+        subPast.setAmhsDefault("recipient", defaults.getOrDefault("recipient", "/CN=TestRecipient/OU=Test/O=TestOrg/PRMD=TestPRMD/ADMD=/C=US/"));
+        subPast.setAmhsDefault("subject", defaults.getOrDefault("subject", "CTSW005 - Past Delivery"));
+        subPast.setAmhsDefault("priority", defaults.getOrDefault("priority", "NORMAL"));
+        // Use ISO-8601 UTC timestamp one day before now
+        Instant past = Instant.now().minusSeconds(86400);
+        subPast.setAmhsDefault("latestDeliveryTime", DateTimeFormatter.ISO_INSTANT.format(past));
+        subPast.setAmhsDefault("content", defaults.getOrDefault("content", ""));
+        // Subcase 2 – latest-delivery-time in the future
+        TestSubcase subFuture = tc.getSubcases().get(1);
+        subFuture.setDescription("latest-delivery-time in the future");
+        subFuture.setAmhsDefault("recipient", defaults.get("recipient"));
+        subFuture.setAmhsDefault("subject", defaults.get("subject"));
+        subFuture.setAmhsDefault("priority", defaults.get("priority"));
+        Instant future = Instant.now().plusSeconds(86400);
+        subFuture.setAmhsDefault("latestDeliveryTime", DateTimeFormatter.ISO_INSTANT.format(future));
+        subFuture.setAmhsDefault("content", defaults.get("content"));
         return tc;
     }
 
     private static TestCase createCTSW006() {
-        TestCase tc = TestCaseLoader.createTestCase("CTSW006", "Special Characters in Content", 1);
-        TestSubcase sub = tc.getSubcases().get(0);
-        sub.setDescription("Test special characters");
-        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
-        sub.setAmhsDefault("subject", "CTSW006 - Special Characters: !@#$%^&*()");
-        sub.setAmhsDefault("priority", "NORMAL");
-        sub.setAmhsDefault("content", "Special characters test: !@#$%^&*()_+-=[]{}|;:',.<>?/");
+        // Load defaults
+        java.util.Map<String, String> defaults = TestCaseConfigLoader.loadDefaults("CTSW006");
+        int maxSize = Integer.parseInt(defaults.getOrDefault("payloadSize", "2048"));
+        TestCase tc = TestCaseLoader.createTestCase("CTSW006", "Special Characters in Content", 3);
+        // Helper to generate filler payload
+        java.util.function.BiFunction<Integer, Boolean, String> generatePayload = (size, exceed) -> {
+            int finalSize = exceed ? size + 1 : size;
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < finalSize; i++) {
+                sb.append('A');
+            }
+            return sb.toString();
+        };
+        // Subcase 1 – payload within limit (IA5-text)
+        TestSubcase sub1 = tc.getSubcases().get(0);
+        sub1.setDescription("IA5-text payload within limit");
+        sub1.setAmhsDefault("recipient", defaults.getOrDefault("recipient", "/CN=TestRecipient/OU=Test/O=TestOrg/PRMD=TestPRMD/ADMD=/C=US/"));
+        sub1.setAmhsDefault("subject", defaults.getOrDefault("subject", "CTSW006 - Within limit"));
+        sub1.setAmhsDefault("priority", defaults.getOrDefault("priority", "NORMAL"));
+        sub1.setAmhsDefault("payloadType", "IA5");
+        sub1.setAmhsDefault("content", generatePayload.apply(maxSize, false));
+        // Subcase 2 – IA5-text payload exceeding limit
+        TestSubcase sub2 = tc.getSubcases().get(1);
+        sub2.setDescription("IA5-text payload exceeding limit");
+        sub2.setAmhsDefault("recipient", defaults.get("recipient"));
+        sub2.setAmhsDefault("subject", defaults.get("subject"));
+        sub2.setAmhsDefault("priority", defaults.get("priority"));
+        sub2.setAmhsDefault("payloadType", "IA5");
+        sub2.setAmhsDefault("content", generatePayload.apply(maxSize, true));
+        // Subcase 3 – File‑transfer payload exceeding limit
+        TestSubcase sub3 = tc.getSubcases().get(2);
+        sub3.setDescription("File‑transfer payload exceeding limit");
+        sub3.setAmhsDefault("recipient", defaults.get("recipient"));
+        sub3.setAmhsDefault("subject", defaults.get("subject"));
+        sub3.setAmhsDefault("priority", defaults.get("priority"));
+        sub3.setAmhsDefault("payloadType", "FTBP");
+        sub3.setAmhsDefault("content", generatePayload.apply(maxSize, true)); // placeholder binary data as string
         return tc;
     }
 
     private static TestCase createCTSW007() {
-        TestCase tc = TestCaseLoader.createTestCase("CTSW007", "Multiple Recipients", 1);
-        TestSubcase sub = tc.getSubcases().get(0);
-        sub.setDescription("Test multiple recipients");
-        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
-        sub.setAmhsDefault("subject", "CTSW007 - Multiple Recipients Test");
-        sub.setAmhsDefault("priority", "NORMAL");
-        sub.setAmhsDefault("content", "Multiple recipients test message.");
+        // Load defaults for CTSW007
+        java.util.Map<String, String> defaults = TestCaseConfigLoader.loadDefaults("CTSW007");
+        TestCase tc = TestCaseLoader.createTestCase("CTSW007", "Multiple Body Parts", 4);
+        // Subcase 1 – basic ia5-text + FTBP
+        TestSubcase sub1 = tc.getSubcases().get(0);
+        sub1.setDescription("Basic ia5-text + FTBP");
+        sub1.setAmhsDefault("recipient", defaults.getOrDefault("recipient", "/CN=TestRecipient/OU=Test/O=TestOrg/PRMD=TestPRMD/ADMD=/C=US/"));
+        sub1.setAmhsDefault("subject", defaults.getOrDefault("subject", "CTSW007 - Subcase 1"));
+        sub1.setAmhsDefault("priority", defaults.getOrDefault("priority", "NORMAL"));
+        sub1.setAmhsDefault("payloadType1", "IA5");
+        sub1.setAmhsDefault("payloadType2", "FTBP");
+        sub1.setAmhsDefault("content", defaults.getOrDefault("content", "IA5 text with file transfer payload"));
+        // Subcase 2 – general-text + FTBP
+        TestSubcase sub2 = tc.getSubcases().get(1);
+        sub2.setDescription("General-text + FTBP");
+        sub2.setAmhsDefault("recipient", defaults.get("recipient"));
+        sub2.setAmhsDefault("subject", defaults.get("subject"));
+        sub2.setAmhsDefault("priority", defaults.get("priority"));
+        sub2.setAmhsDefault("payloadType1", "GENERAL_TEXT");
+        sub2.setAmhsDefault("payloadType2", "FTBP");
+        sub2.setAmhsDefault("content", defaults.getOrDefault("content", "General text with file transfer payload"));
+        // Subcase 3 – two ia5-text body parts
+        TestSubcase sub3 = tc.getSubcases().get(2);
+        sub3.setDescription("Two ia5-text body parts");
+        sub3.setAmhsDefault("recipient", defaults.get("recipient"));
+        sub3.setAmhsDefault("subject", defaults.get("subject"));
+        sub3.setAmhsDefault("priority", defaults.get("priority"));
+        sub3.setAmhsDefault("payloadType1", "IA5");
+        sub3.setAmhsDefault("payloadType2", "IA5");
+        sub3.setAmhsDefault("content", defaults.getOrDefault("content", "Two IA5 text parts"));
+        // Subcase 4 – ia5 + general-text + FTBP
+        TestSubcase sub4 = tc.getSubcases().get(3);
+        sub4.setDescription("ia5 + general-text + FTBP");
+        sub4.setAmhsDefault("recipient", defaults.get("recipient"));
+        sub4.setAmhsDefault("subject", defaults.get("subject"));
+        sub4.setAmhsDefault("priority", defaults.get("priority"));
+        sub4.setAmhsDefault("payloadType1", "IA5");
+        sub4.setAmhsDefault("payloadType2", "GENERAL_TEXT");
+        sub4.setAmhsDefault("payloadType3", "FTBP");
+        sub4.setAmhsDefault("content", defaults.getOrDefault("content", "IA5, General text and file transfer parts"));
         return tc;
     }
+
+    
 
     private static TestCase createCTSW008() {
-        TestCase tc = TestCaseLoader.createTestCase("CTSW008", "Return Notification Request", 1);
-        TestSubcase sub = tc.getSubcases().get(0);
-        sub.setDescription("Test return notification request");
-        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
-        sub.setAmhsDefault("subject", "CTSW008 - Return Notification");
-        sub.setAmhsDefault("priority", "NORMAL");
-        sub.setAmhsDefault("content", "Return notification request test.");
+        // Load defaults for CTSW008
+        java.util.Map<String, String> defaults = TestCaseConfigLoader.loadDefaults("CTSW008");
+        TestCase tc = TestCaseLoader.createTestCase("CTSW008", "Content-Type Variations", 4);
+        // Subcase 1 – interpersonal-messaging-1988(22)
+        TestSubcase sub1 = tc.getSubcases().get(0);
+        sub1.setDescription("interpersonal-messaging-1988(22)");
+        sub1.setAmhsDefault("recipient", defaults.getOrDefault("recipient", "/CN=TestRecipient/OU=Test/O=TestOrg/PRMD=TestPRMD/ADMD=/C=US/"));
+        sub1.setAmhsDefault("subject", defaults.getOrDefault("subject", "CTSW008 - Subcase 1"));
+        sub1.setAmhsDefault("priority", defaults.getOrDefault("priority", "NORMAL"));
+        sub1.setAmhsDefault("contentType", "interpersonal-messaging-1988(22)");
+        sub1.setAmhsDefault("content", defaults.getOrDefault("content", "Message with content type 1988"));
+        // Subcase 2 – interpersonal-messaging-1984(2)
+        TestSubcase sub2 = tc.getSubcases().get(1);
+        sub2.setDescription("interpersonal-messaging-1984(2)");
+        sub2.setAmhsDefault("recipient", defaults.get("recipient"));
+        sub2.setAmhsDefault("subject", defaults.get("subject"));
+        sub2.setAmhsDefault("priority", defaults.get("priority"));
+        sub2.setAmhsDefault("contentType", "interpersonal-messaging-1984(2)");
+        sub2.setAmhsDefault("content", defaults.getOrDefault("content", "Message with content type 1984"));
+        // Subcase 3 – edi-messaging(35)
+        TestSubcase sub3 = tc.getSubcases().get(2);
+        sub3.setDescription("edi-messaging(35)");
+        sub3.setAmhsDefault("recipient", defaults.get("recipient"));
+        sub3.setAmhsDefault("subject", defaults.get("subject"));
+        sub3.setAmhsDefault("priority", defaults.get("priority"));
+        sub3.setAmhsDefault("contentType", "edi-messaging(35)");
+        sub3.setAmhsDefault("content", defaults.getOrDefault("content", "EDI messaging content"));
+        // Subcase 4 – unidentified(0)
+        TestSubcase sub4 = tc.getSubcases().get(3);
+        sub4.setDescription("unidentified(0)");
+        sub4.setAmhsDefault("recipient", defaults.get("recipient"));
+        sub4.setAmhsDefault("subject", defaults.get("subject"));
+        sub4.setAmhsDefault("priority", defaults.get("priority"));
+        sub4.setAmhsDefault("contentType", "unidentified(0)");
+        sub4.setAmhsDefault("content", defaults.getOrDefault("content", "Unidentified content type"));
         return tc;
     }
 
+    
+
     private static TestCase createCTSW009() {
-        TestCase tc = TestCaseLoader.createTestCase("CTSW009", "Delivery Notification Request", 1);
-        TestSubcase sub = tc.getSubcases().get(0);
-        sub.setDescription("Test delivery notification request");
-        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
-        sub.setAmhsDefault("subject", "CTSW009 - Delivery Notification");
-        sub.setAmhsDefault("priority", "NORMAL");
-        sub.setAmhsDefault("content", "Delivery notification test.");
+        // Load defaults for CTSW009
+        java.util.Map<String, String> defaults = TestCaseConfigLoader.loadDefaults("CTSW009");
+        TestCase tc = TestCaseLoader.createTestCase("CTSW009", "Multiple Recipients with Flags", 2);
+        // Subcase 1 – Primary AMHS user + AMQP consumer, Copy AMHS + AMQP
+        TestSubcase sub1 = tc.getSubcases().get(0);
+        sub1.setDescription("Primary + Copy recipients");
+        sub1.setAmhsDefault("recipient", defaults.getOrDefault("recipient", "amhsUser1,amqpConsumer1,amhsCopy1,amqpCopy1"));
+        sub1.setAmhsDefault("subject", defaults.getOrDefault("subject", "CTSW009 - Subcase 1"));
+        sub1.setAmhsDefault("priority", defaults.getOrDefault("priority", "NORMAL"));
+        sub1.setAmhsDefault("originatorReportRequest", "nondelivery-report");
+        sub1.setAmhsDefault("content", defaults.getOrDefault("content", "Message with primary and copy recipients"));
+        // Subcase 2 – Primary AMHS user + AMQP consumer, BCC AMHS + AMQP
+        TestSubcase sub2 = tc.getSubcases().get(1);
+        sub2.setDescription("Primary + BCC recipients");
+        sub2.setAmhsDefault("recipient", defaults.getOrDefault("recipient", "amhsUser2,amqpConsumer2,amhsBcc1,amqpBcc1"));
+        sub2.setAmhsDefault("subject", defaults.getOrDefault("subject", "CTSW009 - Subcase 2"));
+        sub2.setAmhsDefault("priority", defaults.getOrDefault("priority", "NORMAL"));
+        sub2.setAmhsDefault("originatorReportRequest", "nondelivery-report");
+        sub2.setAmhsDefault("content", defaults.getOrDefault("content", "Message with primary and BCC recipients"));
         return tc;
     }
+
+
 
     private static TestCase createCTSW010() {
         TestCase tc = TestCaseLoader.createTestCase("CTSW010", "Non-Delivery Notification", 1);
@@ -231,26 +402,56 @@ public class TestCaseTemplate {
     }
 
     private static TestCase createCTSW011() {
-        TestCase tc = TestCaseLoader.createTestCase("CTSW011", "Read Notification Request", 1);
-        TestSubcase sub = tc.getSubcases().get(0);
-        sub.setDescription("Test read notification request");
-        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
-        sub.setAmhsDefault("subject", "CTSW011 - Read Notification");
-        sub.setAmhsDefault("priority", "NORMAL");
-        sub.setAmhsDefault("content", "Read notification test.");
+        // Load defaults for CTSW011 (Probe series)
+        java.util.Map<String, String> defaults = TestCaseConfigLoader.loadDefaults("CTSW011");
+        TestCase tc = TestCaseLoader.createTestCase("CTSW011", "Probe Series", 5);
+        // Probe 1 – content-length below max, reachable AMQP consumer
+        TestSubcase sub1 = tc.getSubcases().get(0);
+        sub1.setDescription("Probe 1 – below max, reachable");
+        sub1.setAmhsDefault("recipient", defaults.getOrDefault("recipient", "reachableAmqpConsumer1"));
+        sub1.setAmhsDefault("contentLength", defaults.getOrDefault("contentLength", "500"));
+        sub1.setAmhsDefault("content", defaults.getOrDefault("content", "Probe payload below max"));
+        // Probe 2 – below max, unmapped AMQP consumer
+        TestSubcase sub2 = tc.getSubcases().get(1);
+        sub2.setDescription("Probe 2 – below max, unmapped");
+        sub2.setAmhsDefault("recipient", defaults.getOrDefault("recipient", "unmappedAmqpConsumer"));
+        sub2.setAmhsDefault("contentLength", defaults.getOrDefault("contentLength", "500"));
+        sub2.setAmhsDefault("content", defaults.getOrDefault("content", "Probe payload unmapped"));
+        // Probe 3 – content-length above max, reachable
+        TestSubcase sub3 = tc.getSubcases().get(2);
+        sub3.setDescription("Probe 3 – above max, reachable");
+        sub3.setAmhsDefault("recipient", defaults.getOrDefault("recipient", "reachableAmqpConsumer2"));
+        sub3.setAmhsDefault("contentLength", defaults.getOrDefault("contentLength", "3000"));
+        sub3.setAmhsDefault("content", defaults.getOrDefault("content", "Probe payload above max"));
+        // Probe 4 – 512 recipients
+        TestSubcase sub4 = tc.getSubcases().get(3);
+        sub4.setDescription("Probe 4 – 512 recipients");
+        sub4.setAmhsDefault("recipient", defaults.getOrDefault("recipient", "recipientList512"));
+        sub4.setAmhsDefault("contentLength", defaults.getOrDefault("contentLength", "500"));
+        sub4.setAmhsDefault("content", defaults.getOrDefault("content", "Probe with 512 recipients"));
+        // Probe 5 – >512 recipients
+        TestSubcase sub5 = tc.getSubcases().get(4);
+        sub5.setDescription("Probe 5 – >512 recipients");
+        sub5.setAmhsDefault("recipient", defaults.getOrDefault("recipient", "recipientList513"));
+        sub5.setAmhsDefault("contentLength", defaults.getOrDefault("contentLength", "500"));
+        sub5.setAmhsDefault("content", defaults.getOrDefault("content", "Probe with 513 recipients"));
         return tc;
     }
 
+
+
     private static TestCase createCTSW012() {
-        TestCase tc = TestCaseLoader.createTestCase("CTSW012", "Message with Attachments", 1);
+        // Load defaults for CTSW012 (Probe with mixed AMQP translation)
+        java.util.Map<String, String> defaults = TestCaseConfigLoader.loadDefaults("CTSW012");
+        TestCase tc = TestCaseLoader.createTestCase("CTSW012", "Probe Mixed Translation", 1);
         TestSubcase sub = tc.getSubcases().get(0);
-        sub.setDescription("Test message with attachments");
-        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
-        sub.setAmhsDefault("subject", "CTSW012 - Message with Attachments");
-        sub.setAmhsDefault("priority", "NORMAL");
-        sub.setAmhsDefault("content", "Message with attachments test.");
+        sub.setDescription("Probe with one translatable and one unknown AMQP consumer");
+        sub.setAmhsDefault("recipient", defaults.getOrDefault("recipient", "translatableAmqpConsumer,unknownAmqpConsumer"));
+        sub.setAmhsDefault("content", defaults.getOrDefault("content", "Probe payload for mixed translation"));
         return tc;
     }
+
+
 
     private static TestCase createCTSW013() {
         TestCase tc = TestCaseLoader.createTestCase("CTSW013", "Encrypted Message", 1);
@@ -264,15 +465,27 @@ public class TestCaseTemplate {
     }
 
     private static TestCase createCTSW014() {
-        TestCase tc = TestCaseLoader.createTestCase("CTSW014", "Signed Message", 1);
-        TestSubcase sub = tc.getSubcases().get(0);
-        sub.setDescription("Test signed message");
-        sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
-        sub.setAmhsDefault("subject", "CTSW014 - Signed Message");
-        sub.setAmhsDefault("priority", "NORMAL");
-        sub.setAmhsDefault("content", "Signed message test.");
+        // Load defaults for CTSW014 (Return Notifications)
+        java.util.Map<String, String> defaults = TestCaseConfigLoader.loadDefaults("CTSW014");
+        TestCase tc = TestCaseLoader.createTestCase("CTSW014", "Return Notifications", 2);
+        // Subcase 1 – RN for IPM with priority SS
+        TestSubcase sub1 = tc.getSubcases().get(0);
+        sub1.setDescription("RN for IPM priority SS");
+        sub1.setAmhsDefault("originator", defaults.getOrDefault("originator", "amhsUser"));
+        sub1.setAmhsDefault("subject", defaults.getOrDefault("subject", "RN for SS priority"));
+        sub1.setAmhsDefault("priority", "SS");
+        sub1.setAmhsDefault("content", defaults.getOrDefault("content", "Return Notification for SS priority message"));
+        // Subcase 2 – RN for IPM with priority DD
+        TestSubcase sub2 = tc.getSubcases().get(1);
+        sub2.setDescription("RN for IPM priority DD");
+        sub2.setAmhsDefault("originator", defaults.getOrDefault("originator", "amhsUser"));
+        sub2.setAmhsDefault("subject", defaults.getOrDefault("subject", "RN for DD priority"));
+        sub2.setAmhsDefault("priority", "DD");
+        sub2.setAmhsDefault("content", defaults.getOrDefault("content", "Return Notification for DD priority message"));
         return tc;
     }
+
+    
 
     private static TestCase createCTSW015() {
         TestCase tc = TestCaseLoader.createTestCase("CTSW015", "Message Expiry", 1);
