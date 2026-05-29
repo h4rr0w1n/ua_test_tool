@@ -288,16 +288,33 @@ public class AMHSMessageService {
             bindSession = new P7BindSession(addressToUse, userOrAddress, password);
             bindSession.bind();
 
-            X400Msg x400msg = payloadGenerator.buildX400Message(
-                    bindSession,
-                    recipient,
-                    subject,
-                    content,
-                    priority != null ? priority.toString() : "NORMAL",
-                    amhsDefaults,
-                    filingTimeUsed
-            );
+            X400Msg x400msg;
+            // Determine if this is a probe message (CTSW011-015)
+            if (amhsDefaults != null && amhsDefaults.get("probe") != null && !amhsDefaults.get("probe").trim().isEmpty()) {
+                // Build a probe message using the dedicated builder
+                x400msg = payloadGenerator.buildProbeMessage(
+                        bindSession,
+                        recipient,
+                        subject,
+                        content,
+                        priority != null ? priority.toString() : "NORMAL",
+                        amhsDefaults,
+                        filingTimeUsed
+                );
+            } else {
+                // Standard message
+                x400msg = payloadGenerator.buildX400Message(
+                        bindSession,
+                        recipient,
+                        subject,
+                        content,
+                        priority != null ? priority.toString() : "NORMAL",
+                        amhsDefaults,
+                        filingTimeUsed
+                );
+            }
 
+            // Send the constructed message
             x400msg.sendMsg(bindSession);
 
             String msgSubId = x400msg.getMessageIdentifier();
