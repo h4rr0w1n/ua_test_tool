@@ -575,47 +575,52 @@ public class AMHSMessageUI extends JFrame {
     // ── Send / Receive ────────────────────────────────────────────────────
 
     private void sendMessage() {
-        if (!messageService.isConnected()) {
-            appendOutput("Error: Not connected. Please connect first.");
-            return;
-        }
-
-        String recipient = txtRecipient.getText().trim();
-        String subject = txtSubject.getText().trim();
-        String content = txtContent.getText().trim();
-        X400_Priority priority = (X400_Priority) comboPriority.getSelectedItem();
-
-        if (recipient.isEmpty() || subject.isEmpty() || content.isEmpty()) {
-            appendOutput("Error: Recipient, subject, and content are required.");
-            return;
-        }
-
-        logSend(recipient, subject, content, priority, true, getSelectedSubcase() != null ? getSelectedSubcase().getAmhsDefaults() : null);
-        appendOutput("Sending message…");
-
-        new Thread(() -> {
-            try {
-                String msgId = messageService.sendMessage(recipient, subject, content, priority, getSelectedSubcase() != null ? getSelectedSubcase().getAmhsDefaults() : null);
-                SwingUtilities.invokeLater(() -> {
-                    appendOutput("Message sent! ID: " + msgId);
-                    String filingTime = messageService.getLastSentFilingTime();
-                    if (filingTime != null && !filingTime.isEmpty()) {
-                        appendOutput("Filing-time used: " + filingTime);
-                    }
-                    addMessageToMarkingPanel(recipient, subject, content,
-                            priority.toString(), true, null, false, 
-                            getSelectedSubcase() != null ? getSelectedSubcase().getAmhsDefaults() : null);
-                });
-            } catch (Throwable t) {
-                SwingUtilities.invokeLater(() -> {
-                    appendOutput("Failed to send message: " + t.getMessage());
-                    addMessageToMarkingPanel(recipient, subject, content,
-                            priority.toString(), false, t.getMessage(), false, 
-                            getSelectedSubcase() != null ? getSelectedSubcase().getAmhsDefaults() : null);
-                });
-            }
-        }).start();
+    if (!messageService.isConnected()) {
+        appendOutput("Error: Not connected. Please connect first.");
+        return;
     }
+
+    String recipient = txtRecipient.getText().trim();
+    String subject   = txtSubject.getText().trim();
+    String content   = txtContent.getText().trim();
+    X400_Priority priority = (X400_Priority) comboPriority.getSelectedItem();
+
+    if (recipient.isEmpty() || subject.isEmpty() || content.isEmpty()) {
+        appendOutput("Error: Recipient, subject, and content are required.");
+        return;
+    }
+
+    // ── Snapshot subcase and its defaults HERE on the EDT ─────────────────
+    TestSubcase currentSubcase = getSelectedSubcase();
+    Map<String, String> defaults = currentSubcase != null
+            ? new java.util.HashMap<>(currentSubcase.getAmhsDefaults())
+            : null;
+
+    logSend(recipient, subject, content, priority, true, defaults);
+    appendOutput("Sending message…");
+
+    new Thread(() -> {
+        try {
+            // Use the snapshotted defaults — no more getSelectedSubcase() in the thread
+            String msgId = messageService.sendMessage(recipient, subject, content, priority, defaults);
+            SwingUtilities.invokeLater(() -> {
+                appendOutput("Message sent! ID: " + msgId);
+                String filingTime = messageService.getLastSentFilingTime();
+                if (filingTime != null && !filingTime.isEmpty()) {
+                    appendOutput("Filing-time used: " + filingTime);
+                }
+                addMessageToMarkingPanel(recipient, subject, content,
+                        priority.toString(), true, null, false, defaults);
+            });
+        } catch (Throwable t) {
+            SwingUtilities.invokeLater(() -> {
+                appendOutput("Failed to send message: " + t.getMessage());
+                addMessageToMarkingPanel(recipient, subject, content,
+                        priority.toString(), false, t.getMessage(), false, defaults);
+            });
+        }
+    }).start();
+}
 
     private void receiveMessages() {
         if (!messageService.isConnected()) {
@@ -708,28 +713,38 @@ public class AMHSMessageUI extends JFrame {
     }
 
     private void handleSendDefaults() {
-        if (!messageService.isConnected()) {
-            appendOutput("Error: Not connected. Please connect first.");
-            return;
-        }
-        handleLoadDefaultsForSubcase();
-        new Thread(() -> {
-            try {
-                String recipient = txtRecipient.getText().trim();
-                String subject = txtSubject.getText().trim();
-                String content = txtContent.getText().trim();
-                X400_Priority priority = (X400_Priority) comboPriority.getSelectedItem();
-                if (recipient.isEmpty() || subject.isEmpty() || content.isEmpty()) {
-                    appendOutput("Error: Recipient, subject, and content are required.");
-                    return;
-                }
-                String msgId = messageService.sendMessage(recipient, subject, content, priority, getSelectedSubcase() != null ? getSelectedSubcase().getAmhsDefaults() : null);
-                SwingUtilities.invokeLater(() -> appendOutput("Defaults sent successfully. Message ID: " + msgId));
-            } catch (Throwable t) {
-                SwingUtilities.invokeLater(() -> appendOutput("Send defaults failed: " + t.getMessage()));
-            }
-        }).start();
+    if (!messageService.isConnected()) {
+        appendOutput("Error: Not connected. Please connect first.");
+        return;
     }
+    handleLoadDefaultsForSubcase();
+
+    // Snapshot on EDT before thread
+    TestSubcase currentSubcase = getSelectedSubcase();
+    Map<String, String> defaults = currentSubcase != null
+            ? new java.util.HashMap<>(currentSubcase.getAmhsDefaults())
+            : null;
+
+    new Thread(() -> {
+        try {
+            String recipient = txtRecipient.getText().trim();
+            String subject   = txtSubject.getText().trim();
+            String content   = txtContent.getText().trim();
+            X400_Priority priority = (X400_Priority) comboPriority.getSelectedItem();
+            if (recipient.isEmpty() || subject.isEmpty() || content.isEmpty()) {
+                SwingUtilities.invokeLater(() ->
+                    appendOutput("Error: Recipient, subject, and content are required."));
+                return;
+            }
+            String msgId = messageService.sendMessage(recipient, subject, content, priority, defaults);
+            SwingUtilities.invokeLater(() ->
+                appendOutput("Defaults sent successfully. Message ID: " + msgId));
+        } catch (Throwable t) {
+            SwingUtilities.invokeLater(() ->
+                appendOutput("Send defaults failed: " + t.getMessage()));
+        }
+    }).start();
+}
 
     private void applyDefaults(Map<String, String> defaults) {
         if (defaults.containsKey("recipient"))

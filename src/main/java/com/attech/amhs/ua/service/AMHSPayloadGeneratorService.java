@@ -161,9 +161,130 @@ public class AMHSPayloadGeneratorService {
      * @param priority Message priority (ATS codes: KK/GG/FF/DD/SS or X.400: LOW/NORMAL/HIGH/URGENT)
      * @return Built X.400 message
      */
-    public X400Msg buildX400Message(String recipient, String subject, String content, String priority) {
-        return buildX400Message((P3BindSession) null, recipient, subject, content, priority, null);
+public X400Msg buildX400Message(P3BindSession session, String recipient, String subject,
+                                 String content, String priority,
+                                 Map<String, String> amhsDefaults) {
+    return buildX400Message(session, recipient, subject, content, priority, amhsDefaults, null);
+}
+
+    /**
+ * Apply AMHS fields excluding body part and filing-time.
+ * Those two are handled directly in buildX400Message to ensure
+ * they are set exactly once and in the correct order.
+ */
+private void applyAmhsFieldsExceptBodyAndFilingTime(X400Msg message, Map<String, String> amhsDefaults)
+        throws X400APIException {
+
+    // Optional Heading Info
+    String ohi = amhsDefaults.get("optional-heading-info");
+    if (ohi != null && !ohi.trim().isEmpty()) {
+        try {
+            message.setStringparam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO, ohi.trim());
+        } catch (Exception e) {
+            logger.warn("Failed to set optional-heading-info: {}", e.getMessage());
+        }
     }
+
+    // Originator Reference
+    String originatorRef = amhsDefaults.get("originator-reference");
+    if (originatorRef != null && !originatorRef.trim().isEmpty()) {
+        try {
+            String currentOhi = amhsDefaults.getOrDefault("optional-heading-info", "");
+            String newOhi = (currentOhi.isEmpty() ? "" : currentOhi + " ") + "REF:" + originatorRef.trim();
+            message.setStringparam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO, newOhi);
+        } catch (Exception e) {
+            logger.warn("Failed to set originator-reference: {}", e.getMessage());
+        }
+    }
+
+    // Precedence
+    String precedenceStr = amhsDefaults.get("precedence");
+    if (precedenceStr != null && !precedenceStr.trim().isEmpty()) {
+        try {
+            int precedence = Integer.parseInt(precedenceStr.trim());
+            message.setIntParam(X400_att.X400_N_PRECEDENCE, precedence);
+        } catch (NumberFormatException e) {
+            logger.warn("Invalid precedence value: {}", precedenceStr);
+        } catch (Exception e) {
+            logger.warn("Failed to set precedence: {}", e.getMessage());
+        }
+    }
+
+    // Authorization Time
+    String authTime = amhsDefaults.get("authorization-time");
+    if (authTime != null && !authTime.trim().isEmpty()) {
+        try {
+            message.setStringparam(X400_att.X400_S_AUTHORIZATION_TIME, authTime.trim());
+        } catch (Exception e) {
+            logger.warn("Failed to set authorization-time: {}", e.getMessage());
+        }
+    }
+
+    // Responsibility
+    String responsibility = amhsDefaults.get("responsibility");
+    if (responsibility != null && !responsibility.trim().isEmpty()) {
+        try {
+            int respValue = "responsible".equalsIgnoreCase(responsibility.trim()) ? 1 : 0;
+            message.setIntParam(X400_att.X400_N_RESPONSIBILITY, respValue);
+        } catch (Exception e) {
+            logger.warn("Failed to set responsibility: {}", e.getMessage());
+        }
+    }
+
+    // Latest Delivery Time
+    String latestDelivery = amhsDefaults.get("latest-delivery-time");
+    if (latestDelivery != null && !latestDelivery.trim().isEmpty()) {
+        try {
+            message.setStringparam(X400_att.X400_S_LATEST_DELIVERY_TIME, latestDelivery.trim());
+        } catch (Exception e) {
+            logger.warn("Failed to set latest-delivery-time: {}", e.getMessage());
+        }
+    }
+
+    // Subject IPM ID
+    String subjectIpmId = amhsDefaults.get("subject-ipm-id");
+    if (subjectIpmId != null && !subjectIpmId.trim().isEmpty()) {
+        try {
+            message.setMessageIPMIdentifier(subjectIpmId.trim());
+        } catch (Exception e) {
+            logger.warn("Failed to set subject-ipm-id: {}", e.getMessage());
+        }
+    }
+
+    // CC Recipients
+    String ccRecipients = amhsDefaults.get("copy-recipients");
+    if (ccRecipients != null && !ccRecipients.trim().isEmpty()) {
+        for (String recip : ccRecipients.split("[;,]")) {
+            String trimmed = recip.trim();
+            if (!trimmed.isEmpty()) {
+                try {
+                    message.setCc(trimmed,
+                            X400Msg.DR_Request.DR_NON_DELIVERY_REPORT,
+                            X400Msg.IPN_NON_RECEIPT_NOTIFICATION);
+                } catch (Exception e) {
+                    logger.warn("Failed to set CC recipient {}: {}", trimmed, e.getMessage());
+                }
+            }
+        }
+    }
+
+    // BCC Recipients
+    String bccRecipients = amhsDefaults.get("bcc-recipients");
+    if (bccRecipients != null && !bccRecipients.trim().isEmpty()) {
+        for (String recip : bccRecipients.split("[;,]")) {
+            String trimmed = recip.trim();
+            if (!trimmed.isEmpty()) {
+                try {
+                    message.setBcc(trimmed,
+                            X400Msg.DR_Request.DR_NON_DELIVERY_REPORT,
+                            X400Msg.IPN_NON_RECEIPT_NOTIFICATION);
+                } catch (Exception e) {
+                    logger.warn("Failed to set BCC recipient {}: {}", trimmed, e.getMessage());
+                }
+            }
+        }
+    }
+}
 
     /**
      * Build X.400 message from parameters with full AMHS field support
@@ -176,54 +297,85 @@ public class AMHSPayloadGeneratorService {
      * @param amhsDefaults Additional AMHS fields from test case configuration
      * @return Built X.400 message
      */
-    public X400Msg buildX400Message(P3BindSession session, String recipient, String subject, 
-                                     String content, String priority, Map<String, String> amhsDefaults) {
-        X400Msg message = new X400Msg(session);
-        
-        try {
-            // Set recipient
-            if (recipient != null && !recipient.isEmpty()) {
-                message.setTo(recipient, X400Msg.DR_Request.DR_NON_DELIVERY_REPORT, 
-                             X400Msg.IPN_NON_RECEIPT_NOTIFICATION);
-            }
-            
-            // Set subject
-            if (subject != null && !subject.isEmpty()) {
-                message.setSubject(subject);
-            }
-            
-            // Set priority - handle both ATS codes and X.400 priorities
-            if (priority != null) {
-                try {
-                    X400_Priority priorityLevel = getPriorityFromString(priority);
-                    message.setPriority(priorityLevel);
-                } catch (IllegalArgumentException e) {
-                    message.setPriority(X400_Priority.NORMAL_PRIORITY);
-                }
-            }
-            
-            // Apply additional AMHS fields from defaults - ALWAYS use applyAmhsFields to ensure body parts are added
-            if (amhsDefaults != null && !amhsDefaults.isEmpty()) {
-                applyAmhsFields(message, content, amhsDefaults);
-            } else {
-                // Set content as IA5 text by default when no amhsDefaults provided
-                if (content != null && !content.isEmpty()) {
-                    message.setTextBody(content);
-                }
-            }
-            
-            // Always build the message before sending - this is critical to ensure all attributes are properly set
-            if (session != null) {
-                message.buildMsg(session);
-            }
-        } catch (X400APIException e) {
-            // Handle or log exception
-            logger.error("Error building X.400 message: " + e.getMessage(), e);
-            throw new RuntimeException("Failed to build X.400 message", e);
+public X400Msg buildX400Message(P3BindSession session, String recipient, String subject,
+                                 String content, String priority,
+                                 Map<String, String> amhsDefaults, String filingTime) {
+
+    dumpMessageAttributes(recipient, subject, content, priority, amhsDefaults);
+
+    X400Msg message = new X400Msg(session);
+
+    try {
+        // ── RECIPIENT (mandatory) ────────────────────────────────────────
+        if (recipient == null || recipient.trim().isEmpty()) {
+            throw new RuntimeException("Recipient address is required and cannot be empty");
         }
+        message.setTo(
+            recipient.trim(),
+            X400Msg.DR_Request.DR_NON_DELIVERY_REPORT,
+            X400Msg.IPN_NON_RECEIPT_NOTIFICATION
+        );
+
+        // ── SUBJECT ──────────────────────────────────────────────────────
+        if (subject != null && !subject.trim().isEmpty()) {
+            message.setSubject(subject.trim());
+        }
+
+        // ── PRIORITY ─────────────────────────────────────────────────────
+        X400_Priority priorityLevel = getPriorityFromString(priority);
+        message.setPriority(priorityLevel);
+
+        // ── BODY PART ────────────────────────────────────────────────────
+        // Always add body part directly here — never rely on applyAmhsFields
+        // to add it, since that path is fragile when map is partial.
+        String safeContent = (content != null && !content.isEmpty())
+                ? content
+                : (amhsDefaults != null ? amhsDefaults.getOrDefault("content", "") : "");
+        String bodyPartType = (amhsDefaults != null)
+                ? amhsDefaults.getOrDefault("body-part-type", "ia5-text")
+                : "ia5-text";
+
+        if (bodyPartType.contains("general-text")) {
+            try {
+                BodypartGeneralText generalText = new BodypartGeneralText((String) null, safeContent);
+                message.addBodypart(generalText);
+            } catch (Exception e) {
+                logger.warn("general-text body part failed, falling back to ia5-text: {}", e.getMessage());
+                message.addBodypart(new BodypartIA5Text(safeContent));
+            }
+        } else {
+            message.addBodypart(new BodypartIA5Text(safeContent));
+        }
+
+        // ── FILING TIME (set exactly once, always) ───────────────────────
+        String ft = (filingTime != null && !filingTime.trim().isEmpty())
+                ? filingTime.trim()
+                : formatCurrentFilingTime();
+        message.setStringparam(AMHS_att.ATS_S_FILING_TIME, ft);
+        logger.debug("Set filing-time: {}", ft);
         
-        return message;
+        // When ATS_S_FILING_TIME is set, we must also supply these ATS attributes as a set
+        String atsPriority = (priority != null && isAtsPriorityCode(priority)) ? priority.toUpperCase() : "FF";
+        message.setStringparam(AMHS_att.ATS_S_PRIORITY_INDICATOR, atsPriority);
+        
+        String extended = (amhsDefaults != null) ? amhsDefaults.get("extended") : null;
+        message.setIntParam(AMHS_att.ATS_N_EXTENDED, "true".equalsIgnoreCase(extended) ? 1 : 0);
+        
+        message.setIntParam(X400_att.X400_N_CONTENT_TYPE, 22); // AMHS Content Type
+        message.setStringparam(AMHS_att.ATS_S_TEXT, safeContent);
+
+        // ── REMAINING AMHS FIELDS (everything except body part and filing-time) ──
+        if (amhsDefaults != null && !amhsDefaults.isEmpty()) {
+            applyAmhsFieldsExceptBodyAndFilingTime(message, amhsDefaults);
+        }
+
+    } catch (X400APIException e) {
+        logger.error("Error building X.400 message: {}", e.getMessage(), e);
+        throw new RuntimeException("Failed to build X.400 message", e);
     }
+
+    return message;
+}
     
     /**
      * Build X.400 message from TestSubcase with all configured AMHS fields
@@ -603,4 +755,54 @@ public class AMHSPayloadGeneratorService {
         payload.append("Content:\n").append(content != null ? content : "").append("\n");
         return payload.toString();
     }
+
+    /**
+ * TEMPORARY DIAGNOSTIC - dumps all attributes set on the message before send.
+ * Remove once the missing attribute is identified.
+ */
+private void dumpMessageAttributes(String recipient, String subject,
+                                    String content, String priority, Map<String, String> defaults) {
+    System.out.println("=== X400Msg PRE-SEND ATTRIBUTE DUMP ===");
+
+    // ── Parameters we are setting ────────────────────────────────────────
+    System.out.println("  [IN] recipient   : " + (recipient != null ? recipient : "NULL"));
+    System.out.println("  [IN] subject     : " + (subject   != null ? subject   : "NULL"));
+    System.out.println("  [IN] priority    : " + (priority  != null ? priority  : "NULL"));
+    System.out.println("  [IN] content     : " + (content   != null
+                            ? content.substring(0, Math.min(content.length(), 80))
+                            : "NULL"));
+
+    // ── amhsDefaults map ─────────────────────────────────────────────────
+    if (defaults == null) {
+        System.out.println("  [IN] amhsDefaults: NULL (plain send path)");
+    } else if (defaults.isEmpty()) {
+        System.out.println("  [IN] amhsDefaults: EMPTY MAP");
+    } else {
+        System.out.println("  [IN] amhsDefaults entries (" + defaults.size() + "):");
+        for (Map.Entry<String, String> e : defaults.entrySet()) {
+            System.out.println("    [" + e.getKey() + "] = ["
+                    + (e.getValue() != null ? e.getValue() : "NULL") + "]");
+        }
+    }
+
+    // ── Derived values ───────────────────────────────────────────────────
+    System.out.println("  [DERIVED] getPriorityFromString(\"" + priority + "\") = "
+            + getPriorityFromString(priority));
+    System.out.println("  [DERIVED] resolveFilingTime(defaults) = "
+            + resolveFilingTime(defaults));
+
+    // ── Null / empty checks that would cause Missing attribute ───────────
+    System.out.println("  [CHECK] recipient null/empty  : "
+            + (recipient == null || recipient.trim().isEmpty()));
+    System.out.println("  [CHECK] subject   null/empty  : "
+            + (subject   == null || subject.trim().isEmpty()));
+    System.out.println("  [CHECK] content   null/empty  : "
+            + (content   == null || content.trim().isEmpty()));
+    System.out.println("  [CHECK] body-part-type in map : "
+            + (defaults  != null ? defaults.get("body-part-type") : "N/A (no map)"));
+    System.out.println("  [CHECK] filing-time in map    : "
+            + (defaults  != null ? defaults.get("filing-time")    : "N/A (no map)"));
+
+    System.out.println("=== END DUMP ===");
+}
 }
