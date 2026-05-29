@@ -62,11 +62,21 @@ public class AMHSMessageUI extends JFrame {
     private JRadioButton radioP3;
     private JLabel lblConnectionStatus;
 
-    // Message-operation fields (center-top pane)
+    // ── Fields for message operations ─────────────────────────────────────
+    
+    // Basic fields
     private JTextField txtRecipient;
     private JTextField txtSubject;
     private JTextArea txtContent;
     private JComboBox<X400_Priority> comboPriority;
+    
+    // AMHS-specific fields (new)
+    private JTextField txtOHI;              // Optional Heading Info
+    private JTextField txtATSPriority;      // ATS Priority (KK/GG/FF/DD/SS)
+    private JComboBox<String> comboEncoding;
+    private JComboBox<String> comboCharset;
+    private JComboBox<String> comboContentType;
+    private JTextField txtATSHeader;        // Custom ATS Header
 
     // ── Constructor ───────────────────────────────────────────────────────
 
@@ -237,6 +247,31 @@ public class AMHSMessageUI extends JFrame {
         });
         panel.add(comboPriority, gbc);
 
+        // ATS Priority (AMHS-specific)
+        gbc.gridx = 2;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
+        panel.add(new JLabel("ATS Priority:"), gbc);
+        gbc.gridx = 3;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.5;
+        txtATSPriority = new JTextField("FF", 8);
+        txtATSPriority.setToolTipText("ATS Priority code: KK/GG/FF/DD/SS");
+        panel.add(txtATSPriority, gbc);
+
+        // OHI (Optional Heading Info)
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
+        panel.add(new JLabel("OHI:"), gbc);
+        gbc.gridx = 1;
+        gbc.gridwidth = 3;
+        gbc.weightx = 1.0;
+        txtOHI = new JTextField("", 30);
+        txtOHI.setToolTipText("Optional Heading Info");
+        panel.add(txtOHI, gbc);
+
         // Content
         gbc.gridx = 0;
         gbc.gridy = 3;
@@ -263,8 +298,66 @@ public class AMHSMessageUI extends JFrame {
         btnBrowseContent.addActionListener(e -> browseAndLoadFile(txtContent, false));
         panel.add(btnBrowseContent, gbc);
 
-        // Buttons
+        // Encoding (AMHS-specific)
+        gbc.gridx = 0;
         gbc.gridy = 4;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
+        panel.add(new JLabel("Encoding:"), gbc);
+        gbc.gridx = 1;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.5;
+        comboEncoding = new JComboBox<>(new String[] {
+                "IA5", "UTF-8", "ISO-8859-1", "General Text"
+        });
+        comboEncoding.setSelectedItem("IA5");
+        panel.add(comboEncoding, gbc);
+
+        // Character Set (AMHS-specific)
+        gbc.gridx = 2;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
+        panel.add(new JLabel("Charset:"), gbc);
+        gbc.gridx = 3;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.5;
+        comboCharset = new JComboBox<>(new String[] {
+                "6", "106", "3", "4", "8"
+        });
+        comboCharset.setSelectedItem("6");
+        comboCharset.setToolTipText("Charset registry number (6=IA5, 106=UTF-8)");
+        panel.add(comboCharset, gbc);
+
+        // Content Type (AMHS-specific)
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
+        panel.add(new JLabel("Content Type:"), gbc);
+        gbc.gridx = 1;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.5;
+        comboContentType = new JComboBox<>(new String[] {
+                "22", "0", "1", "2"
+        });
+        comboContentType.setSelectedItem("22");
+        comboContentType.setToolTipText("X.400 Content Type (22=AMHS)");
+        panel.add(comboContentType, gbc);
+
+        // ATS Header (custom)
+        gbc.gridx = 2;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
+        panel.add(new JLabel("ATS Header:"), gbc);
+        gbc.gridx = 3;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.5;
+        txtATSHeader = new JTextField("", 8);
+        txtATSHeader.setToolTipText("Custom ATS Header value");
+        panel.add(txtATSHeader, gbc);
+
+        // Buttons
+        gbc.gridy = 6;
         gbc.gridwidth = 1;
         gbc.weightx = 0;
         gbc.weighty = 0;
@@ -584,6 +677,21 @@ public class AMHSMessageUI extends JFrame {
     String subject   = txtSubject.getText().trim();
     String content   = txtContent.getText().trim();
     X400_Priority priority = (X400_Priority) comboPriority.getSelectedItem();
+    
+    // Collect AMHS-specific fields from UI
+    Map<String, String> uiAmhsFields = new java.util.HashMap<>();
+    String ohi = txtOHI.getText().trim();
+    if (!ohi.isEmpty()) uiAmhsFields.put("optional-heading-info", ohi);
+    String atsPriority = txtATSPriority.getText().trim();
+    if (!atsPriority.isEmpty()) uiAmhsFields.put("ats-priority", atsPriority);
+    String encoding = (String) comboEncoding.getSelectedItem();
+    if (encoding != null) uiAmhsFields.put("encoding", encoding);
+    String charset = (String) comboCharset.getSelectedItem();
+    if (charset != null) uiAmhsFields.put("charset-reg-number", charset);
+    String contentType = (String) comboContentType.getSelectedItem();
+    if (contentType != null) uiAmhsFields.put("content-type", contentType);
+    String atsHeader = txtATSHeader.getText().trim();
+    if (!atsHeader.isEmpty()) uiAmhsFields.put("ats-header", atsHeader);
 
     if (recipient.isEmpty() || subject.isEmpty() || content.isEmpty()) {
         appendOutput("Error: Recipient, subject, and content are required.");
@@ -595,6 +703,13 @@ public class AMHSMessageUI extends JFrame {
     Map<String, String> defaults = currentSubcase != null
             ? new java.util.HashMap<>(currentSubcase.getAmhsDefaults())
             : null;
+    
+    // Merge UI AMHS fields with subcase defaults (UI takes precedence)
+    if (defaults == null) {
+        defaults = uiAmhsFields;
+    } else {
+        defaults.putAll(uiAmhsFields);
+    }
 
     logSend(recipient, subject, content, priority, true, defaults);
     appendOutput("Sending message…");
@@ -695,6 +810,12 @@ public class AMHSMessageUI extends JFrame {
         txtSubject.setText("Test X.400 Message");
         txtContent.setText("This is a test message sent via AMHS X.400.");
         comboPriority.setSelectedItem(X400_Priority.NORMAL_PRIORITY);
+        txtATSPriority.setText("FF");
+        txtOHI.setText("");
+        comboEncoding.setSelectedItem("IA5");
+        comboCharset.setSelectedItem("6");
+        comboContentType.setSelectedItem("22");
+        txtATSHeader.setText("");
     }
 
     private void handleLoadDefaultsForSubcase() {
@@ -766,7 +887,35 @@ public class AMHSMessageUI extends JFrame {
                 comboPriority.setSelectedItem(X400_Priority.HIGH_PRIORITY);
             else
                 comboPriority.setSelectedItem(X400_Priority.NORMAL_PRIORITY);
+            
+            // Also set the ATS Priority text field
+            txtATSPriority.setText(p.toUpperCase());
         }
+        // Apply AMHS-specific fields
+        if (defaults.containsKey("optional-heading-info"))
+            txtOHI.setText(defaults.get("optional-heading-info"));
+        if (defaults.containsKey("ats-priority"))
+            txtATSPriority.setText(defaults.get("ats-priority"));
+        if (defaults.containsKey("charset-reg-number")) {
+            String cs = defaults.get("charset-reg-number");
+            if (cs != null && !cs.isEmpty()) {
+                comboCharset.setSelectedItem(cs);
+            }
+        }
+        if (defaults.containsKey("content-type")) {
+            String ct = defaults.get("content-type");
+            if (ct != null && !ct.isEmpty()) {
+                comboContentType.setSelectedItem(ct);
+            }
+        }
+        if (defaults.containsKey("encoding")) {
+            String enc = defaults.get("encoding");
+            if (enc != null && !enc.isEmpty()) {
+                comboEncoding.setSelectedItem(enc);
+            }
+        }
+        if (defaults.containsKey("ats-header"))
+            txtATSHeader.setText(defaults.get("ats-header"));
     }
 
     // ── Utility helpers ───────────────────────────────────────────────────
