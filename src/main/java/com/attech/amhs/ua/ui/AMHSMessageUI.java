@@ -710,14 +710,17 @@ public class AMHSMessageUI extends JFrame {
     } else {
         defaults.putAll(uiAmhsFields);
     }
+    
+    // Create an effectively final copy for use in lambda
+    final Map<String, String> amhsDefaults = defaults;
 
-    logSend(recipient, subject, content, priority, true, defaults);
+    logSend(recipient, subject, content, priority, true, amhsDefaults);
     appendOutput("Sending message…");
 
     new Thread(() -> {
         try {
             // Use the snapshotted defaults — no more getSelectedSubcase() in the thread
-            String msgId = messageService.sendMessage(recipient, subject, content, priority, defaults);
+            String msgId = messageService.sendMessage(recipient, subject, content, priority, amhsDefaults);
             SwingUtilities.invokeLater(() -> {
                 appendOutput("Message sent! ID: " + msgId);
                 String filingTime = messageService.getLastSentFilingTime();
@@ -725,13 +728,13 @@ public class AMHSMessageUI extends JFrame {
                     appendOutput("Filing-time used: " + filingTime);
                 }
                 addMessageToMarkingPanel(recipient, subject, content,
-                        priority.toString(), true, null, false, defaults);
+                        priority.toString(), true, null, false, amhsDefaults);
             });
         } catch (Throwable t) {
             SwingUtilities.invokeLater(() -> {
                 appendOutput("Failed to send message: " + t.getMessage());
                 addMessageToMarkingPanel(recipient, subject, content,
-                        priority.toString(), false, t.getMessage(), false, defaults);
+                        priority.toString(), false, t.getMessage(), false, amhsDefaults);
             });
         }
     }).start();
