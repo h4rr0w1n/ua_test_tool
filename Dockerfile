@@ -18,7 +18,10 @@ COPY src ./src
 COPY lib ./lib
 
 # Copy install script if it exists
-COPY install-isode-libs.sh ./install-isode-libs.sh 2>/dev/null || true
+COPY install-isode-libs.s[h] ./
+
+# Install local dependencies
+RUN if [ -f "install-isode-libs.sh" ]; then sed -i 's/\r$//' install-isode-libs.sh && chmod +x install-isode-libs.sh && ./install-isode-libs.sh; fi
 
 # Build the application
 RUN mvn clean package -DskipTests -B
@@ -34,12 +37,14 @@ LABEL version="1.0.0"
 
 # Install any required system packages for native libraries
 # Uncomment if your native libraries require specific packages
-# RUN apt-get update && apt-get install -y \
-#     libfreetype6 \
-#     libxrender1 \
-#     libxtst6 \
-#     libxi6 \
-#     && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    libfreetype6 \
+    libxrender1 \
+    libxtst6 \
+    libxi6 \
+    libxext6 \
+    x11-apps \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -53,7 +58,7 @@ COPY --from=builder /build/target/ua-test-tool-1.0.0-jar-with-dependencies.jar .
 COPY --from=builder /build/lib ./lib
 
 # Copy connection properties if exists
-COPY connection.properties ./connection.properties 2>/dev/null || true
+COPY connection.propertie[s] ./
 
 # Set environment variables
 ENV ISODE_BINDIR=/app/lib
