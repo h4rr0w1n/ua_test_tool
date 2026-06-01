@@ -1,36 +1,67 @@
 package com.attech.amhs.ua.service;
 
+import com.attech.amhs.ua.model.TestCase;
+import com.attech.amhs.ua.model.TestSubcase;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 /**
- * Helper for loading per‑case default configuration from *.properties files located in
+ * Helper for loading per-case default configuration from *.properties files located in
  * {@code src/main/resources/testcases}. Each file is named {@code CTSWXXX.properties}.
  * The caller can retrieve any property by key (e.g., "recipient", "subject", "priority",
  * "content", "latestDeliveryTime", "payloadSize", "payloadType").
  */
 public class TestCaseConfigLoader {
 
+    private static final String PROPERTIES_PATH = "/testcases/"; // inside classpath
+
     /**
-     * Load all test cases with defaults. Currently returns an empty list, causing the UI
-     * to fall back to the built‑in default test case definitions.
-     * This method can be expanded to read all *.properties files and populate each
-     * {@link com.attech.amhs.ua.model.TestCase} accordingly.
+     * Load all test cases with defaults.
+     * Uses TestCaseLoader to get the structure and then injects properties.
      */
-    public static java.util.List<com.attech.amhs.ua.model.TestCase> loadAllTestCases() {
-        return new java.util.ArrayList<>();
+    public static List<TestCase> loadAllTestCases() {
+        List<TestCase> testCases = TestCaseLoader.loadDefaultTestCases();
+        for (TestCase tc : testCases) {
+            Map<String, String> props = loadDefaults(tc.getId());
+            if (!props.isEmpty()) {
+                for (TestSubcase subcase : tc.getSubcases()) {
+                    String prefix = "subcase." + getSubcaseIndex(subcase.getId()) + ".amhs.";
+                    Map<String, String> subcaseDefaults = new HashMap<>();
+                    for (Map.Entry<String, String> entry : props.entrySet()) {
+                        if (entry.getKey().startsWith(prefix)) {
+                            String key = entry.getKey().substring(prefix.length());
+                            subcaseDefaults.put(key, entry.getValue());
+                        }
+                    }
+                    if (!subcaseDefaults.isEmpty()) {
+                        for (Map.Entry<String, String> entry : subcaseDefaults.entrySet()) {
+                            subcase.setAmhsDefault(entry.getKey(), entry.getValue());
+                        }
+                    }
+                }
+            }
+        }
+        return testCases;
     }
 
-    private static final String PROPERTIES_PATH = "/testcases/"; // inside classpath
+    private static String getSubcaseIndex(String subcaseId) {
+        int lastDot = subcaseId.lastIndexOf('.');
+        if (lastDot != -1 && lastDot < subcaseId.length() - 1) {
+            return subcaseId.substring(lastDot + 1);
+        }
+        return "1";
+    }
 
     /**
      * Load all properties for a given case identifier.
      *
      * @param caseId e.g. "CTSW004"
-     * @return map of key → value, empty if the file cannot be read.
+     * @return map of key -> value, empty if the file cannot be read.
      */
     public static Map<String, String> loadDefaults(String caseId) {
         String fileName = PROPERTIES_PATH + caseId + ".properties";
