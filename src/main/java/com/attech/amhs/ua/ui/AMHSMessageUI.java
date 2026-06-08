@@ -261,7 +261,7 @@ public class AMHSMessageUI extends JFrame {
 
         // OHI (Optional Heading Info)
         gbc.gridx = 0;
-        gbc.gridy = 2;
+        gbc.gridy = 3;
         gbc.gridwidth = 1;
         gbc.weightx = 0;
         panel.add(new JLabel("OHI:"), gbc);
@@ -274,7 +274,7 @@ public class AMHSMessageUI extends JFrame {
 
         // Content
         gbc.gridx = 0;
-        gbc.gridy = 3;
+        gbc.gridy = 4;
         gbc.gridwidth = 1;
         gbc.weightx = 0;
         gbc.anchor = GridBagConstraints.NORTHWEST;
@@ -300,7 +300,7 @@ public class AMHSMessageUI extends JFrame {
 
         // Encoding (AMHS-specific)
         gbc.gridx = 0;
-        gbc.gridy = 4;
+        gbc.gridy = 5;
         gbc.gridwidth = 1;
         gbc.weightx = 0;
         panel.add(new JLabel("Encoding:"), gbc);
@@ -330,7 +330,7 @@ public class AMHSMessageUI extends JFrame {
 
         // Content Type (AMHS-specific)
         gbc.gridx = 0;
-        gbc.gridy = 5;
+        gbc.gridy = 6;
         gbc.gridwidth = 1;
         gbc.weightx = 0;
         panel.add(new JLabel("Content Type:"), gbc);
@@ -357,7 +357,7 @@ public class AMHSMessageUI extends JFrame {
         panel.add(txtATSHeader, gbc);
 
         // Buttons
-        gbc.gridy = 6;
+        gbc.gridy = 7;
         gbc.gridwidth = 1;
         gbc.weightx = 0;
         gbc.weighty = 0;
@@ -899,6 +899,8 @@ public class AMHSMessageUI extends JFrame {
             txtOHI.setText(defaults.get("optional-heading-info"));
         if (defaults.containsKey("ats-priority"))
             txtATSPriority.setText(defaults.get("ats-priority"));
+        else if (defaults.containsKey("priority-indicator"))
+            txtATSPriority.setText(defaults.get("priority-indicator"));
         if (defaults.containsKey("charset-reg-number")) {
             String cs = defaults.get("charset-reg-number");
             if (cs != null && !cs.isEmpty()) {

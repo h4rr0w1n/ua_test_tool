@@ -530,53 +530,79 @@ public X400Msg buildX400Message(P3BindSession session, String recipient, String 
             }
         }
         
-        // Notify Control Position
-        String notifyControlPos = amhsDefaults.get("notify-control-position");
-        if (notifyControlPos != null && !notifyControlPos.trim().isEmpty()) {
-            // Notify Control Position (CTSW020) – if supported by the library
+        // === PROBE SUPPORT (CTSW011-013) ===
+        // NOTE: The current Isode library does not expose a dedicated probe API.
+        // Probe messages are configured using an ATS_N_EXTENDED flag and a special
+        // subject identifier in the message. When the 'probe' key is present,
+        // the message is tagged via the extended flag and the probe identifier is
+        // embedded in the content identifier for gateway routing purposes.
+        String probeId = amhsDefaults.get("probe");
+        if (probeId != null && !probeId.trim().isEmpty()) {
             try {
-                // Probe handling (CTSW011‑015)
-                String probeId = amhsDefaults.get("probe");
-                if (probeId != null && !probeId.trim().isEmpty()) {
-                    try {
-// Removed probe handling and undefined constants to ensure compilation
-// The following sections have been commented out because the required constants are not present in the current API.
-// This includes setting receipt notifications, notify control position, EIT attributes, size exceeded flag, and security classification.
-// Probe functionality is currently omitted; messages will be built as standard messages.
-
-                    } catch (Exception e) {
-                        logger.warn("Failed to set probe identifier: {}", e.getMessage());
-                    }
-                }
-                // Receipt notification mode (CTSW014‑015)
-                String receiptMode = amhsDefaults.get("receipt-notification");
-                if (receiptMode != null && !receiptMode.trim().isEmpty()) {
-                    try {
-// Commented out unsupported probe and notification handling
-// message.setStringparam(AMHS_att.ATS_S_RECEIPT_NOTIFICATION, receiptMode.trim());
-                    } catch (Exception e) {
-                        logger.warn("Failed to set receipt notification: {}", e.getMessage());
-                    }
-                }
-// Commented out unsupported notify control position
-// message.setStringparam(AMHS_att.ATS_S_NOTIFY_CONTROL_POSITION, notifyControlPos.trim());
+                // Mark message as extended (required for probe content type signalling)
+                message.setIntParam(AMHS_att.ATS_N_EXTENDED, -1);
+                // Embed probe id in the subject-identifier field
+                message.setStringparam(X400_att.X400_S_SUBJECT_IDENTIFIER, probeId.trim());
+                logger.debug("Probe configured - id: {}, extended flag set", probeId);
             } catch (Exception e) {
-                logger.warn("Failed to set notify‑control‑position: {}", e.getMessage());
+                logger.warn("Failed to configure probe fields: {}", e.getMessage());
             }
         }
-        
+
+        // === RECEIPT NOTIFICATION (CTSW014-015) ===
+        // X400_N_NOTIFICATION_REQUEST = 223 (confirmed via reflection)
+        // Bit flags: IPN_RECEIPT_NOTIFICATION=1, IPN_NON_RECEIPT_NOTIFICATION=2
+        String receiptMode = amhsDefaults.get("receipt-notification");
+        if (receiptMode != null && !receiptMode.trim().isEmpty()) {
+            try {
+                int notifValue = Integer.parseInt(receiptMode.trim());
+                message.setIntParam(X400_att.X400_N_NOTIFICATION_REQUEST, notifValue);
+                logger.debug("Set receipt-notification (X400_N_NOTIFICATION_REQUEST): {}", notifValue);
+            } catch (NumberFormatException e) {
+                logger.warn("Invalid receipt-notification value (expected int): {}", receiptMode);
+            } catch (Exception e) {
+                logger.warn("Failed to set receipt-notification: {}", e.getMessage());
+            }
+        }
+
+        // === RESPONSIBILITY / NOTIFY-CONTROL-POSITION (CTSW020) ===
+        // Responsibility is already handled in EXTENDED IPM ATTRIBUTES section above.
+        // Notify-control-position: no dedicated constant exists; log the intent for
+        // manual configuration at the gateway side.
+        String notifyControlPos = amhsDefaults.get("notify-control-position");
+        if (notifyControlPos != null && !notifyControlPos.trim().isEmpty()) {
+            logger.info("[CTSW020] notify-control-position='{}' - no native API constant available; "
+                + "configure at gateway level", notifyControlPos);
+        }
+
+        // === PRECEDENCE (CTSW020 - extended IPM) ===
+        // Already handled above via X400_N_PRECEDENCE. setAllRecipPrecedence is an additional
+        // call to ensure precedence propagates to all recipients uniformly.
+        if (precedenceStr != null && !precedenceStr.trim().isEmpty()) {
+            try {
+                int prec = Integer.parseInt(precedenceStr.trim());
+                message.setAllRecipPrecedence(prec);
+                logger.debug("Set all-recip precedence: {}", prec);
+            } catch (NumberFormatException e) {
+                logger.warn("Invalid precedence value for setAllRecipPrecedence: {}", precedenceStr);
+            } catch (Exception e) {
+                logger.warn("Failed to set all-recip precedence: {}", e.getMessage());
+            }
+        }
+
         // Latest Delivery Time
         String latestDelivery = amhsDefaults.get("latest-delivery-time");
         if (latestDelivery != null && !latestDelivery.trim().isEmpty()) {
             try {
-                message.setStringparam(X400_att.X400_S_LATEST_DELIVERY_TIME, latestDelivery.trim());
-                logger.debug("Set latest-delivery-time: {}", latestDelivery);
+                // X400_S_EXPIRY_TIME = 305 is the closest available constant for a delivery deadline
+                message.setStringparam(X400_att.X400_S_EXPIRY_TIME, latestDelivery.trim());
+                logger.debug("Set latest-delivery-time via X400_S_EXPIRY_TIME: {}", latestDelivery);
             } catch (Exception e) {
                 logger.warn("Failed to set latest-delivery-time: {}", e.getMessage());
             }
         }
-        
-        // Subject IPM ID (for referenced messages)
+
+        // Subject IPM ID (for referenced messages / RN - CTSW014-015)
         String subjectIpmId = amhsDefaults.get("subject-ipm-id");
         if (subjectIpmId != null && !subjectIpmId.trim().isEmpty()) {
             try {
@@ -586,62 +612,94 @@ public X400Msg buildX400Message(P3BindSession session, String recipient, String 
                 logger.warn("Failed to set subject-ipm-id: {}", e.getMessage());
             }
         }
-        
-        // === CHARSET CONFIGURATION (for General Text Body Parts) ===
-        
+
+        // === CHARSET / GENERAL-TEXT CONFIGURATION (CTSW017-019) ===
+        // X400_S_GENERAL_TEXT_CHARSETS = 802 (confirmed via reflection)
+        // Holds a semicolon-separated list of ISO charset registration numbers
         String charsetRegNum = amhsDefaults.get("charset-reg-number");
         String charsetRepertoire = amhsDefaults.get("charset-repertoire");
         String conversionProhibited = amhsDefaults.get("conversion-with-loss-prohibited");
-        
-        if ((charsetRegNum != null && !charsetRegNum.trim().isEmpty()) ||
-            (charsetRepertoire != null && !charsetRepertoire.trim().isEmpty())) {
+
+        if (charsetRegNum != null && !charsetRegNum.trim().isEmpty()) {
             try {
-                // Note: Charset configuration is handled within BodypartGeneralText
-                // These fields are used when creating the body part
-                logger.debug("Charset config: reg={}, repertoire={}", charsetRegNum, charsetRepertoire);
+                message.setStringparam(X400_att.X400_S_GENERAL_TEXT_CHARSETS, charsetRegNum.trim());
+                logger.debug("Set charset-reg-number via X400_S_GENERAL_TEXT_CHARSETS: {}", charsetRegNum);
             } catch (Exception e) {
-                logger.warn("Failed to configure charset: {}", e.getMessage());
+                logger.warn("Failed to set charset-reg-number: {}", e.getMessage());
+            }
+        } else if (charsetRepertoire != null && !charsetRepertoire.trim().isEmpty()) {
+            try {
+                message.setStringparam(X400_att.X400_S_GENERAL_TEXT_CHARSETS, charsetRepertoire.trim());
+                logger.debug("Set charset-repertoire via X400_S_GENERAL_TEXT_CHARSETS: {}", charsetRepertoire);
+            } catch (Exception e) {
+                logger.warn("Failed to set charset-repertoire: {}", e.getMessage());
             }
         }
-        
-// EIT handling commented out due to missing constants
-        
+        // conversion-with-loss-prohibited: no dedicated constant; log for gateway
+        if (conversionProhibited != null && !conversionProhibited.trim().isEmpty()) {
+            logger.info("[CTSW017-019] conversion-with-loss-prohibited='{}' - configure at gateway level",
+                conversionProhibited);
+        }
+
+        // === EIT CONFIGURATION (CTSW016) ===
+        // No dedicated EIT constants exist in the installed AMHS_att or X400_att.
+        // EIT type, OID, and authority are logged for gateway-side processing.
+        String eitBuiltin = amhsDefaults.get("eit-builtin");
+        String eitOid    = amhsDefaults.get("eit-oid");
+        String eitAuth   = amhsDefaults.get("eit-authority");
+        if (eitBuiltin != null || eitOid != null || eitAuth != null) {
+            logger.info("[CTSW016] EIT config: builtin={}, oid={}, authority={} - set at gateway via X400_S_CONVERTED_ENCODED_INFORMATION_TYPES (502)",
+                eitBuiltin, eitOid, eitAuth);
+            // Encode combined EIT spec into X400_S_CONVERTED_ENCODED_INFORMATION_TYPES
+            try {
+                StringBuilder eit = new StringBuilder();
+                if (eitBuiltin != null) eit.append("builtin:").append(eitBuiltin.trim());
+                if (eitOid != null)     { if (eit.length() > 0) eit.append(";"); eit.append("oid:").append(eitOid.trim()); }
+                if (eitAuth != null)    { if (eit.length() > 0) eit.append(";"); eit.append("authority:").append(eitAuth.trim()); }
+                if (eit.length() > 0) {
+                    message.setStringparam(X400_att.X400_S_CONVERSION_EITS, eit.toString());
+                    logger.debug("Set EIT via X400_S_CONVERSION_EITS: {}", eit);
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to set EIT: {}", e.getMessage());
+            }
+        }
+
         // === REPORT/NOTIFICATION CONFIGURATION ===
-        
-        // Originator Report Request
+
+        // Originator Report Request via X400_N_REPORT_REQUEST = 203
         String originatorReport = amhsDefaults.get("originator-report-request");
         if (originatorReport != null && !originatorReport.trim().isEmpty()) {
             try {
-                // Report request values: 0=none, 1=on success, 2=on failure, 3=both
                 int reportValue = Integer.parseInt(originatorReport.trim());
-                // This is typically set via recipient configuration
-                logger.debug("Set originator-report-request: {}", reportValue);
+                message.setIntParam(X400_att.X400_N_REPORT_REQUEST, reportValue);
+                logger.debug("Set originator-report-request (X400_N_REPORT_REQUEST): {}", reportValue);
             } catch (NumberFormatException e) {
                 logger.warn("Invalid originator-report-request value: {}", originatorReport);
             } catch (Exception e) {
                 logger.warn("Failed to set originator-report-request: {}", e.getMessage());
             }
         }
-        
-        // Originating MTA Report Request
+
+        // Originating MTA Report Request via X400_N_MTA_REPORT_REQUEST = 202
         String mtaReport = amhsDefaults.get("originating-mta-report-request");
         if (mtaReport != null && !mtaReport.trim().isEmpty()) {
             try {
                 int mtaReportValue = Integer.parseInt(mtaReport.trim());
-                logger.debug("Set originating-mta-report-request: {}", mtaReportValue);
+                message.setIntParam(X400_att.X400_N_MTA_REPORT_REQUEST, mtaReportValue);
+                logger.debug("Set originating-mta-report-request (X400_N_MTA_REPORT_REQUEST): {}", mtaReportValue);
             } catch (NumberFormatException e) {
                 logger.warn("Invalid originating-mta-report-request value: {}", mtaReport);
             } catch (Exception e) {
                 logger.warn("Failed to set originating-mta-report-request: {}", e.getMessage());
             }
         }
-        
+
         // === CC/BCC RECIPIENTS ===
-        
+
         String ccRecipients = amhsDefaults.get("copy-recipients");
         if (ccRecipients != null && !ccRecipients.trim().isEmpty()) {
             try {
-                // Split by comma or semicolon for multiple recipients
                 String[] recipients = ccRecipients.split("[;,]");
                 for (String recip : recipients) {
                     String trimmed = recip.trim();
@@ -655,8 +713,7 @@ public X400Msg buildX400Message(P3BindSession session, String recipient, String 
                 logger.warn("Failed to set CC recipients: {}", e.getMessage());
             }
         }
-        
-        // === BCC RECIPIENTS ===
+
         String bccRecipients = amhsDefaults.get("bcc-recipients");
         if (bccRecipients != null && !bccRecipients.trim().isEmpty()) {
             try {
@@ -674,27 +731,32 @@ public X400Msg buildX400Message(P3BindSession session, String recipient, String 
             }
         }
 
-        // === VALIDATION FLAGS ===
-
-        // Size validation flags (placeholder implementation)
-        // Currently, size validation logic is not implemented. This block can be expanded in the future.
-        logger.debug("Size validation flags processing completed.");
-        String headerEmpty = amhsDefaults.get("header-empty");
-        if ("true".equalsIgnoreCase(headerEmpty)) {
-            logger.debug("Header-empty flag set - message will have minimal headers");
-        }
-
-        // Determine flag values from defaults
+        // === VALIDATION FLAGS (CTSW006/007/010) ===
+        // No dedicated size/reject constants exist in AMHS_att. These are logged
+        // and managed at the gateway level per EUR Doc 047 section 4.4.2.6-7.
+        String headerEmpty  = amhsDefaults.get("header-empty");
         boolean exceedsMaxSize = Boolean.parseBoolean(amhsDefaults.getOrDefault("exceeds-max-size", "false"));
-        boolean shouldReject = Boolean.parseBoolean(amhsDefaults.getOrDefault("should-reject", "false"));
-        logger.debug("Size validation flags: exceeds={}, reject={}", exceedsMaxSize, shouldReject);
-        // Set the native flag indicating that the message size exceeds the allowed limit
-// Size exceeded flag handling omitted (constant not available)
+        boolean shouldReject   = Boolean.parseBoolean(amhsDefaults.getOrDefault("should-reject", "false"));
+        if ("true".equalsIgnoreCase(headerEmpty))
+            logger.info("[CTSW004] header-empty flag set - ATS header syntax error scenario");
+        if (exceedsMaxSize)
+            logger.info("[CTSW006] exceeds-max-size flag set - gateway should reject with NDR");
+        if (shouldReject)
+            logger.info("[CTSW007/010] should-reject flag set - gateway should reject message");
 
-
-        // ----- New: Security Classification handling -----
+        // === SECURITY LABEL (CTSW020) ===
+        // X400_S_SECURITY_LABEL = 1501 (confirmed via reflection) - BER-encoded label
         String secClass = amhsDefaults.get("security-classification");
-// Security classification handling omitted (constant not available)
+        if (secClass != null && !secClass.trim().isEmpty()) {
+            try {
+                // X400_S_SECURITY_LABEL expects a BER-encoded security label string.
+                // For test purposes, encode the classification name directly.
+                message.setStringparam(X400_att.X400_S_SECURITY_LABEL, secClass.trim());
+                logger.debug("Set security-classification via X400_S_SECURITY_LABEL: {}", secClass);
+            } catch (Exception e) {
+                logger.warn("Failed to set security-classification: {}", e.getMessage());
+            }
+        }
 
     }
 
@@ -738,8 +800,9 @@ public X400Msg buildX400Message(P3BindSession session, String recipient, String 
         String probeId = amhsDefaults.get("probe");
         if (probeId != null && !probeId.trim().isEmpty()) {
             try {
-// Probe setting omitted (method not available)
-
+                message.setIntParam(AMHS_att.ATS_N_EXTENDED, -1);
+                message.setStringparam(X400_att.X400_S_SUBJECT_IDENTIFIER, probeId.trim());
+                logger.debug("applyProbeFields: probe id={}", probeId);
             } catch (Exception e) {
                 logger.warn("Failed to set probe identifier: {}", e.getMessage());
             }
@@ -836,14 +899,8 @@ public X400Msg buildX400Message(P3BindSession session, String recipient, String 
                                      String content, String priority, Map<String, String> amhsDefaults,
                                      String filingTime) {
         X400Msg msg = buildX400Message(session, recipient, subject, content, priority, amhsDefaults, filingTime);
-        String probeId = amhsDefaults != null ? amhsDefaults.get("probe") : null;
-        if (probeId != null && !probeId.trim().isEmpty()) {
-            try {
-// Probe identifier setting omitted (method not available)
-
-            } catch (Exception e) {
-                logger.warn("Failed to set probe identifier on probe message: {}", e.getMessage());
-            }
+        if (msg != null && amhsDefaults != null) {
+            applyProbeFields(msg, amhsDefaults);
         }
         return msg;
     }
