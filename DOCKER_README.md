@@ -1,35 +1,26 @@
 # Docker README for AMHS UA Test Tool
 
-This document provides instructions for building and running the AMHS UA Test Tool as a Docker container.
+This document provides instructions for building and running the AMHS UA Test Tool in Docker.
 
 ## Prerequisites
 
 - Docker (version 20.10 or higher recommended)
-- Docker Compose (version 2.0 or higher recommended)
 - Sufficient disk space (~500MB for the image)
+- Optional: X server for GUI display on the host
+
+> Note: This repository does not include a `docker-compose.yml` file. Use `docker build` and `docker run` directly.
 
 ## Quick Start
 
-### Option 1: Using Docker Compose (Recommended)
+### Build the Docker image
 
 ```bash
-# Build and start the container
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop the container
-docker-compose down
+docker build -t amhs-ua-test-tool .
 ```
 
-### Option 2: Using Docker Directly
+### Run the container
 
 ```bash
-# Build the Docker image
-docker build -t amhs-ua-test-tool .
-
-# Run the container
 docker run --rm amhs-ua-test-tool
 ```
 
@@ -41,206 +32,113 @@ docker run --rm amhs-ua-test-tool
 |----------|-------------|---------|
 | `ISODE_BINDIR` | Path to Isode native libraries | `/app/lib` |
 | `JAVA_TOOL_OPTIONS` | JVM options | `-Disode.bindir=/app/lib -Djava.library.path=/app/lib` |
-| `DISPLAY` | X11 display for GUI (Linux) | Not set |
+| `DISPLAY` | X11 display for GUI | Not set |
 
 ### Volume Mounts
 
-The following volumes are configured in `docker-compose.yml`:
+Mount the configuration file and any output directory as needed:
 
-- `./connection.properties:/app/connection.properties:ro` - Mount your connection configuration
-- `./docker-output:/app/output` - Mount a directory for output files
-
-Create the output directory if needed:
 ```bash
-mkdir -p docker-output
+docker run --rm -v ./connection.properties:/app/connection.properties:ro amhs-ua-test-tool
+```
+
+If you want persistent output storage:
+
+```bash
+docker run --rm -v ./docker-output:/app/output amhs-ua-test-tool
 ```
 
 ## GUI Support
 
-This application has a graphical user interface. To run it with GUI support:
+This application uses a Swing GUI. To display the window on your host, connect the container to an X server.
 
 ### On Linux
 
 ```bash
-# Allow Docker to access X server
 xhost +local:docker
 
-# Set DISPLAY environment variable
-export DISPLAY=$DISPLAY
-
-# Run with Docker Compose
-docker-compose up -d
-
-# Or run directly with Docker
-docker run --rm \
-  -e DISPLAY=$DISPLAY \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
-  amhs-ua-test-tool
+docker run --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix amhs-ua-test-tool
 ```
 
 ### On Windows
 
-Install an X server like [VcXsrv](https://sourceforge.net/projects/vcxsrv/) or [Xming](https://sourceforge.net/projects/xming/).
+Install an X server such as [VcXsrv](https://sourceforge.net/projects/vcxsrv/) or [Xming](https://sourceforge.net/projects/xming/).
 
 ```bash
-# Run with Docker (replace HOST_IP with your host machine's IP)
-docker run --rm \
-  -e DISPLAY=host.docker.internal:0 \
-  amhs-ua-test-tool
+docker run --rm -e DISPLAY=host.docker.internal:0 amhs-ua-test-tool
 ```
+
+If `host.docker.internal` does not work, use your host's local IP address instead.
 
 ### On macOS
 
-Install [XQuartz](https://www.xquartz.org/) and configure it to accept network connections.
+Install [XQuartz](https://www.xquartz.org/) and enable network client connections.
 
 ```bash
-# Run with Docker
-docker run --rm \
-  -e DISPLAY=host.docker.internal:0 \
-  amhs-ua-test-tool
+docker run --rm -e DISPLAY=host.docker.internal:0 amhs-ua-test-tool
 ```
 
 ## Headless Mode
 
-For automated testing or server environments without a display:
+Headless mode is available, but GUI functionality may be limited:
 
 ```bash
-# Run in headless mode
-docker run --rm \
-  -Djava.awt.headless=true \
-  amhs-ua-test-tool
+docker run --rm -e JAVA_TOOL_OPTIONS='-Djava.awt.headless=true' amhs-ua-test-tool
 ```
-
-Note: Some features may not work in headless mode if they require GUI components.
 
 ## Building from Source
 
 The Dockerfile uses a multi-stage build:
 
-1. **Builder Stage**: Uses Maven to compile and package the application
-2. **Runtime Stage**: Uses a minimal JRE image to run the application
+1. Builder stage: Maven compiles and packages the application
+2. Runtime stage: Minimal JRE image runs the application
 
-To rebuild after making code changes:
+Rebuild after code changes:
 
 ```bash
-# Force rebuild without cache
 docker build --no-cache -t amhs-ua-test-tool .
-
-# Or with Docker Compose
-docker-compose up -d --build
 ```
 
 ## Troubleshooting
 
 ### Container exits immediately
 
-Check the logs:
+Inspect the container logs:
+
 ```bash
-docker-compose logs
+docker logs <container-id>
 ```
 
 Common issues:
-- Missing native libraries in the `lib` directory
-- Incorrect Java version requirements
+- Missing native libraries in `lib/`
+- Incorrect Java version
 - Missing configuration files
 
-### GUI doesn't display
+### GUI does not display
 
-1. Ensure X server is running and accepting connections
-2. Check DISPLAY environment variable is set correctly
-3. Verify Docker has permission to access X server
+- Ensure the X server is running
+- Verify `DISPLAY` is set correctly
+- Confirm Docker can access the X server
 
 ### Native library errors
 
-If you see errors about native libraries:
-```
-UnsatisfiedLinkError: no x400mt in java.library.path
-```
+If you see native library errors such as `UnsatisfiedLinkError`, ensure the required Isode native files are available in `lib/` and properly mounted.
 
-Ensure the `lib` directory contains all required native libraries (.dll, .so, or .dylib files).
+## Security
 
-## Security Considerations
-
-- The container runs as root by default. For production, consider creating a non-root user.
-- Mount sensitive configuration files as read-only when possible.
-- Don't expose unnecessary ports.
-
-## Customization
-
-### Adding System Dependencies
-
-If your native libraries require additional system packages, modify the Dockerfile:
-
-```dockerfile
-RUN apt-get update && apt-get install -y \
-    libfreetype6 \
-    libxrender1 \
-    libxtst6 \
-    libxi6 \
-    && rm -rf /var/lib/apt/lists/*
-```
-
-### Changing Java Version
-
-To use a different Java version, update both stages in the Dockerfile:
-
-```dockerfile
-# Builder stage
-FROM maven:3.8.7-eclipse-temurin-11 AS builder
-
-# Runtime stage
-FROM eclipse-temurin:11-jre
-```
-
-## Advanced Usage
-
-### Interactive Shell
-
-```bash
-# Access container shell for debugging
-docker run --rm -it --entrypoint /bin/bash amhs-ua-test-tool
-```
-
-### Port Forwarding
-
-If your application needs network access:
-
-```yaml
-# In docker-compose.yml
-ports:
-  - "8080:8080"
-```
-
-### Resource Limits
-
-```yaml
-# In docker-compose.yml
-deploy:
-  resources:
-    limits:
-      cpus: '2'
-      memory: 2G
-    reservations:
-      cpus: '1'
-      memory: 1G
-```
+- The container runs as root by default. For production, consider running as a non-root user.
+- Mount configuration files as read-only when possible.
+- Avoid exposing unnecessary ports.
 
 ## Cleanup
 
 ```bash
-# Remove stopped containers
-docker-compose down
-
-# Remove images
 docker rmi amhs-ua-test-tool:latest
-
-# Remove all Docker artifacts (use with caution)
-docker system prune -a
 ```
 
 ## Support
 
-For issues related to the AMHS UA Test Tool itself, refer to the main README.md.
-For Docker-specific issues, check:
-- Docker documentation: https://docs.docker.com/
-- Docker Compose documentation: https://docs.docker.com/compose/
+For application issues, see `README.md`.
+
+For Docker help, see:
+- https://docs.docker.com/

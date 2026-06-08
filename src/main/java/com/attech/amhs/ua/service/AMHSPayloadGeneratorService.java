@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Arrays;
 import java.util.List;
+import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -152,16 +153,198 @@ public class AMHSPayloadGeneratorService {
         return new HashMap<>(EMPTY_DEFAULTS);
     }
 
-    /**
-     * Build X.400 message from parameters with full AMHS field support
-     * 
-     * @param recipient Recipient address
-     * @param subject Message subject
-     * @param content Message content
-     * @param priority Message priority (ATS codes: KK/GG/FF/DD/SS or X.400: LOW/NORMAL/HIGH/URGENT)
-     * @return Built X.400 message
-     */
-public X400Msg buildX400Message(P3BindSession session, String recipient, String subject,
+    private Map<String, String> normalizeAmhsDefaults(Map<String, String> rawDefaults) {
+        if (rawDefaults == null) {
+            return null;
+        }
+        Map<String, String> normalized = new HashMap<>(rawDefaults);
+
+        if (!normalized.containsKey("priority")) {
+            putIfNotEmpty(normalized, "priority", rawDefaults.get("ats-priority"));
+            putIfNotEmpty(normalized, "priority", rawDefaults.get("priority-indicator"));
+            putIfNotEmpty(normalized, "priority", rawDefaults.get("subject-message-priority"));
+        }
+        if (!normalized.containsKey("bcc-recipients")) {
+            putIfNotEmpty(normalized, "bcc-recipients", rawDefaults.get("blind-copy-recipients"));
+        }
+        if (!normalized.containsKey("charset-reg-number")) {
+            putIfNotEmpty(normalized, "charset-reg-number", rawDefaults.get("charset-reg-numbers"));
+        }
+        if (!normalized.containsKey("charset-repertoire")) {
+            putIfNotEmpty(normalized, "charset-repertoire", rawDefaults.get("repertoire"));
+        }
+        if (!normalized.containsKey("body-part-type")) {
+            putIfNotEmpty(normalized, "body-part-type", rawDefaults.get("body-part-types"));
+        }
+        if (!normalized.containsKey("primary-recipients")) {
+            putIfNotEmpty(normalized, "primary-recipients", rawDefaults.get("recipient"));
+        }
+        if (!normalized.containsKey("probe") && "probe".equalsIgnoreCase(rawDefaults.get("message-type"))) {
+            normalized.put("probe", rawDefaults.getOrDefault("probe", "probe"));
+        }
+
+        return normalized;
+    }
+
+    private void putIfNotEmpty(Map<String, String> target, String key, String value) {
+        if (value != null && !value.trim().isEmpty()) {
+            target.putIfAbsent(key, value.trim());
+        }
+    }
+
+    private String firstNonEmpty(Map<String, String> map, String... keys) {
+        if (map == null) {
+            return null;
+        }
+        for (String key : keys) {
+            if (map.containsKey(key)) {
+                String value = map.get(key);
+                if (value != null && !value.trim().isEmpty()) {
+                    return value.trim();
+                }
+            }
+        }
+        return null;
+    }
+
+    private int parseIntOrDefault(String value, int defaultValue) {
+        if (value == null || value.trim().isEmpty()) {
+            return defaultValue;
+        }
+        try {
+            int parsed = Integer.parseInt(value.trim());
+            return parsed > 0 ? parsed : defaultValue;
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    private List<String> splitRecipients(String recipientString) {
+        List<String> recipients = new ArrayList<>();
+        if (recipientString == null || recipientString.trim().isEmpty()) {
+            return recipients;
+        }
+        for (String recip : recipientString.split("[;,]")) {
+            String trimmed = recip.trim();
+            if (!trimmed.isEmpty()) {
+                recipients.add(trimmed);
+            }
+        }
+        return recipients;
+    }
+
+    private String buildRecipientVariant(String baseRecipient, int index) {
+        if (baseRecipient == null || baseRecipient.trim().isEmpty() || index <= 1) {
+            return baseRecipient;
+        }
+        String recipient = baseRecipient.trim();
+        int cnIndex = recipient.indexOf("/CN=");
+        if (cnIndex != -1) {
+            int start = cnIndex + 4;
+            int end = recipient.indexOf("/", start);
+            if (end == -1) {
+                end = recipient.length();
+            }
+            String cnValue = recipient.substring(start, end);
+            String newCn = cnValue + index;
+            return recipient.substring(0, start) + newCn + recipient.substring(end);
+        }
+        return recipient + "." + index;
+    }
+
+    private List<String> resolveToRecipients(Map<String, String> amhsDefaults, String defaultRecipient) {
+        String recipientsValue = firstNonEmpty(amhsDefaults, "primary-recipients", "recipient");
+        if (recipientsValue == null || recipientsValue.trim().isEmpty()) {
+            recipientsValue = defaultRecipient;
+        }
+        List<String> recipients = splitRecipients(recipientsValue);
+
+        int count = parseIntOrDefault(amhsDefaults != null ? amhsDefaults.get("recipient-count") : null, recipients.size());
+        if (count <= 0) {
+            count = recipients.isEmpty() ? 1 : recipients.size();
+        }
+
+        if (recipients.isEmpty() && defaultRecipient != null && !defaultRecipient.trim().isEmpty()) {
+            recipients.add(defaultRecipient.trim());
+        }
+
+        String baseRecipient = recipients.isEmpty() ? defaultRecipient : recipients.get(0);
+        while (recipients.size() < count && baseRecipient != null && !baseRecipient.trim().isEmpty()) {
+            recipients.add(buildRecipientVariant(baseRecipient, recipients.size() + 1));
+        }
+
+        return recipients;
+    }
+
+    private String padContent(String content, int length) {
+        if (length <= 0) {
+            return content != null ? content : "";
+        }
+        StringBuilder builder = new StringBuilder(content != null ? content : "");
+        while (builder.length() < length) {
+            builder.append('X');
+        }
+        if (builder.length() > length) {
+            return builder.substring(0, length);
+        }
+        return builder.toString();
+    }
+
+    private String resolveBodyContent(Map<String, String> amhsDefaults, String fallbackContent) {
+        String baseContent = firstNonEmpty(amhsDefaults, "content");
+        if (baseContent == null) {
+            baseContent = fallbackContent != null ? fallbackContent : "";
+        }
+
+        String contentLength = amhsDefaults != null ? amhsDefaults.get("content-length") : null;
+        if (contentLength != null && !contentLength.trim().isEmpty()) {
+            int length = parseIntOrDefault(contentLength, baseContent.length());
+            return padContent(baseContent, length);
+        }
+
+        String payloadSize = amhsDefaults != null ? amhsDefaults.get("payload-size") : null;
+        if (payloadSize != null) {
+            if ("exceed-limit".equalsIgnoreCase(payloadSize.trim())) {
+                return padContent(baseContent, 4096);
+            }
+            if ("within-limit".equalsIgnoreCase(payloadSize.trim())) {
+                return padContent(baseContent, 1024);
+            }
+        }
+
+        return baseContent;
+    }
+
+    private List<String> parseBodyPartTypes(String bodyPartTypeSpec) {
+        List<String> types = new ArrayList<>();
+        if (bodyPartTypeSpec == null || bodyPartTypeSpec.trim().isEmpty()) {
+            types.add("ia5-text");
+            return types;
+        }
+        for (String type : bodyPartTypeSpec.split("[;,]")) {
+            String normalized = type.trim();
+            if (!normalized.isEmpty()) {
+                types.add(normalized);
+            }
+        }
+        return types.isEmpty() ? Arrays.asList("ia5-text") : types;
+    }
+
+    private List<String> buildBodyContents(Map<String, String> amhsDefaults, int count, String defaultContent) {
+        List<String> contents = new ArrayList<>();
+        String firstContent = resolveBodyContent(amhsDefaults, defaultContent);
+        contents.add(firstContent);
+        if (count > 1) {
+            String secondContent = amhsDefaults != null ? amhsDefaults.getOrDefault("second-body-content", firstContent) : firstContent;
+            contents.add(secondContent == null ? firstContent : secondContent);
+        }
+        for (int i = 2; i < count; i++) {
+            contents.add(firstContent);
+        }
+        return contents;
+    }
+
+    public X400Msg buildX400Message(P3BindSession session, String recipient, String subject,
                                  String content, String priority,
                                  Map<String, String> amhsDefaults) {
     return buildX400Message(session, recipient, subject, content, priority, amhsDefaults, null);
@@ -201,6 +384,18 @@ private void applyAmhsFieldsExceptBodyAndFilingTime(X400Msg message, Map<String,
             message.setStringparam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO, ohi.trim());
         } catch (Exception e) {
             logger.warn("Failed to set optional-heading-info: {}", e.getMessage());
+        }
+    }
+
+    // ATS Header raw injection (best-effort mapping to optional heading info)
+    String atsHeader = amhsDefaults.get("ats-header");
+    if (atsHeader != null && !atsHeader.trim().isEmpty()) {
+        try {
+            String currentOhi = amhsDefaults.getOrDefault("optional-heading-info", "");
+            String combinedHeader = currentOhi.isEmpty() ? atsHeader.trim() : currentOhi + " " + atsHeader.trim();
+            message.setStringparam(AMHS_att.ATS_S_OPTIONAL_HEADING_INFO, combinedHeader);
+        } catch (Exception e) {
+            logger.warn("Failed to map ats-header to ATS_S_OPTIONAL_HEADING_INFO: {}", e.getMessage());
         }
     }
 
@@ -323,18 +518,18 @@ public X400Msg buildX400Message(P3BindSession session, String recipient, String 
     dumpMessageAttributes(recipient, subject, content, priority, amhsDefaults);
 
     X400Msg message = new X400Msg(session);
+    Map<String, String> normalizedDefaults = normalizeAmhsDefaults(amhsDefaults);
 
     try {
-        // ── RECIPIENT (mandatory) ────────────────────────────────────────
-        if (recipient == null || recipient.trim().isEmpty()) {
+        // ── RECIPIENT(S) (mandatory) ───────────────────────────────────────
+        List<String> toRecipients = resolveToRecipients(normalizedDefaults, recipient);
+        if (toRecipients.isEmpty()) {
             throw new RuntimeException("Recipient address is required and cannot be empty");
         }
-        X400Msg.DR_Request drRequest = getDrRequest(amhsDefaults);
-        message.setTo(
-            recipient.trim(),
-            drRequest,
-            X400Msg.IPN_NON_RECEIPT_NOTIFICATION
-        );
+        X400Msg.DR_Request drRequest = getDrRequest(normalizedDefaults);
+        for (String to : toRecipients) {
+            message.setTo(to, drRequest, X400Msg.IPN_NON_RECEIPT_NOTIFICATION);
+        }
 
         // ── SUBJECT ──────────────────────────────────────────────────────
         if (subject != null && !subject.trim().isEmpty()) {
@@ -342,65 +537,54 @@ public X400Msg buildX400Message(P3BindSession session, String recipient, String 
         }
 
         // ── PRIORITY ─────────────────────────────────────────────────────
-        X400_Priority priorityLevel = getPriorityFromString(priority);
+        String effectivePriority = firstNonEmpty(normalizedDefaults,
+                "priority", "ats-priority", "priority-indicator", "subject-message-priority");
+        if ((effectivePriority == null || effectivePriority.trim().isEmpty()) && priority != null) {
+            effectivePriority = priority;
+        }
+        X400_Priority priorityLevel = getPriorityFromString(effectivePriority);
         message.setPriority(priorityLevel);
 
-        // ── BODY PART ────────────────────────────────────────────────────
-        // Always add body part directly here — never rely on applyAmhsFields
-        // to add it, since that path is fragile when map is partial.
-        String safeContent = (content != null && !content.isEmpty())
-                ? content
-                : (amhsDefaults != null ? amhsDefaults.getOrDefault("content", "") : "");
-        String bodyPartType = (amhsDefaults != null)
-                ? amhsDefaults.getOrDefault("body-part-type", "ia5-text")
-                : "ia5-text";
-
-        // Determine if there are multiple body parts
-        boolean hasSecondBody = amhsDefaults != null && amhsDefaults.containsKey("second-body-content");
-        String secondContent = hasSecondBody ? amhsDefaults.getOrDefault("second-body-content", "") : "";
-
-        // Add first body part
-        addBodyPart(message, bodyPartType, safeContent, amhsDefaults);
-        
-        // Validate body‑part count (CTSW007) – only up to two parts are allowed
-        int bodyPartCount = 1 + (hasSecondBody ? 1 : 0);
-        if (bodyPartCount > 2) {
-            throw new RuntimeException("More than two body parts are not allowed (CTSW007)");
-        }
-        
-        // Add second body part if needed
-        if (hasSecondBody) {
-            addBodyPart(message, bodyPartType, secondContent, amhsDefaults);
-        }
+        // ── BODY PART(S) ──────────────────────────────────────────────────
+        String safeContent = resolveBodyContent(normalizedDefaults, content);
+        String bodyPartTypeSpec = firstNonEmpty(normalizedDefaults, "body-part-types", "body-part-type");
+        addBodyParts(message, bodyPartTypeSpec, safeContent, normalizedDefaults);
 
         // ── FILING TIME (set exactly once, always) ───────────────────────
-        String ft = (filingTime != null && !filingTime.trim().isEmpty())
-                ? filingTime.trim()
-                : formatCurrentFilingTime();
+        String ft;
+        if (filingTime != null && !filingTime.trim().isEmpty()) {
+            ft = filingTime.trim();
+        } else {
+            ft = resolveFilingTime(normalizedDefaults);
+        }
         message.setStringparam(AMHS_att.ATS_S_FILING_TIME, ft);
         logger.debug("Set filing-time: {}", ft);
-        
-        // When ATS_S_FILING_TIME is set, we must also supply these ATS attributes as a set
-        String atsPriority = (priority != null && isAtsPriorityCode(priority)) ? priority.toUpperCase() : "FF";
-        message.setStringparam(AMHS_att.ATS_S_PRIORITY_INDICATOR, atsPriority);
-        
-        String extended = (amhsDefaults != null) ? amhsDefaults.get("extended") : null;
+
+        String atsPriority = firstNonEmpty(normalizedDefaults,
+                "ats-priority", "priority-indicator", "subject-message-priority");
+        if (atsPriority == null || atsPriority.trim().isEmpty()) {
+            atsPriority = effectivePriority;
+        }
+        if (atsPriority != null && !atsPriority.trim().isEmpty()) {
+            message.setStringparam(AMHS_att.ATS_S_PRIORITY_INDICATOR, atsPriority.trim());
+        }
+
+        String extended = normalizedDefaults != null ? normalizedDefaults.get("extended") : null;
         message.setIntParam(AMHS_att.ATS_N_EXTENDED, "true".equalsIgnoreCase(extended) ? 1 : 0);
-        
+
         message.setIntParam(X400_att.X400_N_CONTENT_TYPE, 22); // AMHS Content Type
         message.setStringparam(AMHS_att.ATS_S_TEXT, safeContent);
 
-        // Expiration Time
-        if (amhsDefaults != null) {
-            String expirationTime = amhsDefaults.get("expiration-time");
+        if (normalizedDefaults != null) {
+            String expirationTime = normalizedDefaults.get("expiration-time");
             if (expirationTime != null && !expirationTime.trim().isEmpty()) {
                 message.setStringparam(X400_att.X400_S_EXPIRY_TIME, expirationTime.trim());
             }
         }
 
         // ── REMAINING AMHS FIELDS (everything except body part and filing-time) ──
-        if (amhsDefaults != null && !amhsDefaults.isEmpty()) {
-            applyAmhsFieldsExceptBodyAndFilingTime(message, amhsDefaults);
+        if (normalizedDefaults != null && !normalizedDefaults.isEmpty()) {
+            applyAmhsFieldsExceptBodyAndFilingTime(message, normalizedDefaults);
         }
 
     } catch (X400APIException e) {
@@ -567,8 +751,8 @@ public X400Msg buildX400Message(P3BindSession session, String recipient, String 
 
         // === RESPONSIBILITY / NOTIFY-CONTROL-POSITION (CTSW020) ===
         // Responsibility is already handled in EXTENDED IPM ATTRIBUTES section above.
-        // Notify-control-position: no dedicated constant exists; log the intent for
-        // manual configuration at the gateway side.
+        // Notify-control-position: no dedicated constant exists; if the API ever exposes
+        // a native field, it should be mapped here. For now, preserve intent in logs.
         String notifyControlPos = amhsDefaults.get("notify-control-position");
         if (notifyControlPos != null && !notifyControlPos.trim().isEmpty()) {
             logger.info("[CTSW020] notify-control-position='{}' - no native API constant available; "
@@ -761,15 +945,18 @@ public X400Msg buildX400Message(P3BindSession session, String recipient, String 
     }
 
     String resolveFilingTime(Map<String, String> amhsDefaults) {
+        if (amhsDefaults != null && Boolean.parseBoolean(amhsDefaults.getOrDefault("header-empty", "false"))) {
+            logger.debug("Header-empty flag set; returning blank filing time");
+            return "";
+        }
         String filingTime = null;
-        if (amhsDefaults != null) {
+        if (amhsDefaults != null && amhsDefaults.containsKey("filing-time")) {
             filingTime = amhsDefaults.get("filing-time");
+            return filingTime == null ? "" : filingTime.trim();
         }
-        if (filingTime == null || filingTime.trim().isEmpty()) {
-            filingTime = formatCurrentFilingTime();
-            logger.debug("Default filing-time generated: {}", filingTime);
-        }
-        return filingTime.trim();
+        filingTime = formatCurrentFilingTime();
+        logger.debug("Default filing-time generated: {}", filingTime);
+        return filingTime;
     }
 
     private String formatCurrentFilingTime() {
@@ -848,9 +1035,13 @@ public X400Msg buildX400Message(P3BindSession session, String recipient, String 
      * @param content Primary content
      * @param amhsDefaults Additional configuration (unused for simplified version)
      */
-    private void addBodyParts(X400Msg message, String bodyPartType, String content,
+    private void addBodyParts(X400Msg message, String bodyPartTypeSpec, String content,
                               Map<String, String> amhsDefaults) throws X400APIException {
-        addBodyPart(message, bodyPartType, content, amhsDefaults);
+        List<String> types = parseBodyPartTypes(bodyPartTypeSpec);
+        List<String> contents = buildBodyContents(amhsDefaults, types.size(), content);
+        for (int i = 0; i < types.size(); i++) {
+            addBodyPart(message, types.get(i), contents.get(i), amhsDefaults);
+        }
     }
 
     /**
