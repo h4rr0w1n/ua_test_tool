@@ -1,21 +1,53 @@
 @echo off
-echo "Installing Isode and ATTech local libraries to Maven local repository..."
+setlocal enabledelayedexpansion
 
-call mvn install:install-file -Dfile=lib/isode-x400.jar -DgroupId=com.isode.x400 -DartifactId=isode-x400 -Dversion=1.0.0 -Dpackaging=jar
-call mvn install:install-file -Dfile=lib/isode-lib.jar -DgroupId=com.isode -DartifactId=isode-lib -Dversion=1.0.0 -Dpackaging=jar
-call mvn install:install-file -Dfile=lib/isode-asn.jar -DgroupId=com.isode -DartifactId=isode-asn -Dversion=1.0.0 -Dpackaging=jar
-call mvn install:install-file -Dfile=lib/isode-crypto.jar -DgroupId=com.isode -DartifactId=isode-crypto -Dversion=1.0.0 -Dpackaging=jar
-call mvn install:install-file -Dfile=lib/isode-dsapi.jar -DgroupId=com.isode -DartifactId=isode-dsapi -Dversion=1.0.0 -Dpackaging=jar
-call mvn install:install-file -Dfile=lib/isode-dsapigui.jar -DgroupId=com.isode -DartifactId=isode-dsapigui -Dversion=1.0.0 -Dpackaging=jar
-call mvn install:install-file -Dfile=lib/isode-emmash.jar -DgroupId=com.isode -DartifactId=isode-emmash -Dversion=1.0.0 -Dpackaging=jar
-call mvn install:install-file -Dfile=lib/isode-hlxja.jar -DgroupId=com.isode -DartifactId=isode-hlxja -Dversion=1.0.0 -Dpackaging=jar
-call mvn install:install-file -Dfile=lib/isode-mvc.jar -DgroupId=com.isode -DartifactId=isode-mvc -Dversion=1.0.0 -Dpackaging=jar
-call mvn install:install-file -Dfile=lib/isode-nettrace.jar -DgroupId=com.isode -DartifactId=isode-nettrace -Dversion=1.0.0 -Dpackaging=jar
-call mvn install:install-file -Dfile=lib/isode-rbac.jar -DgroupId=com.isode -DartifactId=isode-rbac -Dversion=1.0.0 -Dpackaging=jar
-call mvn install:install-file -Dfile=lib/isode-ca.jar -DgroupId=com.isode -DartifactId=isode-ca -Dversion=1.0.0 -Dpackaging=jar
-call mvn install:install-file -Dfile=lib/jswrapper.jar -DgroupId=com.isode -DartifactId=jswrapper -Dversion=1.0.0 -Dpackaging=jar
+echo Installing Isode and ATTech local libraries to Maven local repository...
 
-call mvn install:install-file -Dfile=lib/com.attech.amhs.ua.db.jar -DgroupId=com.attech.amhs.ua -DartifactId=com.attech.amhs.ua.db -Dversion=1.0.0 -Dpackaging=jar
-call mvn install:install-file -Dfile=lib/com.attech.amhs.ua.common.jar -DgroupId=com.attech.amhs.ua -DartifactId=com.attech.amhs.ua.common -Dversion=1.0.0 -Dpackaging=jar
+set "SCRIPT_DIR=%~dp0"
+cd /d "%SCRIPT_DIR%"
 
-echo "Installation complete."
+if not exist "lib\" (
+    echo ERROR: Required lib directory not found: "%SCRIPT_DIR%lib\"
+    echo Place the Isode and ATTech JAR files in the project lib\ directory and rerun this script.
+    pause
+    exit /b 1
+)
+
+call :installJar "lib/isode-x400.jar" com.isode.x400 isode-x400 1.0.0
+call :installJar "lib/isode-lib.jar" com.isode isode-lib 1.0.0
+call :installJar "lib/isode-asn.jar" com.isode isode-asn 1.0.0
+call :installJar "lib/isode-crypto.jar" com.isode isode-crypto 1.0.0
+call :installJar "lib/isode-dsapi.jar" com.isode isode-dsapi 1.0.0
+call :installJar "lib/isode-dsapigui.jar" com.isode isode-dsapigui 1.0.0
+call :installJar "lib/isode-emmash.jar" com.isode isode-emmash 1.0.0
+call :installJar "lib/isode-hlxja.jar" com.isode isode-hlxja 1.0.0
+call :installJar "lib/isode-mvc.jar" com.isode isode-mvc 1.0.0
+call :installJar "lib/isode-nettrace.jar" com.isode isode-nettrace 1.0.0
+call :installJar "lib/isode-rbac.jar" com.isode isode-rbac 1.0.0
+call :installJar "lib/isode-ca.jar" com.isode isode-ca 1.0.0
+call :installJar "lib/jswrapper.jar" com.isode jswrapper 1.0.0
+call :installJar "lib/com.attech.amhs.ua.db.jar" com.attech.amhs.ua com.attech.amhs.ua.db 1.0.0
+call :installJar "lib/com.attech.amhs.ua.common.jar" com.attech.amhs.ua com.attech.amhs.ua.common 1.0.0
+
+echo Installation complete.
+endlocal
+exit /b 0
+
+:installJar
+set "JAR_PATH=%~1"
+set "GROUP_ID=%~2"
+set "ARTIFACT_ID=%~3"
+set "VERSION=%~4"
+
+if not exist "%JAR_PATH%" (
+    echo ERROR: Missing JAR: "%JAR_PATH%"
+    exit /b 1
+)
+
+echo Installing %JAR_PATH%
+call mvn install:install-file -Dfile="%JAR_PATH%" -DgroupId=%GROUP_ID% -DartifactId=%ARTIFACT_ID% -Dversion=%VERSION% -Dpackaging=jar
+if errorlevel 1 (
+    echo ERROR: Maven failed to install %JAR_PATH%
+    exit /b 1
+)
+exit /b 0

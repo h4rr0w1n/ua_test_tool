@@ -186,7 +186,7 @@ if !ERRORLEVEL! neq 0 (
     echo.
     echo ERROR: Maven build failed^!
     echo Please check the error messages above and ensure all dependencies are installed.
-    echo If you have the Isode/ATTech libraries, run: install-libs.bat
+    echo If you have the Isode/ATTech libraries, run: install-isode-libs.bat
     echo.
     pause
     exit /b 1
