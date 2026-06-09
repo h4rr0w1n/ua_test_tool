@@ -1,100 +1,89 @@
 # AMHS UA Test Tool
 
-A Java-based AMHS X.400 test tool with a Swing GUI.
+A Java-based AMHS X.400 test tool equipped with a Swing GUI. This tool acts as an AMHS User Agent, allowing you to connect to an X.400 Message Store (P7) or Channel (P3) to send, receive, and validate AMHS test messages.
 
 ## Prerequisites
 
+**On the Build Machine:**
 - Java 8 or higher
-- Maven
-- Isode X.400 libraries (JAR files and native libraries)
+- Apache Maven
+- Isode X.400 Native Libraries & JAR files (must be placed in the `lib/` directory)
 
-## Install
+**On the Target/Deployment Machine:**
+- Java 8 or higher
+- *No Maven or local `.m2` repository is required!*
 
-### Install Isode libraries
+---
 
-On Windows:
+## 1. Building the Application
 
+To build the tool, you only need to run the unified build script. This script automatically detects your Java and Maven installations, installs the custom Isode JARs from the `lib/` directory into your local Maven repository, and compiles the application.
+
+**On Windows:**
 ```bat
-install-isode-libs.bat
+install-and-build.bat
 ```
 
-On Linux/macOS:
-
+**On Linux/macOS:**
 ```bash
-./install-isode-libs.sh
+chmod +x install-and-build.sh
+./install-and-build.sh
 ```
 
-The script expects your Isode JAR files to be available in the `lib/` directory and installs them into your local Maven repository.
+### Build Output (`dist` folder)
+After a successful build, a `dist/` directory will be created in the project root. This directory contains a self-contained, deployable package:
+- `ua-test-tool.jar` (A "fat JAR" containing all Java dependencies)
+- `lib/` (Containing your native Isode `.dll` or `.so` libraries)
+- `run.bat` & `run.sh` (Standalone launch scripts)
 
-## Build and Run
+---
 
-Build the project:
+## 2. Running the Application
 
-```bash
-mvn clean package
-```
+Because the build creates a fully self-contained `dist/` folder, you do not need Maven, source code, or the `.m2` repository to run the tool.
 
-Run the application:
+### To Deploy to Another Machine:
+1. Copy the entire `dist/` folder to the target machine.
+2. Ensure the target machine has **Java 8 or higher** installed.
+3. Run the launch script from inside the `dist/` folder.
 
-```bash
-java -jar target/ua-test-tool-1.0.0-jar-with-dependencies.jar
-```
-
-On Windows, you can also use the provided batch scripts:
-
+**On Windows:**
 ```bat
-build.bat
-run.bat
+dist\run.bat
 ```
 
-> Note: This repository does not include `run.sh`.
-
-## Project Structure
-
-```
-ua_test_tool/
-├── build.bat
-├── install-isode-libs.bat
-├── install-isode-libs.sh
-├── lib/                      # Optional directory for Isode JAR files
-├── pom.xml                   # Maven build configuration
-├── README.md                 # Main project guide
-├── DOCKER_GUI_USAGE.md       # Docker GUI usage instructions
-├── DOCKER_README.md          # Docker build and runtime guide
-├── run.bat                   # Run the tool on Windows
-├── src/                      # Java source files
-└── target/                   # Build artifacts (removed during cleanup)
+**On Linux/macOS:**
+```bash
+cd dist
+chmod +x run.sh
+./run.sh
 ```
 
-## Configuration
+---
 
-The tool uses `connection.properties` for X.400 connection settings.
+## 3. Configuration
 
-Common values:
-- `presentationAddress`
-- `userAddress`
-- `password`
-- `connectionType` (P3 or P7)
+The tool connects to your X.400 Message Store via parameters that can be loaded and saved inside the GUI. The settings are saved locally to a `connection.properties` file in the `dist/` directory.
 
-## Troubleshooting
+**Standard AMHS Parameters Required:**
+- `presentationAddress`: e.g., `"3001"/Internet=192.168.22.186+3001`
+- `userOrAddress`: Your O/R address, e.g., `/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/`
+- `password`: Account password
+- `connectionType`: P7 (Message Store) or P3 (Channel)
 
-### Missing native libraries
-If you see `UnsatisfiedLinkError` for missing DLLs or shared libraries, ensure the required Isode native files are available in `lib/` and on the Java library path.
+---
 
-### Build fails with missing dependencies
-If Maven cannot resolve Isode dependencies, make sure the required JAR files are present in `lib/` and run the install script again.
+## 4. Troubleshooting
 
-### Connection issues
-If the X.400 connection fails:
-1. Verify `connection.properties`
-2. Confirm the X.400 server is reachable
-3. Check credentials and connection type
-4. Confirm network access to the server
+### Connection Failed / UnsatisfiedLinkError
+If you see an error mentioning `UnsatisfiedLinkError` or "Native library loading error", the Isode X.400 native libraries (`.dll` or `.so`) are missing or incompatible. 
+- Ensure the native files (e.g., `pthreadvc2.dll`, `CJavaInterface.dll`) are inside the `dist/lib/` folder.
+- Ensure your Java architecture (32-bit vs 64-bit) matches the architecture of the native libraries.
 
-## Docker
+### Build Fails
+- If `install-and-build` fails because it cannot find Isode dependencies, verify that your provided `.jar` files are correctly located in the root `lib/` directory before running the script.
 
-For Docker usage, see `DOCKER_GUI_USAGE.md`.
-
-## License
-
-[Add your license information here]
+### Connection Issues (Timeouts or Bind Errors)
+1. Verify the `presentationAddress` format.
+2. Confirm the X.400 server is reachable and running over the network.
+3. Ensure you have selected the correct Connection Type (P7 vs P3) that your server is expecting.
