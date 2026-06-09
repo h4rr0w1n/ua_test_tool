@@ -1,7 +1,7 @@
 @echo off
 :: Run script for AMHS UA Test Tool on Windows
 :: This script launches the pre-built JAR with proper settings.
-:: Use build.bat first to compile the tool, then use this script to run it.
+:: Use install-and-build.bat first to install libs and compile the tool, then use this script to run it.
 
 title AMHS UA Test Tool - Runner
 
@@ -99,7 +99,7 @@ if not exist "%JAR_FILE%" (
     echo ERROR: Compiled JAR not found at:
     echo %JAR_FILE%
     echo.
-    echo Please run build.bat first to compile the application.
+    echo Please run install-and-build.bat first to compile the application.
     echo.
     pause
     exit /b 1
