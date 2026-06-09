@@ -1,3 +1,14 @@
+```
+# Compiled and build artifacts
+*.class
+target/
+
+# Dependencies
+.mypy_cache/
+.pytest_cache/
+.coverage
+coverage/
+htmlcov/
 # Compiled and build artifacts
 *.pyc
 __pycache__/
@@ -38,6 +49,10 @@ zig*/
 .vscode/
 .idea/
 
+# OS generated files
+.DS_Store
+Thumbs.db
+```
 # System files
 .DS_Store
 Thumbs.db
