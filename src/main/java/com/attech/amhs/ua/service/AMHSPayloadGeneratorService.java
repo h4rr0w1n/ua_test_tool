@@ -167,12 +167,16 @@ public class AMHSPayloadGeneratorService {
         if (!normalized.containsKey("bcc-recipients")) {
             putIfNotEmpty(normalized, "bcc-recipients", rawDefaults.get("blind-copy-recipients"));
         }
+        // Handle charset-reg-numbers (plural) -> charset-reg-number (singular) mapping
+        // This is critical for CTSW001 subcases 6-11 which use charset-reg-numbers=1,6
         if (!normalized.containsKey("charset-reg-number")) {
             putIfNotEmpty(normalized, "charset-reg-number", rawDefaults.get("charset-reg-numbers"));
         }
+        // Also handle repertoire -> charset-repertoire mapping
         if (!normalized.containsKey("charset-repertoire")) {
             putIfNotEmpty(normalized, "charset-repertoire", rawDefaults.get("repertoire"));
         }
+        // Handle body-part-types (plural) -> body-part-type (singular) mapping
         if (!normalized.containsKey("body-part-type")) {
             putIfNotEmpty(normalized, "body-part-type", rawDefaults.get("body-part-types"));
         }
