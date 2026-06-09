@@ -16,6 +16,8 @@ import com.attech.amhs.ua.service.TestSessionRecorder;
 import com.attech.amhs.ua.ui.components.*;
 import com.isode.x400.highlevel.X400APIException;
 import com.isode.x400.highlevel.X400Msg.X400_Priority;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -41,8 +43,10 @@ import javax.swing.border.TitledBorder;
  * │ Action Logs (collapsible strip) │
  * └─────────────────────────────────────────────────────────────────────────┘
  */
+
 public class AMHSMessageUI extends JFrame {
 
+    private static final Logger logger = LoggerFactory.getLogger(AMHSMessageUI.class);
     // Services
     private AMHSMessageService messageService;
     private TestCaseRepository repository;
