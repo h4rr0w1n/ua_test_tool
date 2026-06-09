@@ -9,9 +9,7 @@
 ::           copied as-is to any target machine (Java only needed)
 ::
 :: AFTER THIS COMPLETES:
-::   - Copy the dist\ folder to the target machine
-::   - On the target machine, run dist\run.bat  (Windows)
-::                                or dist/run.sh (Linux/macOS)
+::   Copy dist\ to the target machine and run dist\run.bat
 :: ============================================================
 
 title AMHS UA Test Tool - Install & Build
@@ -27,7 +25,7 @@ set "SCRIPT_DIR=%~dp0"
 cd /d "%SCRIPT_DIR%"
 
 :: ============================================================
-:: SECTION 1 — JAVA AUTO-DETECTION
+:: SECTION 1 - JAVA AUTO-DETECTION
 :: ============================================================
 
 if not "%JAVA_HOME%"=="" (
@@ -105,7 +103,7 @@ java -version
 echo.
 
 :: ============================================================
-:: SECTION 2 — MAVEN AUTO-DETECTION
+:: SECTION 2 - MAVEN AUTO-DETECTION
 :: ============================================================
 
 where mvn 2>nul
@@ -188,7 +186,7 @@ exit /b 1
 :mvn_done
 
 :: ============================================================
-:: SECTION 3 — INSTALL LOCAL ISODE + ATTECH JARS INTO MAVEN REPO
+:: SECTION 3 - INSTALL LOCAL ISODE + ATTECH JARS INTO MAVEN REPO
 :: ============================================================
 
 echo.
@@ -225,7 +223,7 @@ echo.
 echo All local JARs installed.
 
 :: ============================================================
-:: SECTION 4 — MAVEN BUILD
+:: SECTION 4 - MAVEN BUILD
 :: ============================================================
 
 echo.
@@ -245,7 +243,7 @@ if !ERRORLEVEL! neq 0 (
 )
 
 :: ============================================================
-:: SECTION 5 — ASSEMBLE dist\ (no Maven/m2 needed on target)
+:: SECTION 5 - ASSEMBLE dist\ (no Maven/m2 needed on target)
 :: ============================================================
 
 echo.
@@ -256,7 +254,6 @@ echo.
 
 set "DIST=%SCRIPT_DIR%dist"
 
-:: Clean and recreate dist\
 if exist "%DIST%" rd /s /q "%DIST%"
 mkdir "%DIST%"
 mkdir "%DIST%\lib"
@@ -269,9 +266,9 @@ if not exist "%FAT_JAR%" (
     exit /b 1
 )
 copy /y "%FAT_JAR%" "%DIST%\ua-test-tool.jar" > nul
-echo Copied fat JAR to dist\
+echo Copied fat JAR  -^>  dist\ua-test-tool.jar
 
-:: Copy native DLLs (*.dll) from lib\ into dist\lib\
+:: Copy native DLLs from lib\ into dist\lib\
 for %%f in ("%SCRIPT_DIR%lib\*.dll") do (
     copy /y "%%f" "%DIST%\lib\" > nul
     echo Copied native lib: %%~nxf
@@ -283,94 +280,11 @@ if exist "%SCRIPT_DIR%connection.properties" (
     echo Copied connection.properties
 )
 
-:: Write dist\run.bat  — target machine only needs java in PATH
-(
-echo @echo off
-echo :: AMHS UA Test Tool - Run Script
-echo :: Target machine only needs Java 8 or higher installed.
-echo :: No Maven, no .m2 repository needed.
-echo.
-echo title AMHS UA Test Tool
-echo.
-echo echo ==========================================================
-echo echo          AMHS UA Test Tool
-echo echo ==========================================================
-echo echo.
-echo.
-echo setlocal enabledelayedexpansion
-echo.
-echo set "SCRIPT_DIR=%%~dp0"
-echo cd /d "%%SCRIPT_DIR%%"
-echo.
-echo set "JAR_FILE=%%SCRIPT_DIR%%ua-test-tool.jar"
-echo set "ISODE_LIB_DIR=%%SCRIPT_DIR%%lib"
-echo.
-echo :: --- Java detection ---
-echo if not "%%JAVA_HOME%%"=="" goto :java_found
-echo for /f "delims=" %%%%i in ^('where java 2^^^>nul'^) do ^(
-echo     for %%%%j in ^("%%%%i"^) do set "JAVA_BIN_DIR=%%%%~dpj"
-echo     for %%%%k in ^("^^!JAVA_BIN_DIR^^!.."^) do set "JAVA_HOME=%%%%~fk"
-echo     goto :java_found
-echo ^)
-echo for %%%%B in ^("C:\Program Files\Java" "C:\Program Files ^(x86^)\Java" "C:\Program Files\Eclipse Adoptium" "C:\Program Files\Microsoft" "C:\Program Files\Amazon Corretto" "C:\Program Files\Azul" "C:\Program Files\BellSoft"^) do ^(
-echo     if exist "%%%%~B" ^(
-echo         for /d %%%%d in ^("%%%%~B\jdk*" "%%%%~B\jre*" "%%%%~B\java-*" "%%%%~B\openjdk*"^) do ^(
-echo             if exist "%%%%~fd\bin\java.exe" ^(
-echo                 set "JAVA_HOME=%%%%~fd"
-echo                 goto :java_found
-echo             ^)
-echo         ^)
-echo     ^)
-echo ^)
-echo for /f "tokens=2*" %%%%a in ^('reg query "HKLM\SOFTWARE\JavaSoft\JDK" /v CurrentVersion 2^^^>nul'^) do ^(
-echo     set "JDK_VER=%%%%b"
-echo     for /f "tokens=2*" %%%%c in ^('reg query "HKLM\SOFTWARE\JavaSoft\JDK\^^!JDK_VER^^!" /v JavaHome 2^^^>nul'^) do ^(
-echo         set "JAVA_HOME=%%%%d"
-echo         goto :java_found
-echo     ^)
-echo ^)
-echo echo ERROR: Java not found. Install Java 8 or higher.
-echo pause
-echo exit /b 1
-echo :java_found
-echo set "PATH=^^!JAVA_HOME^^!\bin;%%PATH%%"
-echo.
-echo :: --- Launch ---
-echo if exist "%%ISODE_LIB_DIR%%" ^(
-echo     java -Disode.bindir="%%ISODE_LIB_DIR%%" -Djava.library.path="%%ISODE_LIB_DIR%%" -jar "%%JAR_FILE%%"
-echo ^) else ^(
-echo     java -jar "%%JAR_FILE%%"
-echo ^)
-echo.
-echo if %%ERRORLEVEL%% neq 0 pause
-echo endlocal
-) > "%DIST%\run.bat"
-echo Created dist\run.bat
-
-:: Write dist\run.sh for Linux/macOS/WSL
-(
-echo #!/bin/bash
-echo # AMHS UA Test Tool - Run Script
-echo # Target machine only needs Java 8 or higher in PATH.
-echo SCRIPT_DIR="$^(cd "$^(dirname "${BASH_SOURCE[0]}"^)" ^> /dev/null 2^>^&1 ^&^& pwd^)"
-echo cd "$SCRIPT_DIR"
-echo JAR_FILE="$SCRIPT_DIR/ua-test-tool.jar"
-echo ISODE_LIB_DIR="$SCRIPT_DIR/lib"
-echo if ! command -v java ^> /dev/null 2^>^&1; then
-echo   echo "ERROR: Java not found. Please install Java 8 or higher."
-echo   exit 1
-echo fi
-echo if [ ! -f "$JAR_FILE" ]; then
-echo   echo "ERROR: JAR not found: $JAR_FILE"
-echo   exit 1
-echo fi
-echo if [ -d "$ISODE_LIB_DIR" ]; then
-echo   java -Disode.bindir="$ISODE_LIB_DIR" -Djava.library.path="$ISODE_LIB_DIR" -jar "$JAR_FILE"
-echo else
-echo   java -jar "$JAR_FILE"
-echo fi
-) > "%DIST%\run.sh"
-echo Created dist\run.sh
+:: Copy the real run scripts directly - no inline generation, no escaping issues
+copy /y "%SCRIPT_DIR%run.bat" "%DIST%\run.bat" > nul
+echo Copied run.bat  -^>  dist\run.bat
+copy /y "%SCRIPT_DIR%run.sh"  "%DIST%\run.sh"  > nul
+echo Copied run.sh   -^>  dist\run.sh
 
 echo.
 echo ==========================================================
@@ -380,10 +294,10 @@ echo.
 echo   Self-contained package ready in:  dist\
 echo.
 echo   To deploy to another machine:
-echo     1. Copy the entire dist\ folder
-echo     2. On target (Windows):       run dist\run.bat
-echo        On target (Linux/macOS):   chmod +x dist/run.sh ^&^& ./dist/run.sh
-echo     3. Target machine needs ONLY Java 8+ — no Maven, no .m2
+echo     1. Copy the entire dist\ folder to the target machine
+echo     2. On target Windows  :  run dist\run.bat
+echo        On target Linux/Mac:  chmod +x dist/run.sh ^&^& ./dist/run.sh
+echo     3. Target machine needs ONLY Java 8+  -- no Maven, no .m2
 echo.
 
 endlocal
