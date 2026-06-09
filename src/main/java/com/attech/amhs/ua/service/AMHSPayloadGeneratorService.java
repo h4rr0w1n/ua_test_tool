@@ -1018,13 +1018,12 @@ public X400Msg buildX400Message(P3BindSession session, String recipient, String 
                 BodypartGeneralText generalText;
                 if (charsetRegNum != null && !charsetRegNum.trim().isEmpty()) {
                     // Use constructor with charset registration number
+                    // Note: constructor signature is (content, charsetRegNumber, charsetRepertoire)
                     if (conversionWithLoss != null && !conversionWithLoss.trim().isEmpty()) {
-                        boolean prohibitLoss = "true".equalsIgnoreCase(conversionWithLoss.trim()) || 
-                                               "prohibited".equalsIgnoreCase(conversionWithLoss.trim()) ||
-                                               "conversion-with-loss-prohibited".equalsIgnoreCase(conversionWithLoss.trim());
-                        generalText = new BodypartGeneralText(charsetRegNum.trim(), safeContent, prohibitLoss);
+                        // Pass conversion-with-loss as string, not boolean
+                        generalText = new BodypartGeneralText(safeContent, charsetRegNum.trim(), conversionWithLoss.trim());
                     } else {
-                        generalText = new BodypartGeneralText(charsetRegNum.trim(), safeContent);
+                        generalText = new BodypartGeneralText(safeContent, charsetRegNum.trim(), null);
                     }
                     // Set charset repertoire if provided (using X.400 attribute 803)
                     if (charsetRepertoire != null && !charsetRepertoire.trim().isEmpty()) {
