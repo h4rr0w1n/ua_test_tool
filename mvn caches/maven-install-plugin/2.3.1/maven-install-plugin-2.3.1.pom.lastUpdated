@@ -1,0 +1,5 @@
+#NOTE: This is an internal implementation file, its format can be changed without prior notice.
+#Wed May 20 10:33:06 ICT 2026
+default-http\://repo.maven.apache.org/maven2/.lastUpdated=1779247971509
+https\://repo.maven.apache.org/maven2/.lastUpdated=1779247986866
+http\://repo.maven.apache.org/maven2/.error=Could not transfer artifact org.apache.maven.plugins\:maven-install-plugin\:pom\:2.3.1 from/to central (http\://repo.maven.apache.org/maven2)\: Failed to transfer file\: http\://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-install-plugin/2.3.1/maven-install-plugin-2.3.1.pom. Return code is\: 501 , ReasonPhrase\:Not Implemented.
