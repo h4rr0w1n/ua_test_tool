@@ -685,7 +685,13 @@ public class AMHSMessageUI extends JFrame {
     String atsPriority = txtATSPriority.getText().trim();
     if (!atsPriority.isEmpty()) uiAmhsFields.put("ats-priority", atsPriority);
     String encoding = (String) comboEncoding.getSelectedItem();
-    if (encoding != null) uiAmhsFields.put("encoding", encoding);
+    if (encoding != null) {
+        uiAmhsFields.put("encoding", encoding);
+        // Map "General Text" encoding to body-part-type
+        if ("General Text".equals(encoding)) {
+            uiAmhsFields.put("body-part-type", "general-text-body-part");
+        }
+    }
     String charset = (String) comboCharset.getSelectedItem();
     if (charset != null) uiAmhsFields.put("charset-reg-number", charset);
     String contentType = (String) comboContentType.getSelectedItem();
@@ -913,10 +919,28 @@ public class AMHSMessageUI extends JFrame {
                 comboContentType.setSelectedItem(ct);
             }
         }
+        if (defaults.containsKey("body-part-type")) {
+            String bpt = defaults.get("body-part-type");
+            if (bpt != null && !bpt.isEmpty()) {
+                // Map body-part-type to encoding selection
+                if ("general-text-body-part".equals(bpt.toLowerCase())) {
+                    comboEncoding.setSelectedItem("General Text");
+                } else if ("ia5-text".equals(bpt.toLowerCase())) {
+                    comboEncoding.setSelectedItem("IA5");
+                }
+            }
+        }
         if (defaults.containsKey("encoding")) {
             String enc = defaults.get("encoding");
             if (enc != null && !enc.isEmpty()) {
                 comboEncoding.setSelectedItem(enc);
+            }
+        }
+        if (defaults.containsKey("charset-repertoire")) {
+            String cr = defaults.get("charset-repertoire");
+            if (cr != null && !cr.isEmpty()) {
+                // Store repertoire for reference - may need UI field in future
+                logger.info("Charset repertoire from defaults: " + cr);
             }
         }
         if (defaults.containsKey("ats-header"))
