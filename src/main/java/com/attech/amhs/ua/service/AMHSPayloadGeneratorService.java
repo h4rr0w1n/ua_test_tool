@@ -1009,10 +1009,31 @@ public X400Msg buildX400Message(P3BindSession session, String recipient, String 
         
         if (type.contains("general-text")) {
             try {
-                // Charset parameters are optional; if not provided they may be null
+                // The ISODE BodypartGeneralText constructor takes (charsetRegNumber, content) or (charsetRegNumber, content, conversionWithLossProhibited)
+                // charsetRepertoire is set via setStringParam on the bodypart object after construction
                 String charsetRegNum = amhsDefaults != null ? amhsDefaults.get("charset-reg-number") : null;
                 String charsetRepertoire = amhsDefaults != null ? amhsDefaults.get("charset-repertoire") : null;
-                BodypartGeneralText generalText = new BodypartGeneralText(safeContent, charsetRegNum, charsetRepertoire);
+                String conversionWithLoss = amhsDefaults != null ? amhsDefaults.get("conversion-with-loss-prohibited") : null;
+                
+                BodypartGeneralText generalText;
+                if (charsetRegNum != null && !charsetRegNum.trim().isEmpty()) {
+                    // Use constructor with charset registration number
+                    if (conversionWithLoss != null && !conversionWithLoss.trim().isEmpty()) {
+                        boolean prohibitLoss = "true".equalsIgnoreCase(conversionWithLoss.trim()) || 
+                                               "prohibited".equalsIgnoreCase(conversionWithLoss.trim()) ||
+                                               "conversion-with-loss-prohibited".equalsIgnoreCase(conversionWithLoss.trim());
+                        generalText = new BodypartGeneralText(charsetRegNum.trim(), safeContent, prohibitLoss);
+                    } else {
+                        generalText = new BodypartGeneralText(charsetRegNum.trim(), safeContent);
+                    }
+                    // Set charset repertoire if provided (using X.400 attribute 803)
+                    if (charsetRepertoire != null && !charsetRepertoire.trim().isEmpty()) {
+                        generalText.setStringParam(803, charsetRepertoire.trim());
+                    }
+                } else {
+                    // Fallback to simple constructor without charset
+                    generalText = new BodypartGeneralText(safeContent);
+                }
                 message.addBodypart(generalText);
             } catch (Exception e) {
                 logger.warn("general-text body part failed, falling back to ia5-text: {}", e.getMessage());
