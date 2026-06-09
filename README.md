@@ -33,8 +33,10 @@ chmod +x install-and-build.sh
 ### Build Output (`dist` folder)
 After a successful build, a `dist/` directory will be created in the project root. This directory contains a self-contained, deployable package:
 - `ua-test-tool.jar` (A "fat JAR" containing all Java dependencies)
-- `lib/` (Containing your native Isode `.dll` or `.so` libraries)
+- `lib/` (Containing only your native Isode `.dll` or `.so` libraries)
 - `run.bat` & `run.sh` (Standalone launch scripts)
+
+The project root `lib/` directory is used during the build process to install JAR dependencies and collect native platform libraries. Only the native libraries are copied into `dist/lib/` for runtime.
 
 ---
 
@@ -58,6 +60,8 @@ cd dist
 chmod +x run.sh
 ./run.sh
 ```
+
+> Note: The preferred runtime path is always the self-contained `dist/` package. The root-level `run.bat` and `run.sh` are wrappers that forward execution into `dist/` when available.
 
 ---
 

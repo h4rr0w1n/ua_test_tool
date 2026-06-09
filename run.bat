@@ -2,9 +2,10 @@
 :: ============================================================
 :: run.bat  —  AMHS UA Test Tool
 ::
-:: Works in two modes automatically:
-::   DIST mode  : run from a dist\ folder (ua-test-tool.jar beside this script)
-::   DEV mode   : run from the project root (uses target\ JAR)
+:: Recommended workflow:
+::   1) Build once with install-and-build.bat
+::   2) Run the self-contained dist\ package: dist\run.bat
+::   3) If run from the project root, this wrapper forwards into dist\
 ::
 :: Target machine needs ONLY Java 8+  — no Maven, no .m2
 :: ============================================================
@@ -19,17 +20,22 @@ echo.
 setlocal enabledelayedexpansion
 
 set "SCRIPT_DIR=%~dp0"
-cd /d "%SCRIPT_DIR%"
+if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
 
-:: ---- Locate the JAR (dist mode first, then dev mode) ------
-set "JAR_FILE=%SCRIPT_DIR%ua-test-tool.jar"
-if not exist "%JAR_FILE%" (
-    set "JAR_FILE=%SCRIPT_DIR%target\ua-test-tool-1.0.0-jar-with-dependencies.jar"
+:: Forward root-level execution into dist\ when available.
+if not exist "%SCRIPT_DIR%\ua-test-tool.jar" (
+    if exist "%SCRIPT_DIR%\dist\ua-test-tool.jar" (
+        set "SCRIPT_DIR=%SCRIPT_DIR%\dist"
+    )
 )
 
-:: Native lib dir lives beside this script in dist\lib\,
-:: or in the project root lib\ for dev mode.
-set "ISODE_LIB_DIR=%SCRIPT_DIR%lib"
+cd /d "%SCRIPT_DIR%"
+
+:: ---- Locate the JAR in dist\ or current directory ----
+set "JAR_FILE=%SCRIPT_DIR%\ua-test-tool.jar"
+
+:: Native lib dir lives beside this script in dist\lib\
+set "ISODE_LIB_DIR=%SCRIPT_DIR%\lib"
 
 :: ============================================================
 :: JAVA AUTO-DETECTION
