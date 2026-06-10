@@ -13,6 +13,7 @@ public class TestSubcase implements Serializable {
     private String id;                          // e.g., "CTSW001.1"
     private String name;                        // Descriptive name
     private String description;                 // Test description
+    private String expectation;                 // Expected result/behavior for this subcase
     private Map<String, String> amhsDefaults;  // Default X.400 message fields
     private String result;                      // "PASS" or "FAIL" or null if not tested
     private String comment;                     // Test result comment
@@ -56,6 +57,14 @@ public class TestSubcase implements Serializable {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getExpectation() {
+        return expectation;
+    }
+
+    public void setExpectation(String expectation) {
+        this.expectation = expectation;
     }
 
     public Map<String, String> getAmhsDefaults() {

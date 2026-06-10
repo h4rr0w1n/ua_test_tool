@@ -29,6 +29,7 @@ import java.util.Map;
 public class TestCaseSelectorPanel extends JPanel {
 
     private final TestCaseRepository repository;
+    private ActionLogsPanel actionLogsPanel;  // Reference to display descriptions
 
     // Top combo - shows case ID with range info
     private JComboBox<TestCase> cboTestCases;
@@ -358,15 +359,18 @@ public class TestCaseSelectorPanel extends JPanel {
      * Display test case description in the parent UI's action logs panel
      */
     private void displayTestCaseDescription(TestCase tc) {
-        // This will be called by the parent UI to display in ActionLogsPanel
-        // The actual display is handled by AMHSMessageUI
+        if (actionLogsPanel != null && tc != null) {
+            actionLogsPanel.displayTestCaseDescription(tc.getId(), tc.getName(), tc.getDescription(), 
+                    "See individual subcases for detailed criteria", "EUR Doc 047 Appendix A");
+        }
     }
     
     /**
      * Display subcase description in the parent UI's action logs panel
      */
     private void displaySubcaseDescription(TestSubcase sc) {
-        // This will be called by the parent UI to display in ActionLogsPanel
-        // The actual display is handled by AMHSMessageUI
+        if (actionLogsPanel != null && sc != null) {
+            actionLogsPanel.displaySubcaseDescription(sc.getId(), sc.getName(), sc.getDescription(), sc.getExpectation());
+        }
     }
 }

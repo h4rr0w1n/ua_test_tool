@@ -147,6 +147,7 @@ public class AMHSMessageUI extends JFrame {
     private JSplitPane buildThreeColumnSplit() {
         // LEFT panel
         selectorPanel = new TestCaseSelectorPanel(repository);
+        selectorPanel.setActionLogsPanel(actionLogsPanel);  // Set reference to display descriptions
         selectorPanel.addDefaultsLoadedListener("main", this::handleLoadDefaultsForSubcase);
         selectorPanel.addSendDefaultsListener("main", this::handleSendDefaults);
         selectorPanel.addSendAllSubcasesListener("main", this::handleSendAllSubcases);
