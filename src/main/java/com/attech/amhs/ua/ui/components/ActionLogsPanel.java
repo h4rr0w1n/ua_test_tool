@@ -7,7 +7,9 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
- * Panel for displaying action logs during testing with full message details
+ * Panel for displaying action logs during testing with full message details.
+ * This panel now serves as the description panel for test cases and subcases,
+ * showing expectations and detailed information.
  */
 public class ActionLogsPanel extends JPanel {
     
@@ -21,12 +23,12 @@ public class ActionLogsPanel extends JPanel {
     }
     
     private void initUI() {
-        setBorder(new TitledBorder("Action Logs"));
+        setBorder(new TitledBorder("Test Case / Subcase Description & Expectations"));
         setLayout(new BorderLayout());
         
         txtLogs = new JTextArea();
         txtLogs.setEditable(false);
-        txtLogs.setFont(new Font("Monospaced", Font.PLAIN, 10));
+        txtLogs.setFont(new Font("Monospaced", Font.PLAIN, 11));
         txtLogs.setLineWrap(true);
         txtLogs.setWrapStyleWord(true);
         
@@ -35,7 +37,44 @@ public class ActionLogsPanel extends JPanel {
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         add(scrollPane, BorderLayout.CENTER);
         
-        setPreferredSize(new Dimension(0, 150));
+        setPreferredSize(new Dimension(0, 200));
+    }
+    
+    /**
+     * Display test case description with expectations
+     */
+    public void displayTestCaseDescription(String testCaseId, String name, String description, String testCriteria, String reference) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== TEST CASE: ").append(testCaseId).append(" ===\n\n");
+        sb.append("Name: ").append(name).append("\n\n");
+        if (description != null && !description.isEmpty()) {
+            sb.append("Description:\n").append(description).append("\n\n");
+        }
+        if (testCriteria != null && !testCriteria.isEmpty()) {
+            sb.append("Test Criteria (Expectation):\n").append(testCriteria).append("\n\n");
+        }
+        if (reference != null && !reference.isEmpty()) {
+            sb.append("Reference: ").append(reference).append("\n");
+        }
+        txtLogs.setText(sb.toString());
+    }
+    
+    /**
+     * Display subcase description with expectations
+     */
+    public void displaySubcaseDescription(String subcaseId, String name, String description, String expectation) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== SUBCASE: ").append(subcaseId).append(" ===\n\n");
+        sb.append("Name: ").append(name).append("\n\n");
+        if (description != null && !description.isEmpty()) {
+            sb.append("Description:\n").append(description).append("\n\n");
+        }
+        if (expectation != null && !expectation.isEmpty()) {
+            sb.append("Expected Result:\n").append(expectation).append("\n");
+        } else {
+            sb.append("Expected Result: Message shall be sent/received according to the test case criteria.\n");
+        }
+        txtLogs.setText(sb.toString());
     }
     
     /**
@@ -57,7 +96,7 @@ public class ActionLogsPanel extends JPanel {
     }
     
     /**
-     * Log a send message operation with full payload
+     * Log a send message operation with full payload integrated
      */
     public void logSendMessage(String testCaseId, String subcaseId, String recipient, 
                                String subject, String content, String priority, 
@@ -70,8 +109,9 @@ public class ActionLogsPanel extends JPanel {
         sb.append("  Subject: ").append(subject).append("\n");
         sb.append("  Priority: ").append(priority).append("\n");
         sb.append("  Content: ").append(content).append("\n");
+        // Integrated payload display (merged DEBUG part)
         if (x400Payload != null && !x400Payload.isEmpty()) {
-            sb.append("  X.400 Payload:\n");
+            sb.append("  Payload Details:\n");
             String[] payloadLines = x400Payload.split("\n");
             for (String line : payloadLines) {
                 sb.append("    ").append(line).append("\n");
@@ -84,21 +124,22 @@ public class ActionLogsPanel extends JPanel {
     }
     
     /**
-     * Log a receive message operation with full message details
+     * Log a receive message operation - logs messages as soon as they arrive
      */
-    public void logReceiveMessages(String operationSummary, int messageCount, String details) {
+    public void logReceiveMessage(String sender, String subject, String content, String testCaseId, String subcaseId) {
         String timestamp = dateFormat.format(new Date());
         StringBuilder sb = new StringBuilder();
-        sb.append("[").append(timestamp).append("] RECEIVE_MESSAGES\n");
-        sb.append("  Messages Retrieved: ").append(messageCount).append("\n");
-        sb.append("  Summary: ").append(operationSummary).append("\n");
-        if (details != null && !details.isEmpty()) {
-            sb.append("  Details:\n");
-            String[] detailLines = details.split("\n");
-            for (String line : detailLines) {
-                sb.append("    ").append(line).append("\n");
+        sb.append("[").append(timestamp).append("] MESSAGE_RECEIVED\n");
+        sb.append("  From: ").append(sender).append("\n");
+        sb.append("  Subject: ").append(subject).append("\n");
+        if (testCaseId != null) {
+            sb.append("  TestCase: ").append(testCaseId);
+            if (subcaseId != null) {
+                sb.append(" / Subcase: ").append(subcaseId);
             }
+            sb.append("\n");
         }
+        sb.append("  Content: ").append(content != null ? content : "(no content)").append("\n");
         appendLog(sb.toString());
     }
     

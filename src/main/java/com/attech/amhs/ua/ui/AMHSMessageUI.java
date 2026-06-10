@@ -149,6 +149,7 @@ public class AMHSMessageUI extends JFrame {
         selectorPanel = new TestCaseSelectorPanel(repository);
         selectorPanel.addDefaultsLoadedListener("main", this::handleLoadDefaultsForSubcase);
         selectorPanel.addSendDefaultsListener("main", this::handleSendDefaults);
+        selectorPanel.addSendAllSubcasesListener("main", this::handleSendAllSubcases);
         JScrollPane leftScroll = new JScrollPane(selectorPanel);
         leftScroll.setMinimumSize(new Dimension(240, 0));
 
@@ -815,17 +816,17 @@ public class AMHSMessageUI extends JFrame {
                 List<AMHSMessageService.MessageSummary> msgs = messageService.receiveMessages(all.size());
                 SwingUtilities.invokeLater(() -> {
                     appendOutput("Received " + msgs.size() + " message(s):");
-                    StringBuilder details = new StringBuilder();
                     for (AMHSMessageService.MessageSummary m : msgs) {
                         appendOutput("From: " + m.getSender() + "  Subject: " + m.getSubject());
                         addMessageToMarkingPanel(m.getSender(), m.getSubject(),
                                 m.getContent(), null, true, null, true, null);
-                        details.append("From: ").append(m.getSender())
-                                .append(", Subject: ").append(m.getSubject()).append("\n");
-                    }
-                    if (actionLogsPanel != null) {
-                        actionLogsPanel.logReceiveMessages(
-                                "Messages retrieved from mailbox", msgs.size(), details.toString());
+                        // Log each received message immediately as it comes to the defined address
+                        if (actionLogsPanel != null) {
+                            actionLogsPanel.logReceiveMessage(
+                                m.getSender(), m.getSubject(), m.getContent(), 
+                                getSelectedCase() != null ? getSelectedCase().getId() : null,
+                                getSelectedSubcase() != null ? getSelectedSubcase().getId() : null);
+                        }
                     }
                 });
             } catch (Throwable t) {
@@ -927,6 +928,70 @@ public class AMHSMessageUI extends JFrame {
         }
     }).start();
 }
+
+    /**
+     * Handle sending messages for ALL subcases under the selected test case
+     */
+    private void handleSendAllSubcases() {
+        if (!messageService.isConnected()) {
+            appendOutput("Error: Not connected. Please connect first.");
+            return;
+        }
+        
+        TestCase tc = getSelectedCase();
+        if (tc == null || tc.getSubcases() == null || tc.getSubcases().isEmpty()) {
+            appendOutput("No test case selected or no subcases defined.");
+            return;
+        }
+        
+        appendOutput("Sending messages for all " + tc.getSubcases().size() + " subcases of " + tc.getId() + "...");
+        
+        int successCount = 0;
+        int failCount = 0;
+        
+        for (TestSubcase sc : tc.getSubcases()) {
+            if (sc.getAmhsDefaults().isEmpty()) {
+                appendOutput("Skipping " + sc.getId() + ": No AMHS defaults configured.");
+                failCount++;
+                continue;
+            }
+            
+            try {
+                Map<String, String> defaults = new java.util.HashMap<>(sc.getAmhsDefaults());
+                String recipient = defaults.getOrDefault("recipient", txtRecipient.getText().trim());
+                String subject = defaults.getOrDefault("subject", "Test - " + sc.getId());
+                String content = defaults.getOrDefault("content", "Message for " + sc.getId());
+                
+                // Get priority from defaults or use current selection
+                X400_Priority priority = X400_Priority.NORMAL_PRIORITY;
+                String prioStr = defaults.get("priority");
+                if (prioStr != null) {
+                    if ("KK".equalsIgnoreCase(prioStr) || "GG".equalsIgnoreCase(prioStr)) {
+                        priority = X400_Priority.HIGH_PRIORITY;
+                    } else if ("FF".equalsIgnoreCase(prioStr) || "NORMAL".equalsIgnoreCase(prioStr)) {
+                        priority = X400_Priority.NORMAL_PRIORITY;
+                    } else if ("DD".equalsIgnoreCase(prioStr) || "LOW".equalsIgnoreCase(prioStr)) {
+                        priority = X400_Priority.LOW_PRIORITY;
+                    } else if ("SS".equalsIgnoreCase(prioStr)) {
+                        priority = X400_Priority.HIGH_PRIORITY;
+                    }
+                }
+                
+                String msgId = messageService.sendMessage(recipient, subject, content, priority, defaults);
+                appendOutput("Sent " + sc.getId() + " - Message ID: " + msgId);
+                successCount++;
+                
+                // Log the sent message
+                logSend(recipient, subject, content, priority, true, defaults);
+                
+            } catch (Throwable t) {
+                appendOutput("Failed to send " + sc.getId() + ": " + t.getMessage());
+                failCount++;
+            }
+        }
+        
+        appendOutput("Completed: " + successCount + " succeeded, " + failCount + " failed.");
+    }
 
     private void applyDefaults(Map<String, String> defaults) {
         if (defaults.containsKey("recipient"))
