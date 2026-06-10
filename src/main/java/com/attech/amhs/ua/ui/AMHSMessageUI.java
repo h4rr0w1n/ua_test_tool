@@ -81,6 +81,9 @@ public class AMHSMessageUI extends JFrame {
     private JComboBox<String> comboCharset;
     private JComboBox<String> comboContentType;
     private JTextField txtATSHeader;        // Custom ATS Header
+    private JComboBox<String> comboBodyPartType;  // Body Part Type (ia5-text, general-text, file-transfer)
+    private JTextField txtFTBPFileName;     // FTBP File Name
+    private JTextArea txtFTBPContent;       // FTBP Content
 
     // ── Constructor ───────────────────────────────────────────────────────
 
@@ -360,8 +363,53 @@ public class AMHSMessageUI extends JFrame {
         txtATSHeader.setToolTipText("Custom ATS Header value");
         panel.add(txtATSHeader, gbc);
 
-        // Buttons
+        // Body Part Type (AMHS-specific - FTBP support)
+        gbc.gridx = 0;
         gbc.gridy = 7;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
+        panel.add(new JLabel("Body Part Type:"), gbc);
+        gbc.gridx = 1;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.5;
+        comboBodyPartType = new JComboBox<>(new String[] {
+                "ia5-text", "general-text-body-part", "file-transfer-body-part"
+        });
+        comboBodyPartType.setSelectedItem("ia5-text");
+        comboBodyPartType.setToolTipText("Body part type for the message");
+        panel.add(comboBodyPartType, gbc);
+
+        // FTBP File Name (only shown/used when file-transfer-body-part is selected)
+        gbc.gridx = 2;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
+        panel.add(new JLabel("FTBP File Name:"), gbc);
+        gbc.gridx = 3;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.5;
+        txtFTBPFileName = new JTextField("attachment.bin", 8);
+        txtFTBPFileName.setToolTipText("File name for file-transfer-body-part");
+        panel.add(txtFTBPFileName, gbc);
+
+        // FTBP Content (multi-line for file content)
+        gbc.gridx = 0;
+        gbc.gridy = 8;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        panel.add(new JLabel("FTBP Content:"), gbc);
+        gbc.gridx = 1;
+        gbc.gridwidth = 3;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0.5;
+        gbc.fill = GridBagConstraints.BOTH;
+        txtFTBPContent = new JTextArea(3, 30);
+        txtFTBPContent.setText("");
+        txtFTBPContent.setToolTipText("Content for file-transfer-body-part (will be converted to bytes)");
+        panel.add(new JScrollPane(txtFTBPContent), gbc);
+
+        // Buttons
+        gbc.gridy = 9;
         gbc.gridwidth = 1;
         gbc.weightx = 0;
         gbc.weighty = 0;

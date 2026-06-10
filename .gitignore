@@ -1,38 +1,19 @@
-```
 # Compiled and build artifacts
 *.class
-target/
-
-# Dependencies
-.mypy_cache/
-.pytest_cache/
-.coverage
-coverage/
-htmlcov/
-# Compiled and build artifacts
-*.pyc
-__pycache__/
 *.o
 *.obj
-dist/
+*.out
 build/
 target/
-*.class
-*.exe
-*.dll
-*.so
-*.a
-*.out
 
 # Dependencies
-.venv/
-venv/
 node_modules/
+venv/
+.venv/
+__pycache__/
 .mypy_cache/
 .pytest_cache/
 .gradle/
-julia-*/
-zig*/
 
 # Logs and temp files
 *.log
@@ -49,10 +30,6 @@ zig*/
 .vscode/
 .idea/
 
-# OS generated files
-.DS_Store
-Thumbs.db
-```
 # System files
 .DS_Store
 Thumbs.db
