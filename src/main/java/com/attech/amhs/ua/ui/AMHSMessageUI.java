@@ -55,7 +55,7 @@ public class AMHSMessageUI extends JFrame {
     // Panels
     private ToolbarPanel toolbarPanel;
     private TestCaseSelectorPanel selectorPanel;
-    private ActionLogsPanel actionLogsPanel;
+    private DescriptionPanel descriptionPanel;
     private TestMarkingPanel markingPanel;
 
     // Connection-config fields (center-bottom pane)
@@ -131,9 +131,9 @@ public class AMHSMessageUI extends JFrame {
         root.add(buildThreeColumnSplit(), BorderLayout.CENTER);
 
         // ── South: action logs strip ───────────────────────────────────
-        actionLogsPanel = new ActionLogsPanel();
+        descriptionPanel = new DescriptionPanel();
         actionLogsPanel.setPreferredSize(new Dimension(0, 140));
-        root.add(actionLogsPanel, BorderLayout.SOUTH);
+        root.add(descriptionPanel, BorderLayout.SOUTH);
 
         setContentPane(root);
     }
@@ -147,7 +147,7 @@ public class AMHSMessageUI extends JFrame {
     private JSplitPane buildThreeColumnSplit() {
         // LEFT panel
         selectorPanel = new TestCaseSelectorPanel(repository);
-        selectorPanel.setActionLogsPanel(actionLogsPanel);  // Set reference to display descriptions
+        selectorPanel.setDescriptionPanel(descriptionPanel);  // Set reference to display descriptions
         selectorPanel.addDefaultsLoadedListener("main", this::handleLoadDefaultsForSubcase);
         selectorPanel.addSendDefaultsListener("main", this::handleSendDefaults);
         selectorPanel.addSendAllSubcasesListener("main", this::handleSendAllSubcases);
