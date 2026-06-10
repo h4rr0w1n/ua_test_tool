@@ -1040,6 +1040,25 @@ public X400Msg buildX400Message(P3BindSession session, String recipient, String 
             }
         } else if (type.equals("ia5-text")) {
             message.addBodypart(new BodypartIA5Text(safeContent));
+        } else if (type.contains("file-transfer") || type.equals("ftbp")) {
+            // Handle File Transfer Body Part (FTBP) with proper attributes from defaults
+            logger.debug("Adding file-transfer-body-part");
+            String fileName = amhsDefaults != null ? amhsDefaults.get("ftbp-file-name") : null;
+            String ftbpContent = amhsDefaults != null ? amhsDefaults.get("ftbp-content") : null;
+            
+            // Use default filename if not specified
+            if (fileName == null || fileName.trim().isEmpty()) {
+                fileName = "attachment.bin";
+            }
+            
+            // Convert content string to bytes if provided
+            byte[] contentBytes = new byte[0];
+            if (ftbpContent != null && !ftbpContent.trim().isEmpty()) {
+                contentBytes = ftbpContent.trim().getBytes();
+            }
+            
+            BodypartFTBP ftbp = new BodypartFTBP(fileName.trim(), contentBytes);
+            message.addBodypart(ftbp);
         } else {
             // Treat as unsupported body part explicitly so gateway rejects it, rather than falling back safely
             // Using BodypartFTBP as a generic unsupported wrapper if unsupported is specified
