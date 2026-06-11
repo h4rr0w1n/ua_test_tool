@@ -150,7 +150,7 @@ public class TestCaseSelectorPanel extends JPanel {
             } else {
                 // Add a placeholder if no subcases
                 caseNode.add(new DefaultMutableTreeNode(
-                        new SubcaseNode("|---- No messages defined", null, true)));
+                    new SubcaseNode("|---- No messages defined", (TestSubcase) null, true)));
             }
             
             rootNode.add(caseNode);
