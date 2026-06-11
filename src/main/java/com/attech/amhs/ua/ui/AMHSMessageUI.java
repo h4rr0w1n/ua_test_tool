@@ -130,9 +130,9 @@ public class AMHSMessageUI extends JFrame {
         // ── Center: three-column split ─────────────────────────────────
         root.add(buildThreeColumnSplit(), BorderLayout.CENTER);
 
-        // ── South: action logs strip ───────────────────────────────────
+        // ── South: description / action-logs strip ──────────────────────
         descriptionPanel = new DescriptionPanel();
-        actionLogsPanel.setPreferredSize(new Dimension(0, 140));
+        descriptionPanel.setPreferredSize(new Dimension(0, 200));
         root.add(descriptionPanel, BorderLayout.SOUTH);
 
         setContentPane(root);
@@ -436,8 +436,8 @@ public class AMHSMessageUI extends JFrame {
         gbc.gridx = 3;
         JButton btnClearLogs = new JButton("Clear Logs");
         btnClearLogs.addActionListener(e -> {
-            if (actionLogsPanel != null)
-                actionLogsPanel.clearLogs();
+            if (descriptionPanel != null)
+                descriptionPanel.clearLogs();
         });
         panel.add(btnClearLogs, gbc);
 
@@ -822,9 +822,9 @@ public class AMHSMessageUI extends JFrame {
                         addMessageToMarkingPanel(m.getSender(), m.getSubject(),
                                 m.getContent(), null, true, null, true, null);
                         // Log each received message immediately as it comes to the defined address
-                        if (actionLogsPanel != null) {
-                            actionLogsPanel.logReceiveMessage(
-                                m.getSender(), m.getSubject(), m.getContent(), 
+                        if (descriptionPanel != null) {
+                            descriptionPanel.logReceiveMessage(
+                                m.getSender(), m.getSubject(), m.getContent(),
                                 getSelectedCase() != null ? getSelectedCase().getId() : null,
                                 getSelectedSubcase() != null ? getSelectedSubcase().getId() : null);
                         }
@@ -1127,20 +1127,20 @@ public class AMHSMessageUI extends JFrame {
 
     private void logSend(String recipient, String subject, String content,
             X400_Priority priority, boolean success, Map<String, String> defaults) {
-        if (actionLogsPanel == null)
+        if (descriptionPanel == null)
             return;
 
         String x400Payload = generateDetailedPayload(recipient, subject, priority != null ? priority.toString() : "NORMAL_PRIORITY", false, defaults);
 
-        actionLogsPanel.logSendMessage(
+        descriptionPanel.logSendMessage(
                 getSelectedCase() != null ? getSelectedCase().getId() : "N/A",
                 getSelectedSubcase() != null ? getSelectedSubcase().getId() : "N/A",
                 recipient, subject, content, priority != null ? priority.toString() : "NORMAL_PRIORITY", success, null, x400Payload);
     }
 
     private void appendOutput(String text) {
-        if (actionLogsPanel != null) {
-            actionLogsPanel.logAction(text.trim());
+        if (descriptionPanel != null) {
+            descriptionPanel.logAction(text.trim());
         }
     }
 

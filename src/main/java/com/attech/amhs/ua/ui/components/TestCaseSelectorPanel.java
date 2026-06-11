@@ -23,13 +23,13 @@ import java.util.Map;
  *   │  |------ Message/Subcase n                    │
  *   └───────────────────────────────────────────────┘
  * 
- * Description is now displayed in the ActionLogsPanel (bottom panel).
+ * Description is now displayed in the DescriptionPanel (bottom panel).
  * Added "Send All Subcases" button to send messages under all subcases for a case.
  */
 public class TestCaseSelectorPanel extends JPanel {
 
     private final TestCaseRepository repository;
-    private ActionLogsPanel actionLogsPanel;  // Reference to display descriptions
+    private DescriptionPanel descriptionPanel;  // Reference to display descriptions & logs
 
     // Top combo - shows case ID with range info
     private JComboBox<TestCase> cboTestCases;
@@ -162,7 +162,7 @@ public class TestCaseSelectorPanel extends JPanel {
             subcaseTree.setSelectionRow(0);
         }
         
-        // Display test case description in the ActionLogsPanel
+        // Display test case description in the DescriptionPanel
         displayTestCaseDescription(tc);
     }
 
@@ -175,7 +175,7 @@ public class TestCaseSelectorPanel extends JPanel {
             // Placeholder node - clear description
             return;
         } else if (sn.subcase != null) {
-            // Display subcase description with expectations in the ActionLogsPanel
+            // Display subcase description with expectations in the DescriptionPanel
             displaySubcaseDescription(sn.subcase);
             
             if (!sn.subcase.getAmhsDefaults().isEmpty()) {
@@ -290,9 +290,9 @@ public class TestCaseSelectorPanel extends JPanel {
         subcaseTree.repaint();
     }
     
-    /** Set the action logs panel reference for displaying descriptions */
-    public void setActionLogsPanel(ActionLogsPanel panel) {
-        // Store reference if needed for direct updates
+    /** Set the description panel reference for displaying descriptions & logs */
+    public void setDescriptionPanel(DescriptionPanel panel) {
+        this.descriptionPanel = panel;
     }
 
     // Listener registration
@@ -359,18 +359,18 @@ public class TestCaseSelectorPanel extends JPanel {
      * Display test case description in the parent UI's action logs panel
      */
     private void displayTestCaseDescription(TestCase tc) {
-        if (actionLogsPanel != null && tc != null) {
-            actionLogsPanel.displayTestCaseDescription(tc.getId(), tc.getName(), tc.getDescription(), 
+        if (descriptionPanel != null && tc != null) {
+            descriptionPanel.displayTestCaseDescription(tc.getId(), tc.getName(), tc.getDescription(),
                     "See individual subcases for detailed criteria", "EUR Doc 047 Appendix A");
         }
     }
-    
+
     /**
-     * Display subcase description in the parent UI's action logs panel
+     * Display subcase description in the parent UI's description panel
      */
     private void displaySubcaseDescription(TestSubcase sc) {
-        if (actionLogsPanel != null && sc != null) {
-            actionLogsPanel.displaySubcaseDescription(sc.getId(), sc.getName(), sc.getDescription(), sc.getExpectation());
+        if (descriptionPanel != null && sc != null) {
+            descriptionPanel.displaySubcaseDescription(sc.getId(), sc.getName(), sc.getDescription(), sc.getExpectation());
         }
     }
 }
