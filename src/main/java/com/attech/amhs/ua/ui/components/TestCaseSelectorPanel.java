@@ -16,12 +16,12 @@ import java.util.Map;
  * Left-column panel for selecting CTSW test cases and their messages.
  * 
  * Directory Model Display:
- *   ┌─ CASE: [CTSW001 (001 to 020)] ────────────────┐
- *   │  |------ Message/Subcase 1                    │
- *   │  |------ Message/Subcase 2                    │
- *   │  |------ ...                                  │
- *   │  |------ Message/Subcase n                    │
- *   └───────────────────────────────────────────────┘
+ *   ┌─ CASE: [CTSW0xx (xx ranges from 01 to 20)] ────────┐
+ *   │  |---- Message 1                                   │
+ *   │  |---- Message 2                                   │
+ *   │  |---- ...                                         │
+ *   │  |---- Message n                                   │
+ *   └────────────────────────────────────────────────────┘
  * 
  * Description is now displayed in the DescriptionPanel (bottom panel).
  * Added "Send All Subcases" button to send messages under all subcases for a case.
@@ -134,20 +134,26 @@ public class TestCaseSelectorPanel extends JPanel {
 
         if (tc != null) {
             // Create directory-style nodes for each subcase
+            // Format: -- CASE CTSW0xx
+            DefaultMutableTreeNode caseNode = new DefaultMutableTreeNode(
+                    new SubcaseNode("-- CASE " + tc.getId(), tc, true));
+            
             if (tc.getSubcases() != null && !tc.getSubcases().isEmpty()) {
                 int idx = 1;
                 for (TestSubcase sc : tc.getSubcases()) {
-                    // Format: "|------ Message/Subcase y"
-                    String label = "|------ Message/Subcase " + idx + " (" + sc.getId() + ")";
-                    rootNode.add(new DefaultMutableTreeNode(
+                    // Format: |---- Message y
+                    String label = "|---- Message " + idx;
+                    caseNode.add(new DefaultMutableTreeNode(
                             new SubcaseNode(label, sc, false)));
                     idx++;
                 }
             } else {
                 // Add a placeholder if no subcases
-                rootNode.add(new DefaultMutableTreeNode(
-                        new SubcaseNode("|------ No subcases defined", null, true)));
+                caseNode.add(new DefaultMutableTreeNode(
+                        new SubcaseNode("|---- No messages defined", null, true)));
             }
+            
+            rootNode.add(caseNode);
         }
 
         treeModel.reload();
@@ -169,6 +175,11 @@ public class TestCaseSelectorPanel extends JPanel {
     private void handleTreeSelectionChanged() {
         SubcaseNode sn = getSelectedNode();
         if (sn == null) {
+            return;
+        }
+        // If case header node is selected, display test case description
+        if (sn.testcase != null) {
+            displayTestCaseDescription(sn.testcase);
             return;
         }
         if (sn.isDefault) {
@@ -306,12 +317,21 @@ public class TestCaseSelectorPanel extends JPanel {
     /** Data object held in each JTree node */
     static class SubcaseNode {
         final String       label;
-        final TestSubcase  subcase;   // null for placeholder nodes
+        final TestSubcase  subcase;   // null for placeholder nodes and case nodes
+        final TestCase     testcase;  // non-null only for case header nodes
         final boolean      isDefault;
 
         SubcaseNode(String label, TestSubcase subcase, boolean isDefault) {
             this.label     = label;
             this.subcase   = subcase;
+            this.testcase  = null;
+            this.isDefault = isDefault;
+        }
+        
+        SubcaseNode(String label, TestCase testcase, boolean isDefault) {
+            this.label     = label;
+            this.subcase   = null;
+            this.testcase  = testcase;
             this.isDefault = isDefault;
         }
 
@@ -323,6 +343,7 @@ public class TestCaseSelectorPanel extends JPanel {
 
         private static final Color PASS_FG = new Color(0,  120, 0);
         private static final Color FAIL_FG = new Color(170, 0,  0);
+        private static final Color CASE_FG = new Color(0, 0, 180);
 
         @Override
         public Component getTreeCellRendererComponent(
@@ -337,7 +358,12 @@ public class TestCaseSelectorPanel extends JPanel {
                 Object uo = ((DefaultMutableTreeNode) value).getUserObject();
                 if (uo instanceof SubcaseNode) {
                     SubcaseNode sn = (SubcaseNode) uo;
-                    if (sn.isDefault) {
+                    if (sn.isDefault && sn.testcase != null) {
+                        // Case header node - bold blue
+                        setFont(getFont().deriveFont(Font.BOLD));
+                        if (!sel) setForeground(CASE_FG);
+                    } else if (sn.isDefault) {
+                        // Placeholder node - italic gray
                         setFont(getFont().deriveFont(Font.ITALIC));
                         if (!sel) setForeground(Color.GRAY);
                     } else if (sn.subcase != null) {
