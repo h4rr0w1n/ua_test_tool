@@ -127,13 +127,48 @@ public class AMHSMessageUI extends JFrame {
         wireToolbarCallbacks();
         root.add(toolbarPanel, BorderLayout.NORTH);
 
+        // Instantiate descriptionPanel early so it's available for selectorPanel
+        descriptionPanel = new DescriptionPanel();
+        descriptionPanel.setPreferredSize(new Dimension(0, 200));
+
         // ── Center: three-column split ─────────────────────────────────
         root.add(buildThreeColumnSplit(), BorderLayout.CENTER);
 
-        // ── South: description / action-logs strip ──────────────────────
-        descriptionPanel = new DescriptionPanel();
-        descriptionPanel.setPreferredSize(new Dimension(0, 200));
-        root.add(descriptionPanel, BorderLayout.SOUTH);
+        // ── South: description & buttons strip ──────────────────────
+        JPanel bottomStrip = new JPanel(new BorderLayout(5, 5));
+        bottomStrip.add(descriptionPanel, BorderLayout.CENTER);
+
+        // Right side buttons for bottom strip
+        JPanel btnPanel = new JPanel(new GridLayout(3, 1, 5, 5));
+        btnPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        JButton btnLoadDefaults = new JButton("Load defaults");
+        btnLoadDefaults.setToolTipText("Copy default AMHS fields for selected message to the Message Operations panel");
+        btnLoadDefaults.addActionListener(e -> {
+            if (selectorPanel != null) selectorPanel.triggerLoadDefaults();
+        });
+
+        JButton btnSendDefaults = new JButton("Send defaults");
+        btnSendDefaults.setToolTipText("Load defaults and immediately send the message");
+        btnSendDefaults.addActionListener(e -> {
+            if (selectorPanel != null) selectorPanel.triggerSendDefaults();
+        });
+
+        JButton btnSendAllSubcases = new JButton("Send All Subcases");
+        btnSendAllSubcases.setToolTipText("Send messages for ALL subcases under the selected test case");
+        btnSendAllSubcases.addActionListener(e -> {
+            if (selectorPanel != null) selectorPanel.triggerSendAllSubcases();
+        });
+
+        btnPanel.add(btnLoadDefaults);
+        btnPanel.add(btnSendDefaults);
+        btnPanel.add(btnSendAllSubcases);
+
+        JPanel btnWrapper = new JPanel(new GridBagLayout());
+        btnWrapper.add(btnPanel);
+        bottomStrip.add(btnWrapper, BorderLayout.EAST);
+
+        root.add(bottomStrip, BorderLayout.SOUTH);
 
         setContentPane(root);
     }
@@ -437,7 +472,7 @@ public class AMHSMessageUI extends JFrame {
         JButton btnClearLogs = new JButton("Clear Logs");
         btnClearLogs.addActionListener(e -> {
             if (descriptionPanel != null)
-                descriptionPanel.clearLogs();
+                descriptionPanel.clear();
         });
         panel.add(btnClearLogs, gbc);
 
@@ -821,13 +856,7 @@ public class AMHSMessageUI extends JFrame {
                         appendOutput("From: " + m.getSender() + "  Subject: " + m.getSubject());
                         addMessageToMarkingPanel(m.getSender(), m.getSubject(),
                                 m.getContent(), null, true, null, true, null);
-                        // Log each received message immediately as it comes to the defined address
-                        if (descriptionPanel != null) {
-                            descriptionPanel.logReceiveMessage(
-                                m.getSender(), m.getSubject(), m.getContent(),
-                                getSelectedCase() != null ? getSelectedCase().getId() : null,
-                                getSelectedSubcase() != null ? getSelectedSubcase().getId() : null);
-                        }
+                        // Logging to DescriptionPanel has been removed per user request.
                     }
                 });
             } catch (Throwable t) {
@@ -1127,21 +1156,11 @@ public class AMHSMessageUI extends JFrame {
 
     private void logSend(String recipient, String subject, String content,
             X400_Priority priority, boolean success, Map<String, String> defaults) {
-        if (descriptionPanel == null)
-            return;
-
-        String x400Payload = generateDetailedPayload(recipient, subject, priority != null ? priority.toString() : "NORMAL_PRIORITY", false, defaults);
-
-        descriptionPanel.logSendMessage(
-                getSelectedCase() != null ? getSelectedCase().getId() : "N/A",
-                getSelectedSubcase() != null ? getSelectedSubcase().getId() : "N/A",
-                recipient, subject, content, priority != null ? priority.toString() : "NORMAL_PRIORITY", success, null, x400Payload);
+        // Logging to DescriptionPanel has been removed per user request.
     }
 
     private void appendOutput(String text) {
-        if (descriptionPanel != null) {
-            descriptionPanel.logAction(text.trim());
-        }
+        logger.info(text.trim());
     }
 
     private void browseAndLoadFile(javax.swing.text.JTextComponent targetComponent, boolean removeNewlines) {

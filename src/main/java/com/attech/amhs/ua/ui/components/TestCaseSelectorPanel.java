@@ -8,7 +8,6 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.tree.*;
 import java.awt.*;
-import java.awt.event.ActionListener;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,33 +15,23 @@ import java.util.Map;
  * Left-column panel for selecting CTSW test cases and their messages.
  * 
  * Directory Model Display:
- *   ┌─ CASE: [CTSW0xx (xx ranges from 01 to 20)] ────────┐
- *   │  |---- Message 1                                   │
- *   │  |---- Message 2                                   │
- *   │  |---- ...                                         │
- *   │  |---- Message n                                   │
+ *   ┌─ Test Case Directory ──────────────────────────────┐
+ *   │ ------CASE CTSW0xx                                 │
+ *   │ ---------- Message 1                               │
+ *   │ ---------- Message 2                               │
+ *   │ ------CASE CTSW0xy                                 │
+ *   │ ---------- Message 1                               │
  *   └────────────────────────────────────────────────────┘
- * 
- * Description is now displayed in the DescriptionPanel (bottom panel).
- * Added "Send All Subcases" button to send messages under all subcases for a case.
  */
 public class TestCaseSelectorPanel extends JPanel {
 
     private final TestCaseRepository repository;
     private DescriptionPanel descriptionPanel;  // Reference to display descriptions & logs
 
-    // Top combo - shows case ID with range info
-    private JComboBox<TestCase> cboTestCases;
-
     // Tree - displays directory-style structure
     private JTree subcaseTree;
     private DefaultTreeModel treeModel;
     private DefaultMutableTreeNode rootNode;
-
-    // Buttons
-    private JButton btnLoadDefaults;
-    private JButton btnSendDefaults;
-    private JButton btnSendAllSubcases;  // New button for sending all subcases
 
     // Listener maps
     private final Map<String, Runnable> defaultsLoadedListeners = new HashMap<>();
@@ -61,26 +50,9 @@ public class TestCaseSelectorPanel extends JPanel {
         setBorder(new TitledBorder("Test Case Directory"));
         setLayout(new BorderLayout(4, 4));
 
-        add(buildTopCombo(),   BorderLayout.NORTH);
         add(buildCenterTree(), BorderLayout.CENTER);
-        add(buildBottomBtns(), BorderLayout.SOUTH);
 
         populateTestCases();
-    }
-
-    /** CTSW case selector row with directory-style naming */
-    private JPanel buildTopCombo() {
-        JPanel row = new JPanel(new BorderLayout(5, 0));
-        row.setBorder(new EmptyBorder(2, 2, 2, 2));
-
-        JLabel lbl = new JLabel("CASE:");
-        lbl.setFont(lbl.getFont().deriveFont(Font.BOLD, 12f));
-        row.add(lbl, BorderLayout.WEST);
-
-        cboTestCases = new JComboBox<>();
-        cboTestCases.addActionListener(e -> handleTestCaseChanged());
-        row.add(cboTestCases, BorderLayout.CENTER);
-        return row;
     }
 
     /** Tree with directory-style display */
@@ -98,79 +70,11 @@ public class TestCaseSelectorPanel extends JPanel {
 
         JScrollPane treeScroll = new JScrollPane(subcaseTree);
         treeScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        treeScroll.setBorder(BorderFactory.createTitledBorder("Messages/Subcases"));
 
         return treeScroll;
     }
 
-    /** Load defaults / Send defaults / Send All Subcases button row */
-    private JPanel buildBottomBtns() {
-        JPanel panel = new JPanel(new GridLayout(1, 3, 5, 0));
-        panel.setBorder(new EmptyBorder(3, 2, 3, 2));
-
-        btnLoadDefaults = new JButton("Load defaults");
-        btnLoadDefaults.setToolTipText("Copy default AMHS fields for selected message to the Message Operations panel");
-        btnLoadDefaults.addActionListener(e -> handleLoadDefaults());
-
-        btnSendDefaults = new JButton("Send defaults");
-        btnSendDefaults.setToolTipText("Load defaults and immediately send the message");
-        btnSendDefaults.addActionListener(e -> handleSendDefaults());
-
-        btnSendAllSubcases = new JButton("Send All Subcases");
-        btnSendAllSubcases.setToolTipText("Send messages for ALL subcases under the selected test case");
-        btnSendAllSubcases.addActionListener(e -> handleSendAllSubcases());
-
-        panel.add(btnLoadDefaults);
-        panel.add(btnSendDefaults);
-        panel.add(btnSendAllSubcases);
-        return panel;
-    }
-
     // ── Event handlers ────────────────────────────────────────────────────
-
-    private void handleTestCaseChanged() {
-        TestCase tc = (TestCase) cboTestCases.getSelectedItem();
-        rootNode.removeAllChildren();
-
-        if (tc != null) {
-            // Create directory-style nodes for each subcase
-            // Format: -- CASE CTSW0xx
-            DefaultMutableTreeNode caseNode = new DefaultMutableTreeNode(
-                    new SubcaseNode("-- CASE " + tc.getId(), tc, true));
-            
-            if (tc.getSubcases() != null && !tc.getSubcases().isEmpty()) {
-                int idx = 1;
-                for (TestSubcase sc : tc.getSubcases()) {
-                    // Format: |---- Message y
-                    String label = "|---- Message " + idx;
-                    caseNode.add(new DefaultMutableTreeNode(
-                            new SubcaseNode(label, sc, false)));
-                    idx++;
-                }
-            } else {
-                // Add a placeholder if no subcases
-                caseNode.add(new DefaultMutableTreeNode(
-                    new SubcaseNode("|---- No messages defined", (TestSubcase) null, true)));
-            }
-            
-            rootNode.add(caseNode);
-        }
-
-        treeModel.reload();
-        
-        // Expand all nodes
-        for (int i = 0; i < subcaseTree.getRowCount(); i++) {
-            subcaseTree.expandRow(i);
-        }
-        
-        // Select first node if available
-        if (subcaseTree.getRowCount() > 0) {
-            subcaseTree.setSelectionRow(0);
-        }
-        
-        // Display test case description in the DescriptionPanel
-        displayTestCaseDescription(tc);
-    }
 
     private void handleTreeSelectionChanged() {
         SubcaseNode sn = getSelectedNode();
@@ -195,7 +99,9 @@ public class TestCaseSelectorPanel extends JPanel {
         }
     }
 
-    private void handleLoadDefaults() {
+    // ── External Actions (called by main UI) ──────────────────────────────
+
+    public void triggerLoadDefaults() {
         SubcaseNode sn = getSelectedNode();
         TestSubcase sc = getSelectedSubcase();
         if (sn != null && sn.isDefault) {
@@ -215,7 +121,7 @@ public class TestCaseSelectorPanel extends JPanel {
         }
     }
 
-    private void handleSendDefaults() {
+    public void triggerSendDefaults() {
         SubcaseNode sn = getSelectedNode();
         TestSubcase sc = getSelectedSubcase();
         if (sn != null && sn.isDefault) {
@@ -235,7 +141,7 @@ public class TestCaseSelectorPanel extends JPanel {
         }
     }
 
-    private void handleSendAllSubcases() {
+    public void triggerSendAllSubcases() {
         TestCase tc = getSelectedTestCase();
         if (tc == null) {
             JOptionPane.showMessageDialog(this,
@@ -258,15 +164,29 @@ public class TestCaseSelectorPanel extends JPanel {
     // ── Data helpers ──────────────────────────────────────────────────────
 
     private void populateTestCases() {
-        cboTestCases.removeAllItems();
-        if (repository == null || repository.getTestCasesList() == null) return;
-        for (TestCase tc : repository.getTestCasesList()) {
-            cboTestCases.addItem(tc);
+        rootNode.removeAllChildren();
+        if (repository != null && repository.getTestCasesList() != null) {
+            for (TestCase tc : repository.getTestCasesList()) {
+                DefaultMutableTreeNode caseNode = new DefaultMutableTreeNode(
+                        new SubcaseNode("------CASE " + tc.getId(), tc, true));
+                
+                if (tc.getSubcases() != null && !tc.getSubcases().isEmpty()) {
+                    int idx = 1;
+                    for (TestSubcase sc : tc.getSubcases()) {
+                        String label = "---------- Message " + idx;
+                        caseNode.add(new DefaultMutableTreeNode(
+                                new SubcaseNode(label, sc, false)));
+                        idx++;
+                    }
+                } else {
+                    caseNode.add(new DefaultMutableTreeNode(
+                        new SubcaseNode("---------- No messages defined", (TestSubcase) null, true)));
+                }
+                
+                rootNode.add(caseNode);
+            }
         }
-        if (cboTestCases.getItemCount() > 0) {
-            cboTestCases.setSelectedIndex(0);
-            handleTestCaseChanged();
-        }
+        treeModel.reload();
     }
 
     private SubcaseNode getSelectedNode() {
@@ -281,7 +201,20 @@ public class TestCaseSelectorPanel extends JPanel {
     // ── Public API (used by AMHSMessageUI) ────────────────────────────────
 
     public TestCase getSelectedTestCase() {
-        return (TestCase) cboTestCases.getSelectedItem();
+        TreePath path = subcaseTree.getSelectionPath();
+        if (path == null) return null;
+        Object[] nodes = path.getPath();
+        for (int i = nodes.length - 1; i >= 0; i--) {
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) nodes[i];
+            Object uo = node.getUserObject();
+            if (uo instanceof SubcaseNode) {
+                SubcaseNode sn = (SubcaseNode) uo;
+                if (sn.testcase != null) {
+                    return sn.testcase;
+                }
+            }
+        }
+        return null;
     }
 
     /** Returns null when no valid subcase is selected */
