@@ -3,27 +3,27 @@ package com.attech.amhs.ua.ui.components;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 /**
- * Bottom-of-UI panel that combines test case / subcase descriptions and expectations
+ * Bottom-of-UI panel that combines test case / subcase descriptions and
+ * expectations
  * with the action log strip.
  *
- * <p>It replaces the previous {@code ActionLogsPanel}. Test documentation is shown
- * by calling {@link #displayTestCaseDescription} or {@link #displaySubcaseDescription},
+ * <p>
+ * It replaces the previous {@code ActionLogsPanel}. Test documentation is shown
+ * by calling {@link #displayTestCaseDescription} or
+ * {@link #displaySubcaseDescription},
  * which REPLACES the current text. Send / receive / general action events are
  * appended on top of whatever description is currently displayed via
- * {@link #logSendMessage}, {@link #logReceiveMessage} and {@link #logAction}.</p>
+ * {@link #logSendMessage}, {@link #logReceiveMessage} and {@link #logAction}.
+ * </p>
  */
 public class DescriptionPanel extends JPanel {
 
     private JTextArea txtContent;
     private JScrollPane scrollPane;
-    private SimpleDateFormat dateFormat;
 
     public DescriptionPanel() {
-        this.dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
         initUI();
     }
 
@@ -51,8 +51,8 @@ public class DescriptionPanel extends JPanel {
      * Display test case description with expectations (replaces current text).
      */
     public void displayTestCaseDescription(String testCaseId, String name,
-                                           String description, String testCriteria,
-                                           String reference) {
+            String description, String testCriteria,
+            String reference) {
         StringBuilder sb = new StringBuilder();
         sb.append("=== TEST CASE: ").append(testCaseId).append(" ===\n\n");
         sb.append("Name: ").append(name).append("\n\n");
@@ -72,7 +72,7 @@ public class DescriptionPanel extends JPanel {
      * Display subcase description with expectations (replaces current text).
      */
     public void displaySubcaseDescription(String subcaseId, String name,
-                                          String description, String expectation) {
+            String description, String expectation) {
         StringBuilder sb = new StringBuilder();
         sb.append("=== SUBCASE: ").append(subcaseId).append(" ===\n\n");
         sb.append("Name: ").append(name).append("\n\n");
@@ -90,6 +90,5 @@ public class DescriptionPanel extends JPanel {
     public void clear() {
         txtContent.setText("");
     }
-
 
 }

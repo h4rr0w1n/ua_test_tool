@@ -238,15 +238,16 @@ public class XlsxExporter {
         headerRow.createCell(0).setCellValue("Timestamp");
         headerRow.createCell(1).setCellValue("Test Case");
         headerRow.createCell(2).setCellValue("Test Subcase");
-        headerRow.createCell(3).setCellValue("Recipient");
-        headerRow.createCell(4).setCellValue("Subject");
-        headerRow.createCell(5).setCellValue("Priority");
-        headerRow.createCell(6).setCellValue("Success");
-        headerRow.createCell(7).setCellValue("Error");
-        headerRow.createCell(8).setCellValue("Content");
-        headerRow.createCell(9).setCellValue("X.400 Payload");
+        headerRow.createCell(3).setCellValue("Sender");
+        headerRow.createCell(4).setCellValue("Recipient");
+        headerRow.createCell(5).setCellValue("Subject");
+        headerRow.createCell(6).setCellValue("Priority");
+        headerRow.createCell(7).setCellValue("Success");
+        headerRow.createCell(8).setCellValue("Error");
+        headerRow.createCell(9).setCellValue("Content");
+        headerRow.createCell(10).setCellValue("X.400 Payload");
         
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 11; i++) {
             headerRow.getCell(i).setCellStyle(headerStyle);
         }
         
@@ -260,16 +261,17 @@ public class XlsxExporter {
             dataRow.createCell(0).setCellValue(formatDate(log.getTimestamp()));
             dataRow.createCell(1).setCellValue(log.getTestCaseId() != null ? log.getTestCaseId() : "");
             dataRow.createCell(2).setCellValue(log.getTestSubcaseId() != null ? log.getTestSubcaseId() : "");
-            dataRow.createCell(3).setCellValue(log.getRecipient() != null ? log.getRecipient() : "");
-            dataRow.createCell(4).setCellValue(log.getSubject() != null ? log.getSubject() : "");
-            dataRow.createCell(5).setCellValue(log.getPriority() != null ? log.getPriority() : "");
-            dataRow.createCell(6).setCellValue(log.isSuccess() ? "Success" : "Failed");
-            dataRow.createCell(7).setCellValue(log.getErrorMessage() != null ? log.getErrorMessage() : "");
-            dataRow.createCell(8).setCellValue(log.getContent() != null ? log.getContent() : "");
-            dataRow.createCell(9).setCellValue(log.getX400Payload() != null ? log.getX400Payload() : "");
+            dataRow.createCell(3).setCellValue(log.getSender() != null ? log.getSender() : "");
+            dataRow.createCell(4).setCellValue(log.getRecipient() != null ? log.getRecipient() : "");
+            dataRow.createCell(5).setCellValue(log.getSubject() != null ? log.getSubject() : "");
+            dataRow.createCell(6).setCellValue(log.getPriority() != null ? log.getPriority() : "");
+            dataRow.createCell(7).setCellValue(log.isSuccess() ? "Success" : "Failed");
+            dataRow.createCell(8).setCellValue(log.getErrorMessage() != null ? log.getErrorMessage() : "");
+            dataRow.createCell(9).setCellValue(log.getContent() != null ? log.getContent() : "");
+            dataRow.createCell(10).setCellValue(log.getX400Payload() != null ? log.getX400Payload() : "");
         }
         
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 11; i++) {
             sheet.autoSizeColumn(i);
         }
     }

@@ -12,6 +12,7 @@ public class MessageLog implements Serializable {
     private String testSubcaseId;        // Associated test subcase (e.g., CTSW001.1)
     private long timestamp;              // When message was sent
     private String recipient;            // Message recipient
+    private String sender;               // Message sender
     private String subject;              // Message subject
     private String content;              // Message body/content
     private String priority;             // Message priority (LOW, NORMAL, HIGH, URGENT)
@@ -62,6 +63,14 @@ public class MessageLog implements Serializable {
 
     public void setRecipient(String recipient) {
         this.recipient = recipient;
+    }
+
+    public String getSender() {
+        return sender;
+    }
+
+    public void setSender(String sender) {
+        this.sender = sender;
     }
 
     public String getSubject() {

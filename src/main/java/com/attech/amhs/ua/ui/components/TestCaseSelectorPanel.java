@@ -4,7 +4,6 @@ import com.attech.amhs.ua.model.TestCase;
 import com.attech.amhs.ua.model.TestSubcase;
 import com.attech.amhs.ua.repository.TestCaseRepository;
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.tree.*;
 import java.awt.*;
@@ -15,18 +14,18 @@ import java.util.Map;
  * Left-column panel for selecting CTSW test cases and their messages.
  * 
  * Directory Model Display:
- *   ┌─ Test Case Directory ──────────────────────────────┐
- *   │ ------CASE CTSW0xx                                 │
- *   │ ---------- Message 1                               │
- *   │ ---------- Message 2                               │
- *   │ ------CASE CTSW0xy                                 │
- *   │ ---------- Message 1                               │
- *   └────────────────────────────────────────────────────┘
+ * ┌─ Test Case Directory ──────────────────────────────┐
+ * │ ------CASE CTSW0xx │
+ * │ ---------- Message 1 │
+ * │ ---------- Message 2 │
+ * │ ------CASE CTSW0xy │
+ * │ ---------- Message 1 │
+ * └────────────────────────────────────────────────────┘
  */
 public class TestCaseSelectorPanel extends JPanel {
 
     private final TestCaseRepository repository;
-    private DescriptionPanel descriptionPanel;  // Reference to display descriptions & logs
+    private DescriptionPanel descriptionPanel; // Reference to display descriptions & logs
 
     // Tree - displays directory-style structure
     private JTree subcaseTree;
@@ -35,8 +34,8 @@ public class TestCaseSelectorPanel extends JPanel {
 
     // Listener maps
     private final Map<String, Runnable> defaultsLoadedListeners = new HashMap<>();
-    private final Map<String, Runnable> copyDefaultsListeners   = new HashMap<>();
-    private final Map<String, Runnable> sendDefaultsListeners   = new HashMap<>();
+    private final Map<String, Runnable> copyDefaultsListeners = new HashMap<>();
+    private final Map<String, Runnable> sendDefaultsListeners = new HashMap<>();
     private final Map<String, Runnable> sendAllSubcasesListeners = new HashMap<>();
 
     public TestCaseSelectorPanel(TestCaseRepository repository) {
@@ -58,7 +57,7 @@ public class TestCaseSelectorPanel extends JPanel {
     /** Tree with directory-style display */
     private JScrollPane buildCenterTree() {
         // ── Tree ─────────────────────────────────────────────────────────
-        rootNode  = new DefaultMutableTreeNode("root");
+        rootNode = new DefaultMutableTreeNode("root");
         treeModel = new DefaultTreeModel(rootNode);
         subcaseTree = new JTree(treeModel);
         subcaseTree.setRootVisible(false);
@@ -92,7 +91,7 @@ public class TestCaseSelectorPanel extends JPanel {
         } else if (sn.subcase != null) {
             // Display subcase description with expectations in the DescriptionPanel
             displaySubcaseDescription(sn.subcase);
-            
+
             if (!sn.subcase.getAmhsDefaults().isEmpty()) {
                 defaultsLoadedListeners.values().forEach(Runnable::run);
             }
@@ -106,18 +105,18 @@ public class TestCaseSelectorPanel extends JPanel {
         TestSubcase sc = getSelectedSubcase();
         if (sn != null && sn.isDefault) {
             JOptionPane.showMessageDialog(this,
-                "No valid subcase selected.",
-                "Warning", JOptionPane.WARNING_MESSAGE);
+                    "No valid subcase selected.",
+                    "Warning", JOptionPane.WARNING_MESSAGE);
         } else if (sc != null && !sc.getAmhsDefaults().isEmpty()) {
             defaultsLoadedListeners.values().forEach(Runnable::run);
         } else if (sn == null) {
             JOptionPane.showMessageDialog(this,
-                "No message selected.",
-                "Warning", JOptionPane.WARNING_MESSAGE);
+                    "No message selected.",
+                    "Warning", JOptionPane.WARNING_MESSAGE);
         } else {
             JOptionPane.showMessageDialog(this,
-                "No AMHS defaults configured for this subcase.",
-                "Warning", JOptionPane.WARNING_MESSAGE);
+                    "No AMHS defaults configured for this subcase.",
+                    "Warning", JOptionPane.WARNING_MESSAGE);
         }
     }
 
@@ -126,18 +125,18 @@ public class TestCaseSelectorPanel extends JPanel {
         TestSubcase sc = getSelectedSubcase();
         if (sn != null && sn.isDefault) {
             JOptionPane.showMessageDialog(this,
-                "No valid subcase selected.",
-                "Warning", JOptionPane.WARNING_MESSAGE);
+                    "No valid subcase selected.",
+                    "Warning", JOptionPane.WARNING_MESSAGE);
         } else if (sc != null && !sc.getAmhsDefaults().isEmpty()) {
             sendDefaultsListeners.values().forEach(Runnable::run);
         } else if (sn == null) {
             JOptionPane.showMessageDialog(this,
-                "No message selected.",
-                "Warning", JOptionPane.WARNING_MESSAGE);
+                    "No message selected.",
+                    "Warning", JOptionPane.WARNING_MESSAGE);
         } else {
             JOptionPane.showMessageDialog(this,
-                "No AMHS defaults configured for this subcase.",
-                "Warning", JOptionPane.WARNING_MESSAGE);
+                    "No AMHS defaults configured for this subcase.",
+                    "Warning", JOptionPane.WARNING_MESSAGE);
         }
     }
 
@@ -145,18 +144,18 @@ public class TestCaseSelectorPanel extends JPanel {
         TestCase tc = getSelectedTestCase();
         if (tc == null) {
             JOptionPane.showMessageDialog(this,
-                "No test case selected.",
-                "Warning", JOptionPane.WARNING_MESSAGE);
+                    "No test case selected.",
+                    "Warning", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
+
         if (tc.getSubcases() == null || tc.getSubcases().isEmpty()) {
             JOptionPane.showMessageDialog(this,
-                "No subcases defined for this test case.",
-                "Warning", JOptionPane.WARNING_MESSAGE);
+                    "No subcases defined for this test case.",
+                    "Warning", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
+
         // Trigger the send all subcases listener
         sendAllSubcasesListeners.values().forEach(Runnable::run);
     }
@@ -169,7 +168,7 @@ public class TestCaseSelectorPanel extends JPanel {
             for (TestCase tc : repository.getTestCasesList()) {
                 DefaultMutableTreeNode caseNode = new DefaultMutableTreeNode(
                         new SubcaseNode("------CASE " + tc.getId(), tc, true));
-                
+
                 if (tc.getSubcases() != null && !tc.getSubcases().isEmpty()) {
                     int idx = 1;
                     for (TestSubcase sc : tc.getSubcases()) {
@@ -180,9 +179,9 @@ public class TestCaseSelectorPanel extends JPanel {
                     }
                 } else {
                     caseNode.add(new DefaultMutableTreeNode(
-                        new SubcaseNode("---------- No messages defined", (TestSubcase) null, true)));
+                            new SubcaseNode("---------- No messages defined", (TestSubcase) null, true)));
                 }
-                
+
                 rootNode.add(caseNode);
             }
         }
@@ -191,9 +190,9 @@ public class TestCaseSelectorPanel extends JPanel {
 
     private SubcaseNode getSelectedNode() {
         TreePath path = subcaseTree.getSelectionPath();
-        if (path == null) return null;
-        DefaultMutableTreeNode node =
-                (DefaultMutableTreeNode) path.getLastPathComponent();
+        if (path == null)
+            return null;
+        DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
         Object uo = node.getUserObject();
         return (uo instanceof SubcaseNode) ? (SubcaseNode) uo : null;
     }
@@ -202,7 +201,8 @@ public class TestCaseSelectorPanel extends JPanel {
 
     public TestCase getSelectedTestCase() {
         TreePath path = subcaseTree.getSelectionPath();
-        if (path == null) return null;
+        if (path == null)
+            return null;
         Object[] nodes = path.getPath();
         for (int i = nodes.length - 1; i >= 0; i--) {
             DefaultMutableTreeNode node = (DefaultMutableTreeNode) nodes[i];
@@ -233,49 +233,63 @@ public class TestCaseSelectorPanel extends JPanel {
         populateTestCases();
         subcaseTree.repaint();
     }
-    
+
     /** Set the description panel reference for displaying descriptions & logs */
     public void setDescriptionPanel(DescriptionPanel panel) {
         this.descriptionPanel = panel;
     }
 
     // Listener registration
-    public void addDefaultsLoadedListener(String key, Runnable r) { defaultsLoadedListeners.put(key, r); }
-    public void addCopyDefaultsListener(String key,   Runnable r) { copyDefaultsListeners.put(key, r); }
-    public void addSendDefaultsListener(String key,   Runnable r) { sendDefaultsListeners.put(key, r); }
-    public void addSendAllSubcasesListener(String key, Runnable r) { sendAllSubcasesListeners.put(key, r); }
+    public void addDefaultsLoadedListener(String key, Runnable r) {
+        defaultsLoadedListeners.put(key, r);
+    }
+
+    public void addCopyDefaultsListener(String key, Runnable r) {
+        copyDefaultsListeners.put(key, r);
+    }
+
+    public void addSendDefaultsListener(String key, Runnable r) {
+        sendDefaultsListeners.put(key, r);
+    }
+
+    public void addSendAllSubcasesListener(String key, Runnable r) {
+        sendAllSubcasesListeners.put(key, r);
+    }
 
     // ── Inner classes ─────────────────────────────────────────────────────
 
     /** Data object held in each JTree node */
     static class SubcaseNode {
-        final String       label;
-        final TestSubcase  subcase;   // null for placeholder nodes and case nodes
-        final TestCase     testcase;  // non-null only for case header nodes
-        final boolean      isDefault;
+        final String label;
+        final TestSubcase subcase; // null for placeholder nodes and case nodes
+        final TestCase testcase; // non-null only for case header nodes
+        final boolean isDefault;
 
         SubcaseNode(String label, TestSubcase subcase, boolean isDefault) {
-            this.label     = label;
-            this.subcase   = subcase;
-            this.testcase  = null;
-            this.isDefault = isDefault;
-        }
-        
-        SubcaseNode(String label, TestCase testcase, boolean isDefault) {
-            this.label     = label;
-            this.subcase   = null;
-            this.testcase  = testcase;
+            this.label = label;
+            this.subcase = subcase;
+            this.testcase = null;
             this.isDefault = isDefault;
         }
 
-        @Override public String toString() { return label; }
+        SubcaseNode(String label, TestCase testcase, boolean isDefault) {
+            this.label = label;
+            this.subcase = null;
+            this.testcase = testcase;
+            this.isDefault = isDefault;
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
     }
 
     /** Colour-codes tree nodes by result */
     private static class SubcaseCellRenderer extends DefaultTreeCellRenderer {
 
-        private static final Color PASS_FG = new Color(0,  120, 0);
-        private static final Color FAIL_FG = new Color(170, 0,  0);
+        private static final Color PASS_FG = new Color(0, 120, 0);
+        private static final Color FAIL_FG = new Color(170, 0, 0);
         private static final Color CASE_FG = new Color(0, 0, 180);
 
         @Override
@@ -285,7 +299,7 @@ public class TestCaseSelectorPanel extends JPanel {
 
             super.getTreeCellRendererComponent(
                     tree, value, sel, expanded, leaf, row, hasFocus);
-            setIcon(null);     // remove default folder/leaf icons
+            setIcon(null); // remove default folder/leaf icons
 
             if (value instanceof DefaultMutableTreeNode) {
                 Object uo = ((DefaultMutableTreeNode) value).getUserObject();
@@ -294,16 +308,20 @@ public class TestCaseSelectorPanel extends JPanel {
                     if (sn.isDefault && sn.testcase != null) {
                         // Case header node - bold blue
                         setFont(getFont().deriveFont(Font.BOLD));
-                        if (!sel) setForeground(CASE_FG);
+                        if (!sel)
+                            setForeground(CASE_FG);
                     } else if (sn.isDefault) {
                         // Placeholder node - italic gray
                         setFont(getFont().deriveFont(Font.ITALIC));
-                        if (!sel) setForeground(Color.GRAY);
+                        if (!sel)
+                            setForeground(Color.GRAY);
                     } else if (sn.subcase != null) {
                         String result = sn.subcase.getResult();
                         if (!sel) {
-                            if ("PASS".equals(result))      setForeground(PASS_FG);
-                            else if ("FAIL".equals(result)) setForeground(FAIL_FG);
+                            if ("PASS".equals(result))
+                                setForeground(PASS_FG);
+                            else if ("FAIL".equals(result))
+                                setForeground(FAIL_FG);
                         }
                     }
                 }
@@ -311,9 +329,9 @@ public class TestCaseSelectorPanel extends JPanel {
             return this;
         }
     }
-    
+
     // ── Helper methods for displaying descriptions ────────────────────────
-    
+
     /**
      * Display test case description in the parent UI's action logs panel
      */
@@ -329,7 +347,8 @@ public class TestCaseSelectorPanel extends JPanel {
      */
     private void displaySubcaseDescription(TestSubcase sc) {
         if (descriptionPanel != null && sc != null) {
-            descriptionPanel.displaySubcaseDescription(sc.getId(), sc.getName(), sc.getDescription(), sc.getExpectation());
+            descriptionPanel.displaySubcaseDescription(sc.getId(), sc.getName(), sc.getDescription(),
+                    sc.getExpectation());
         }
     }
 }
