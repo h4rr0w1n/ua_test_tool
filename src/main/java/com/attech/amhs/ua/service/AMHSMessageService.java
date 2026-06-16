@@ -400,10 +400,6 @@ public class AMHSMessageService {
 
                 MessageSummary summary = new MessageSummary();
                 try {
-                    // Use ReceivedMessage1 to parse message type and report details
-                    com.attech.amhs.ua.isode.ReceivedMessage1 receivedMsg = 
-                        new com.attech.amhs.ua.isode.ReceivedMessage1(bindSession, rm);
-                    
                     try {
                         summary.setSubject(rm.getSubject());
                     } catch (Exception e) {
@@ -427,6 +423,7 @@ public class AMHSMessageService {
                         }
                     }
                     
+                    com.attech.amhs.ua.isode.ReceivedMessage1 receivedMsg = new com.attech.amhs.ua.isode.ReceivedMessage1(rm, 0);
                     // Set report type and details if this is a report message
                     if (receivedMsg.getType() == com.attech.amhs.ua.isode.enums.MessageType.REPORT) {
                         summary.setReportType("DR/NDR");
