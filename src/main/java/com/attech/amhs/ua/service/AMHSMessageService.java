@@ -400,6 +400,10 @@ public class AMHSMessageService {
 
                 MessageSummary summary = new MessageSummary();
                 try {
+                    // Use ReceivedMessage1 to parse message type and report details
+                    com.attech.amhs.ua.isode.ReceivedMessage1 receivedMsg = 
+                        new com.attech.amhs.ua.isode.ReceivedMessage1(bindSession, rm);
+                    
                     try {
                         summary.setSubject(rm.getSubject());
                     } catch (Exception e) {
@@ -421,6 +425,31 @@ public class AMHSMessageService {
                             // Unknown error — rethrow as X400APIException so outer handler deals with it
                             throw new X400APIException(e.getMessage());
                         }
+                    }
+                    
+                    // Set report type and details if this is a report message
+                    if (receivedMsg.getType() == com.attech.amhs.ua.isode.enums.MessageType.REPORT) {
+                        summary.setReportType("DR/NDR");
+                        StringBuilder details = new StringBuilder();
+                        if (receivedMsg.getReportRecips() != null && !receivedMsg.getReportRecips().isEmpty()) {
+                            for (com.attech.amhs.ua.isode.ReportRecipient recip : receivedMsg.getReportRecips()) {
+                                if (details.length() > 0) details.append("; ");
+                                details.append("Addr: ").append(recip.getAddress());
+                                if (recip.getDeliveryTime() != null) {
+                                    details.append(", Delivered: ").append(recip.getDeliveryTime());
+                                }
+                                if (recip.getNonDeliveryReason() != null) {
+                                    details.append(", NDR Reason: ").append(recip.getNonDeliveryReason());
+                                }
+                                if (recip.getNonDeliveryDiagnosticCode() != null) {
+                                    details.append(", Diagnostic: ").append(recip.getNonDeliveryDiagnosticCode());
+                                }
+                            }
+                        }
+                        summary.setReportDetails(details.toString());
+                    } else if (receivedMsg.getType() == com.attech.amhs.ua.isode.enums.MessageType.IPN) {
+                        summary.setReportType("IPN");
+                        summary.setReportDetails("IPN receipt notification");
                     }
 
                     messages.add(summary);
@@ -525,6 +554,9 @@ public class AMHSMessageService {
         private String messageId;
         private int contentLength;
         private String content;
+        private String reportType;         // DR, NDR, IPN, or null for regular messages
+        private String reportDetails;      // Detailed report information
+        private String drRequestType;      // The DR request type set when sending
         
         public String getSubject() { return subject; }
         public void setSubject(String subject) { this.subject = subject; }
@@ -544,9 +576,26 @@ public class AMHSMessageService {
         public String getContent() { return content; }
         public void setContent(String content) { this.content = content; }
         
+        public String getReportType() { return reportType; }
+        public void setReportType(String reportType) { this.reportType = reportType; }
+        
+        public String getReportDetails() { return reportDetails; }
+        public void setReportDetails(String reportDetails) { this.reportDetails = reportDetails; }
+        
+        public String getDrRequestType() { return drRequestType; }
+        public void setDrRequestType(String drRequestType) { this.drRequestType = drRequestType; }
+        
         @Override
         public String toString() {
-            return "From: " + sender + " | Subject: " + subject + " | Time: " + submissionTime;
+            StringBuilder sb = new StringBuilder();
+            sb.append("From: ").append(sender).append(" | Subject: ").append(subject);
+            if (submissionTime != null) {
+                sb.append(" | Time: ").append(submissionTime);
+            }
+            if (reportType != null) {
+                sb.append(" | Report Type: ").append(reportType);
+            }
+            return sb.toString();
         }
     }
 }

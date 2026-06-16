@@ -20,6 +20,11 @@ public class MessageLog implements Serializable {
     private String errorMessage;         // Error message if send failed
     private String x400Payload;          // Full X.400 payload sent
     private boolean isReceived;          // true if this is a received message, false if sent
+    
+    // Report-related fields for DR/NDR/IPN tracking
+    private String reportType;           // DR, NDR, IPN, or null for regular messages
+    private String reportDetails;        // Detailed report information (delivery time, diagnostic codes, etc.)
+    private String drRequestType;        // The DR request type set when sending (DR_DELIVERY_REPORT, DR_NO_REPORT, DR_NON_DELIVERY_REPORT)
 
     public MessageLog() {
         this.timestamp = System.currentTimeMillis();
@@ -127,5 +132,31 @@ public class MessageLog implements Serializable {
     
     public void setIsReceived(boolean isReceived) {
         this.isReceived = isReceived;
+    }
+
+    // Report-related getters and setters
+    
+    public String getReportType() {
+        return reportType;
+    }
+
+    public void setReportType(String reportType) {
+        this.reportType = reportType;
+    }
+
+    public String getReportDetails() {
+        return reportDetails;
+    }
+
+    public void setReportDetails(String reportDetails) {
+        this.reportDetails = reportDetails;
+    }
+
+    public String getDrRequestType() {
+        return drRequestType;
+    }
+
+    public void setDrRequestType(String drRequestType) {
+        this.drRequestType = drRequestType;
     }
 }

@@ -10,15 +10,18 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * Panel for displaying sent and received messages filtered by User/O/R Address
+ * Panel for displaying sent, received, and report messages filtered by User/O/R Address
  */
 public class MessageDisplayPanel extends JPanel {
     
     private JTextArea txtReceivedMessages;
     private JTextArea txtSentMessages;
+    private JTextArea txtReports;
     private JScrollPane scrollReceivedPane;
     private JScrollPane scrollSentPane;
-    private JSplitPane splitPane;
+    private JScrollPane scrollReportsPane;
+    private JSplitPane splitPaneMain;
+    private JSplitPane splitPaneUpper;
     private SimpleDateFormat dateFormat;
     private List<MessageLog> allMessages;
     private String currentUserAddress;
@@ -32,23 +35,50 @@ public class MessageDisplayPanel extends JPanel {
     
     private void initUI() {
         setLayout(new BorderLayout());
-        setBorder(new TitledBorder("Messages (Received / Sent)"));
+        setBorder(new TitledBorder("Messages (Reports / Received / Sent)"));
         
-        // Received messages panel (upper)
+        // Reports panel (upper)
+        JPanel reportsPanel = createReportsPanel();
+        
+        // Received messages panel (middle)
         JPanel receivedPanel = createReceivedMessagesPanel();
         
         // Sent messages panel (lower)
         JPanel sentPanel = createSentMessagesPanel();
         
-        // Split pane with received on top, sent on bottom
-        splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, receivedPanel, sentPanel);
-        splitPane.setDividerLocation(0.5);
-        splitPane.setResizeWeight(0.5);
-        splitPane.setContinuousLayout(true);
+        // Split pane: received/sent in upper, reports at bottom
+        splitPaneUpper = new JSplitPane(JSplitPane.VERTICAL_SPLIT, receivedPanel, sentPanel);
+        splitPaneUpper.setDividerLocation(0.5);
+        splitPaneUpper.setResizeWeight(0.5);
+        splitPaneUpper.setContinuousLayout(true);
         
-        add(splitPane, BorderLayout.CENTER);
+        // Main split pane: reports on top, received/sent below
+        splitPaneMain = new JSplitPane(JSplitPane.VERTICAL_SPLIT, reportsPanel, splitPaneUpper);
+        splitPaneMain.setDividerLocation(0.33);
+        splitPaneMain.setResizeWeight(0.33);
+        splitPaneMain.setContinuousLayout(true);
         
-        setPreferredSize(new Dimension(300, 250));
+        add(splitPaneMain, BorderLayout.CENTER);
+        
+        setPreferredSize(new Dimension(300, 350));
+    }
+    
+    private JPanel createReportsPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createTitledBorder("DR/NDR/IPN Reports"));
+        
+        txtReports = new JTextArea();
+        txtReports.setEditable(false);
+        txtReports.setFont(new Font("Monospaced", Font.PLAIN, 10));
+        txtReports.setLineWrap(true);
+        txtReports.setWrapStyleWord(true);
+        
+        scrollReportsPane = new JScrollPane(txtReports);
+        scrollReportsPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollReportsPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        
+        panel.add(scrollReportsPane, BorderLayout.CENTER);
+        return panel;
     }
     
     private JPanel createReceivedMessagesPanel() {
@@ -110,6 +140,7 @@ public class MessageDisplayPanel extends JPanel {
     private void refreshDisplay() {
         StringBuilder receivedBuilder = new StringBuilder();
         StringBuilder sentBuilder = new StringBuilder();
+        StringBuilder reportsBuilder = new StringBuilder();
         
         for (MessageLog message : allMessages) {
             // For received messages, we check if the message is from a sender matching the filter
@@ -118,18 +149,21 @@ public class MessageDisplayPanel extends JPanel {
                                 (message.getRecipient() != null && message.getRecipient().contains(currentUserAddress));
             
             if (isMatching) {
-                String formatted = formatMessage(message);
-                
-                // Simple heuristic: if it has a recipient, treat as sent; otherwise received
-                // In a real scenario, you'd have a message direction field
-                if (message.getRecipient() != null && !message.getRecipient().isEmpty()) {
-                    sentBuilder.append(formatted).append("\n---\n");
-                } else {
+                // Check if this is a report message
+                if (message.getReportType() != null && !message.getReportType().isEmpty()) {
+                    String formatted = formatReport(message);
+                    reportsBuilder.append(formatted).append("\n---\n");
+                } else if (message.isReceived()) {
+                    String formatted = formatMessage(message);
                     receivedBuilder.append(formatted).append("\n---\n");
+                } else {
+                    String formatted = formatMessage(message);
+                    sentBuilder.append(formatted).append("\n---\n");
                 }
             }
         }
         
+        txtReports.setText(reportsBuilder.toString());
         txtReceivedMessages.setText(receivedBuilder.toString());
         txtSentMessages.setText(sentBuilder.toString());
     }
@@ -150,9 +184,12 @@ public class MessageDisplayPanel extends JPanel {
             sb.append("\n");
         }
         
-        // Recipient/From
+        // Sender/Recipient
+        if (message.getSender() != null && !message.getSender().isEmpty()) {
+            sb.append("From: ").append(abbreviateAddress(message.getSender())).append("\n");
+        }
         if (message.getRecipient() != null) {
-            sb.append("Recipient: ").append(abbreviateAddress(message.getRecipient())).append("\n");
+            sb.append("To: ").append(abbreviateAddress(message.getRecipient())).append("\n");
         }
         
         // Subject
@@ -163,6 +200,11 @@ public class MessageDisplayPanel extends JPanel {
         // Priority
         if (message.getPriority() != null) {
             sb.append("Priority: ").append(message.getPriority()).append("\n");
+        }
+        
+        // DR Request Type (for sent messages)
+        if (message.getDrRequestType() != null && !message.getDrRequestType().isEmpty()) {
+            sb.append("DR Request: ").append(message.getDrRequestType()).append("\n");
         }
         
         // Content (abbreviated if too long)
@@ -184,6 +226,51 @@ public class MessageDisplayPanel extends JPanel {
         return sb.toString();
     }
     
+    private String formatReport(MessageLog message) {
+        StringBuilder sb = new StringBuilder();
+        
+        // Timestamp
+        String timestamp = dateFormat.format(new Date(message.getTimestamp()));
+        sb.append("[").append(timestamp).append("] ");
+        
+        // Report Type
+        sb.append("Report Type: ").append(message.getReportType()).append("\n");
+        
+        // Test Case and Subcase
+        if (message.getTestCaseId() != null) {
+            sb.append("Case: ").append(message.getTestCaseId());
+            if (message.getTestSubcaseId() != null) {
+                sb.append(" / ").append(message.getTestSubcaseId());
+            }
+            sb.append("\n");
+        }
+        
+        // Sender/Recipient
+        if (message.getSender() != null && !message.getSender().isEmpty()) {
+            sb.append("From: ").append(abbreviateAddress(message.getSender())).append("\n");
+        }
+        if (message.getRecipient() != null) {
+            sb.append("To: ").append(abbreviateAddress(message.getRecipient())).append("\n");
+        }
+        
+        // Subject
+        if (message.getSubject() != null) {
+            sb.append("Subject: ").append(message.getSubject()).append("\n");
+        }
+        
+        // Report Details
+        if (message.getReportDetails() != null && !message.getReportDetails().isEmpty()) {
+            sb.append("Details: ").append(message.getReportDetails()).append("\n");
+        }
+        
+        // Original DR Request Type if available
+        if (message.getDrRequestType() != null && !message.getDrRequestType().isEmpty()) {
+            sb.append("Original DR Request: ").append(message.getDrRequestType()).append("\n");
+        }
+        
+        return sb.toString();
+    }
+    
     /**
      * Abbreviate a long address for display
      */
@@ -201,6 +288,7 @@ public class MessageDisplayPanel extends JPanel {
         allMessages.clear();
         txtReceivedMessages.setText("");
         txtSentMessages.setText("");
+        txtReports.setText("");
     }
     
     /**
