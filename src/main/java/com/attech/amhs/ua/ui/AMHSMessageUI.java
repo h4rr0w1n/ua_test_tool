@@ -1153,6 +1153,21 @@ public class AMHSMessageUI extends JFrame {
             log.setErrorMessage(errorMessage);
         log.setIsReceived(isReceived);
 
+        // Set DR request type from defaults if sending a message
+        if (!isReceived && defaults != null) {
+            String drRequest = defaults.get("originator-report-request");
+            if (drRequest != null && !drRequest.trim().isEmpty()) {
+                String lower = drRequest.toLowerCase().trim();
+                if (lower.equals("report") || lower.equals("delivery-report") || lower.equals("3")) {
+                    log.setDrRequestType("DR_DELIVERY_REPORT");
+                } else if (lower.equals("none") || lower.equals("0")) {
+                    log.setDrRequestType("DR_NO_REPORT");
+                } else if (lower.equals("non-delivery-report") || lower.equals("2") || lower.equals("1")) {
+                    log.setDrRequestType("DR_NON_DELIVERY_REPORT");
+                }
+            }
+        }
+
         String x400Payload = generateDetailedPayload(sender, recipient, subject, priority, isReceived, defaults);
 
         log.setX400Payload(x400Payload);

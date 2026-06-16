@@ -1,14 +1,17 @@
+```
 # Compiled and build artifacts
 *.class
 *.o
 *.obj
+*.exe
+*.dll
+*.so
+*.a
 *.out
-build/
-target/
 
 # Dependencies
+target/
 .gradle/
-lib/
 
 # Logs and temp files
 *.log
@@ -24,29 +27,14 @@ lib/
 .env.local
 *.env.*
 
-# Coverage
+# Coverage reports
 coverage/
 htmlcov/
 .coverage
 
-# Python specific
+# Package manager
+node_modules/
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.so
-*.egg-info/
-.eggs/
-
-# Java specific
-*.jar
-*.war
-*.ear
-hs_err_pid*
-
-# System files
-.DS_Store
-Thumbs.db
-.nyc_output
-coverage/lcov-report/
+.mypy_cache/
+.pytest_cache/
+```
