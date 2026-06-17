@@ -830,13 +830,13 @@ public class AMHSMessageUI extends JFrame {
                         appendOutput("Filing-time used: " + filingTime);
                     }
                     addMessageToMarkingPanel(txtUserOrAddress.getText().trim(), recipient, subject, content,
-                            priority.toString(), true, null, false, amhsDefaults);
+                            priority.toString(), true, null, false, amhsDefaults, null, null);
                 });
             } catch (Throwable t) {
                 SwingUtilities.invokeLater(() -> {
                     appendOutput("Failed to send message: " + t.getMessage());
                     addMessageToMarkingPanel(txtUserOrAddress.getText().trim(), recipient, subject, content,
-                            priority.toString(), false, t.getMessage(), false, amhsDefaults);
+                            priority.toString(), false, t.getMessage(), false, amhsDefaults, null, null);
                 });
             }
         }).start();
@@ -860,9 +860,11 @@ public class AMHSMessageUI extends JFrame {
                 SwingUtilities.invokeLater(() -> {
                     appendOutput("Received " + msgs.size() + " message(s):");
                     for (AMHSMessageService.MessageSummary m : msgs) {
-                        appendOutput("From: " + m.getSender() + "  Subject: " + m.getSubject());
+                        appendOutput("From: " + m.getSender() + "  Subject: " + m.getSubject()
+                                + (m.getReportType() != null ? "  [" + m.getReportType() + " Report]" : ""));
                         addMessageToMarkingPanel(m.getSender(), txtUserOrAddress.getText().trim(), m.getSubject(),
-                                m.getContent(), null, true, null, true, null);
+                                m.getContent(), null, true, null, true, null,
+                                m.getReportType(), m.getReportDetails());
                         // Logging to DescriptionPanel has been removed per user request.
                     }
                 });
@@ -1136,7 +1138,8 @@ public class AMHSMessageUI extends JFrame {
 
     private void addMessageToMarkingPanel(String sender, String recipient, String subject,
             String content, String priority, boolean success,
-            String errorMessage, boolean isReceived, Map<String, String> defaults) {
+            String errorMessage, boolean isReceived, Map<String, String> defaults,
+            String reportType, String reportDetails) {
         if (markingPanel == null)
             return;
         MessageLog log = new MessageLog(
@@ -1152,6 +1155,14 @@ public class AMHSMessageUI extends JFrame {
         if (errorMessage != null)
             log.setErrorMessage(errorMessage);
         log.setIsReceived(isReceived);
+
+        // Set report type/details for received DR/NDR/IPN messages
+        if (reportType != null && !reportType.isEmpty()) {
+            log.setReportType(reportType);
+        }
+        if (reportDetails != null && !reportDetails.isEmpty()) {
+            log.setReportDetails(reportDetails);
+        }
 
         // Set DR request type from defaults if sending a message
         if (!isReceived && defaults != null) {
