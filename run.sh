@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null 2>&1 && pwd)"
 cd "$SCRIPT_DIR"
 
 JAR_FILE="$SCRIPT_DIR/target/ua-test-tool-1.0.0-jar-with-dependencies.jar"
-ISODE_LIB_DIR="$SCRIPT_DIR/libs"
+ISODE_LIB_DIR="$SCRIPT_DIR/lib"
 
 if [ ! -f "$JAR_FILE" ]; then
     echo "=========================================================="

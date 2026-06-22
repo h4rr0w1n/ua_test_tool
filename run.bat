@@ -15,7 +15,7 @@ if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
 cd /d "%SCRIPT_DIR%"
 
 set "JAR_FILE=%SCRIPT_DIR%\target\ua-test-tool-1.0.0-jar-with-dependencies.jar"
-set "ISODE_LIB_DIR=%SCRIPT_DIR%\libs"
+set "ISODE_LIB_DIR=%SCRIPT_DIR%\lib"
 
 if not exist "%JAR_FILE%" (
     echo ==========================================================
