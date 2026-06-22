@@ -1,7 +1,5 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version='1.0' encoding='UTF-8'?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.attech.amhs</groupId>
@@ -45,7 +43,7 @@
     </pluginRepositories>
 
     <dependencies>
-        <!-- Isode X.400 Libraries -->
+        
         <dependency>
             <groupId>com.isode.x400</groupId>
             <artifactId>isode-x400</artifactId>
@@ -112,7 +110,7 @@
             <version>1.0.0</version>
         </dependency>
 
-        <!-- ATTech UA Libraries -->
+        
         <dependency>
             <groupId>com.attech.amhs.ua</groupId>
             <artifactId>com.attech.amhs.ua.db</artifactId>
@@ -124,42 +122,42 @@
             <version>1.0.0</version>
         </dependency>
 
-        <!-- JPA Persistence API -->
+        
         <dependency>
             <groupId>javax.persistence</groupId>
             <artifactId>javax.persistence-api</artifactId>
             <version>2.2</version>
         </dependency>
 
-        <!-- Hibernate Core -->
+        
         <dependency>
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-core</artifactId>
             <version>4.3.11.Final</version>
         </dependency>
         
-        <!-- SLF4J Logging -->
+        
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>2.0.7</version>
         </dependency>
         
-        <!-- Log4j -->
+        
         <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <version>1.2.17</version>
         </dependency>
         
-        <!-- Apache Commons -->
+        
         <dependency>
             <groupId>commons-lang</groupId>
             <artifactId>commons-lang</artifactId>
             <version>2.6</version>
         </dependency>
         
-        <!-- Bouncy Castle -->
+        
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk15on</artifactId>
@@ -172,14 +170,14 @@
             <version>1.47</version>
         </dependency>
         
-        <!-- JNA -->
+        
         <dependency>
             <groupId>net.java.dev.jna</groupId>
             <artifactId>jna</artifactId>
             <version>3.4.0</version>
         </dependency>
         
-        <!-- Apache POI for Excel/XLSX export -->
+        
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
@@ -194,7 +192,7 @@
 
     <build>
         <plugins>
-            <plugin>
+            <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-install-plugin</artifactId><version>3.1.1</version><executions><execution><id>install-isode-x400</id><phase>initialize</phase><goals><goal>install-file</goal></goals><configuration><file>${project.basedir}/libs/isode-x400.jar</file><groupId>com.isode.x400</groupId><artifactId>isode-x400</artifactId><version>1.0.0</version><packaging>jar</packaging></configuration></execution><execution><id>install-isode-lib</id><phase>initialize</phase><goals><goal>install-file</goal></goals><configuration><file>${project.basedir}/libs/isode-lib.jar</file><groupId>com.isode</groupId><artifactId>isode-lib</artifactId><version>1.0.0</version><packaging>jar</packaging></configuration></execution><execution><id>install-isode-asn</id><phase>initialize</phase><goals><goal>install-file</goal></goals><configuration><file>${project.basedir}/libs/isode-asn.jar</file><groupId>com.isode</groupId><artifactId>isode-asn</artifactId><version>1.0.0</version><packaging>jar</packaging></configuration></execution><execution><id>install-isode-crypto</id><phase>initialize</phase><goals><goal>install-file</goal></goals><configuration><file>${project.basedir}/libs/isode-crypto.jar</file><groupId>com.isode</groupId><artifactId>isode-crypto</artifactId><version>1.0.0</version><packaging>jar</packaging></configuration></execution><execution><id>install-isode-dsapi</id><phase>initialize</phase><goals><goal>install-file</goal></goals><configuration><file>${project.basedir}/libs/isode-dsapi.jar</file><groupId>com.isode</groupId><artifactId>isode-dsapi</artifactId><version>1.0.0</version><packaging>jar</packaging></configuration></execution><execution><id>install-isode-dsapigui</id><phase>initialize</phase><goals><goal>install-file</goal></goals><configuration><file>${project.basedir}/libs/isode-dsapigui.jar</file><groupId>com.isode</groupId><artifactId>isode-dsapigui</artifactId><version>1.0.0</version><packaging>jar</packaging></configuration></execution><execution><id>install-isode-emmash</id><phase>initialize</phase><goals><goal>install-file</goal></goals><configuration><file>${project.basedir}/libs/isode-emmash.jar</file><groupId>com.isode</groupId><artifactId>isode-emmash</artifactId><version>1.0.0</version><packaging>jar</packaging></configuration></execution><execution><id>install-isode-hlxja</id><phase>initialize</phase><goals><goal>install-file</goal></goals><configuration><file>${project.basedir}/libs/isode-hlxja.jar</file><groupId>com.isode</groupId><artifactId>isode-hlxja</artifactId><version>1.0.0</version><packaging>jar</packaging></configuration></execution><execution><id>install-isode-mvc</id><phase>initialize</phase><goals><goal>install-file</goal></goals><configuration><file>${project.basedir}/libs/isode-mvc.jar</file><groupId>com.isode</groupId><artifactId>isode-mvc</artifactId><version>1.0.0</version><packaging>jar</packaging></configuration></execution><execution><id>install-isode-nettrace</id><phase>initialize</phase><goals><goal>install-file</goal></goals><configuration><file>${project.basedir}/libs/isode-nettrace.jar</file><groupId>com.isode</groupId><artifactId>isode-nettrace</artifactId><version>1.0.0</version><packaging>jar</packaging></configuration></execution><execution><id>install-isode-rbac</id><phase>initialize</phase><goals><goal>install-file</goal></goals><configuration><file>${project.basedir}/libs/isode-rbac.jar</file><groupId>com.isode</groupId><artifactId>isode-rbac</artifactId><version>1.0.0</version><packaging>jar</packaging></configuration></execution><execution><id>install-isode-ca</id><phase>initialize</phase><goals><goal>install-file</goal></goals><configuration><file>${project.basedir}/libs/isode-ca.jar</file><groupId>com.isode</groupId><artifactId>isode-ca</artifactId><version>1.0.0</version><packaging>jar</packaging></configuration></execution><execution><id>install-jswrapper</id><phase>initialize</phase><goals><goal>install-file</goal></goals><configuration><file>${project.basedir}/libs/jswrapper.jar</file><groupId>com.isode</groupId><artifactId>jswrapper</artifactId><version>1.0.0</version><packaging>jar</packaging></configuration></execution><execution><id>install-com.attech.amhs.ua.db</id><phase>initialize</phase><goals><goal>install-file</goal></goals><configuration><file>${project.basedir}/libs/com.attech.amhs.ua.db.jar</file><groupId>com.attech.amhs.ua</groupId><artifactId>com.attech.amhs.ua.db</artifactId><version>1.0.0</version><packaging>jar</packaging></configuration></execution><execution><id>install-com.attech.amhs.ua.common</id><phase>initialize</phase><goals><goal>install-file</goal></goals><configuration><file>${project.basedir}/libs/com.attech.amhs.ua.common.jar</file><groupId>com.attech.amhs.ua</groupId><artifactId>com.attech.amhs.ua.common</artifactId><version>1.0.0</version><packaging>jar</packaging></configuration></execution></executions></plugin><plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.1</version>
@@ -213,7 +211,7 @@
                         <manifest>
                             <mainClass>com.attech.amhs.ua.ui.AMHSMessageUI</mainClass>
                             <addClasspath>true</addClasspath>
-                            <classpathPrefix>lib/</classpathPrefix>
+                            <classpathPrefix>libs/</classpathPrefix>
                         </manifest>
                     </archive>
                 </configuration>
@@ -231,7 +229,7 @@
                             <goal>copy-dependencies</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                            <outputDirectory>${project.build.directory}/libs</outputDirectory>
                             <overWriteReleases>false</overWriteReleases>
                             <overWriteSnapshots>false</overWriteSnapshots>
                             <overWriteIfNewer>true</overWriteIfNewer>
@@ -267,30 +265,4 @@
         </plugins>
     </build>
     
-    <profiles>
-        <profile>
-            <id>install-isode-libs</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <version>3.0.0</version>
-                        <executions>
-                            <execution>
-                                <id>install-isode-libs</id>
-                                <phase>validate</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <configuration>
-                                    <executable>./install-isode-libs.sh</executable>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
-</project>
+    </project>
