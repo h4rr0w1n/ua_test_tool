@@ -79,8 +79,11 @@ public class AMHSMessageUI extends JFrame {
     private JComboBox<String> comboEncoding;
     private JComboBox<String> comboCharset;
     private JComboBox<String> comboContentType;
+    private JComboBox<String> comboBodyPartType;
+    private JComboBox<String> comboMsgType;
+    private JComboBox<String> comboDrReq;
+    private JComboBox<String> comboRnReq;
     private JTextField txtATSHeader; // Custom ATS Header
-    private JComboBox<String> comboBodyPartType; // Body Part Type (ia5-text, general-text, file-transfer)
     private JTextField txtFTBPFileName; // FTBP File Name
     private JTextArea txtFTBPContent; // FTBP Content
 
@@ -277,13 +280,27 @@ public class AMHSMessageUI extends JFrame {
         txtSubject = new JTextField("Test X.400 Message", 30);
         panel.add(txtSubject, gbc);
 
-        // Priority
+        // Message Type
         gbc.gridx = 0;
         gbc.gridy = 2;
         gbc.gridwidth = 1;
         gbc.weightx = 0;
-        panel.add(new JLabel("Priority:"), gbc);
+        panel.add(new JLabel("Msg Type:"), gbc);
         gbc.gridx = 1;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.5;
+        comboMsgType = new JComboBox<>(new String[] {
+                "IPM", "Probe"
+        });
+        panel.add(comboMsgType, gbc);
+
+        // Priority
+        gbc.gridx = 2;
+        gbc.gridy = 2;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
+        panel.add(new JLabel("Priority:"), gbc);
+        gbc.gridx = 3;
         gbc.gridwidth = 1;
         gbc.weightx = 0.5;
         comboPriority = new JComboBox<>(new X400_Priority[] {
@@ -294,33 +311,64 @@ public class AMHSMessageUI extends JFrame {
         panel.add(comboPriority, gbc);
 
         // ATS Priority (AMHS-specific)
-        gbc.gridx = 2;
+        gbc.gridx = 0;
+        gbc.gridy = 3;
         gbc.gridwidth = 1;
         gbc.weightx = 0;
         panel.add(new JLabel("ATS Priority:"), gbc);
-        gbc.gridx = 3;
+        gbc.gridx = 1;
         gbc.gridwidth = 1;
         gbc.weightx = 0.5;
         txtATSPriority = new JTextField("FF", 8);
         txtATSPriority.setToolTipText("ATS Priority code: KK/GG/FF/DD/SS");
         panel.add(txtATSPriority, gbc);
 
-        // OHI (Optional Heading Info)
-        gbc.gridx = 0;
+        // DR Request
+        gbc.gridx = 2;
         gbc.gridy = 3;
         gbc.gridwidth = 1;
         gbc.weightx = 0;
-        panel.add(new JLabel("OHI:"), gbc);
+        panel.add(new JLabel("DR Req:"), gbc);
+        gbc.gridx = 3;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.5;
+        comboDrReq = new JComboBox<>(new String[] {
+                "None", "NDR", "DR", "Both"
+        });
+        comboDrReq.setSelectedItem("NDR");
+        panel.add(comboDrReq, gbc);
+
+        // RN Request
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
+        panel.add(new JLabel("RN Req:"), gbc);
         gbc.gridx = 1;
-        gbc.gridwidth = 3;
-        gbc.weightx = 1.0;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.5;
+        comboRnReq = new JComboBox<>(new String[] {
+                "None", "NRN", "RN", "Both"
+        });
+        comboRnReq.setSelectedItem("None");
+        panel.add(comboRnReq, gbc);
+
+        // OHI (Optional Heading Info)
+        gbc.gridx = 2;
+        gbc.gridy = 4;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0;
+        panel.add(new JLabel("OHI:"), gbc);
+        gbc.gridx = 3;
+        gbc.gridwidth = 1;
+        gbc.weightx = 0.5;
         txtOHI = new JTextField("", 30);
         txtOHI.setToolTipText("Optional Heading Info");
         panel.add(txtOHI, gbc);
 
         // Content
         gbc.gridx = 0;
-        gbc.gridy = 4;
+        gbc.gridy = 5;
         gbc.gridwidth = 1;
         gbc.weightx = 0;
         gbc.anchor = GridBagConstraints.NORTHWEST;
@@ -346,7 +394,7 @@ public class AMHSMessageUI extends JFrame {
 
         // Encoding (AMHS-specific)
         gbc.gridx = 0;
-        gbc.gridy = 5;
+        gbc.gridy = 6;
         gbc.gridwidth = 1;
         gbc.weightx = 0;
         panel.add(new JLabel("Encoding:"), gbc);
@@ -376,7 +424,7 @@ public class AMHSMessageUI extends JFrame {
 
         // Content Type (AMHS-specific)
         gbc.gridx = 0;
-        gbc.gridy = 6;
+        gbc.gridy = 7;
         gbc.gridwidth = 1;
         gbc.weightx = 0;
         panel.add(new JLabel("Content Type:"), gbc);
@@ -404,7 +452,7 @@ public class AMHSMessageUI extends JFrame {
 
         // Body Part Type (AMHS-specific - FTBP support)
         gbc.gridx = 0;
-        gbc.gridy = 7;
+        gbc.gridy = 8;
         gbc.gridwidth = 1;
         gbc.weightx = 0;
         panel.add(new JLabel("Body Part Type:"), gbc);
@@ -432,7 +480,7 @@ public class AMHSMessageUI extends JFrame {
 
         // FTBP Content (multi-line for file content)
         gbc.gridx = 0;
-        gbc.gridy = 8;
+        gbc.gridy = 9;
         gbc.gridwidth = 1;
         gbc.weightx = 0;
         gbc.anchor = GridBagConstraints.NORTHWEST;
@@ -448,7 +496,7 @@ public class AMHSMessageUI extends JFrame {
         panel.add(new JScrollPane(txtFTBPContent), gbc);
 
         // Buttons
-        gbc.gridy = 9;
+        gbc.gridy = 10;
         gbc.gridwidth = 1;
         gbc.weightx = 0;
         gbc.weighty = 0;
@@ -473,8 +521,8 @@ public class AMHSMessageUI extends JFrame {
         gbc.gridx = 3;
         JButton btnClearLogs = new JButton("Clear Logs");
         btnClearLogs.addActionListener(e -> {
-            if (descriptionPanel != null)
-                descriptionPanel.clear();
+            if (markingPanel != null)
+                markingPanel.clearMessages();
         });
         panel.add(btnClearLogs, gbc);
 
@@ -794,6 +842,19 @@ public class AMHSMessageUI extends JFrame {
         String atsHeader = txtATSHeader.getText().trim();
         if (!atsHeader.isEmpty())
             uiAmhsFields.put("ats-header", atsHeader);
+            
+        String msgType = (String) comboMsgType.getSelectedItem();
+        if ("Probe".equalsIgnoreCase(msgType)) {
+            uiAmhsFields.put("probe", "probe");
+        }
+        String drReq = (String) comboDrReq.getSelectedItem();
+        if (drReq != null) {
+            uiAmhsFields.put("originator-report-request", drReq);
+        }
+        String rnReq = (String) comboRnReq.getSelectedItem();
+        if (rnReq != null) {
+            uiAmhsFields.put("receipt-notification", rnReq);
+        }
 
         if (recipient.isEmpty() || subject.isEmpty() || content.isEmpty()) {
             appendOutput("Error: Recipient, subject, and content are required.");
@@ -815,6 +876,10 @@ public class AMHSMessageUI extends JFrame {
 
         // Create an effectively final copy for use in lambda
         final Map<String, String> amhsDefaults = defaults;
+
+        if (SettingsDialog.isClearOldLogsOnSend() && markingPanel != null) {
+            markingPanel.clearSentMessages();
+        }
 
         logSend(recipient, subject, content, priority, true, amhsDefaults);
         appendOutput("Sending message…");
@@ -941,6 +1006,10 @@ public class AMHSMessageUI extends JFrame {
         }
         handleLoadDefaultsForSubcase();
 
+        if (SettingsDialog.isClearOldLogsOnSend() && markingPanel != null) {
+            markingPanel.clearSentMessages();
+        }
+
         // Snapshot on EDT before thread
         TestSubcase currentSubcase = getSelectedSubcase();
         Map<String, String> defaults = currentSubcase != null
@@ -982,6 +1051,10 @@ public class AMHSMessageUI extends JFrame {
         }
 
         appendOutput("Sending messages for all " + tc.getSubcases().size() + " subcases of " + tc.getId() + "...");
+
+        if (SettingsDialog.isClearOldLogsOnSend() && markingPanel != null) {
+            markingPanel.clearSentMessages();
+        }
 
         int successCount = 0;
         int failCount = 0;

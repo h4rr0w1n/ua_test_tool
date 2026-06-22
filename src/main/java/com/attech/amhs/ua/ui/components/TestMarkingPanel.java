@@ -170,6 +170,14 @@ public class TestMarkingPanel extends JPanel {
     }
 
     /**
+     * Clear all sent messages from the panels.
+     */
+    public void clearSentMessages() {
+        allMessages.removeIf(m -> !m.isReceived());
+        refreshDisplay();
+    }
+
+    /**
      * Return a snapshot of all stored messages.
      */
     public List<MessageLog> getAllMessages() {

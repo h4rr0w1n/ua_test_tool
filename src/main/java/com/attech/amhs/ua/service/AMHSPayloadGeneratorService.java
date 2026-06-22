@@ -237,25 +237,6 @@ public class AMHSPayloadGeneratorService {
         return recipients;
     }
 
-    private String buildRecipientVariant(String baseRecipient, int index) {
-        if (baseRecipient == null || baseRecipient.trim().isEmpty() || index <= 1) {
-            return baseRecipient;
-        }
-        String recipient = baseRecipient.trim();
-        int cnIndex = recipient.indexOf("/CN=");
-        if (cnIndex != -1) {
-            int start = cnIndex + 4;
-            int end = recipient.indexOf("/", start);
-            if (end == -1) {
-                end = recipient.length();
-            }
-            String cnValue = recipient.substring(start, end);
-            String newCn = cnValue + index;
-            return recipient.substring(0, start) + newCn + recipient.substring(end);
-        }
-        return recipient + "." + index;
-    }
-
     private List<String> resolveToRecipients(Map<String, String> amhsDefaults, String defaultRecipient) {
         String recipientsValue = firstNonEmpty(amhsDefaults, "primary-recipients", "recipient");
         if (recipientsValue == null || recipientsValue.trim().isEmpty()) {
@@ -272,9 +253,13 @@ public class AMHSPayloadGeneratorService {
             recipients.add(defaultRecipient.trim());
         }
 
-        String baseRecipient = recipients.isEmpty() ? defaultRecipient : recipients.get(0);
-        while (recipients.size() < count && baseRecipient != null && !baseRecipient.trim().isEmpty()) {
-            recipients.add(buildRecipientVariant(baseRecipient, recipients.size() + 1));
+        // Duplicate existing valid addresses to satisfy count, instead of generating new CNs
+        // which might exceed the 8-character AFTN limit and cause "Submission error"
+        if (recipients.size() > 0) {
+            int originalSize = recipients.size();
+            for (int i = originalSize; i < count; i++) {
+                recipients.add(recipients.get(i % originalSize));
+            }
         }
 
         return recipients;
@@ -354,16 +339,34 @@ public class AMHSPayloadGeneratorService {
     return buildX400Message(session, recipient, subject, content, priority, amhsDefaults, null);
 }
 
+    private int getIpnRequest(Map<String, String> amhsDefaults) {
+        if (amhsDefaults == null) return X400Msg.IPN_NON_RECEIPT_NOTIFICATION;
+        String req = amhsDefaults.get("receipt-notification");
+        if (req != null) {
+            String lower = req.toLowerCase().trim();
+            if (lower.equals("receipt-notification") || lower.equals("rn") || lower.equals("1")) {
+                return X400Msg.IPN_RECEIPT_NOTIFICATION;
+            } else if (lower.equals("none") || lower.equals("0")) {
+                return 0; // IPN_NONE or default
+            } else if (lower.equals("non-receipt-notification") || lower.equals("nrn") || lower.equals("2")) {
+                return X400Msg.IPN_NON_RECEIPT_NOTIFICATION;
+            } else if (lower.equals("both") || lower.equals("3")) {
+                return X400Msg.IPN_NON_RECEIPT_NOTIFICATION | X400Msg.IPN_RECEIPT_NOTIFICATION;
+            }
+        }
+        return X400Msg.IPN_NON_RECEIPT_NOTIFICATION;
+    }
+
     private X400Msg.DR_Request getDrRequest(Map<String, String> amhsDefaults) {
         if (amhsDefaults == null) return X400Msg.DR_Request.DR_NON_DELIVERY_REPORT;
         String req = amhsDefaults.get("originator-report-request");
         if (req != null) {
             String lower = req.toLowerCase().trim();
-            if (lower.equals("report") || lower.equals("delivery-report") || lower.equals("3")) {
+            if (lower.equals("report") || lower.equals("delivery-report") || lower.equals("dr") || lower.equals("both") || lower.equals("3") || lower.equals("2")) {
                 return X400Msg.DR_Request.DR_DELIVERY_REPORT;
             } else if (lower.equals("none") || lower.equals("0")) {
                 return X400Msg.DR_Request.DR_NO_REPORT;
-            } else if (lower.equals("non-delivery-report") || lower.equals("2") || lower.equals("1")) {
+            } else if (lower.equals("non-delivery-report") || lower.equals("ndr") || lower.equals("1")) {
                 return X400Msg.DR_Request.DR_NON_DELIVERY_REPORT;
             }
         }
@@ -502,6 +505,110 @@ private void applyAmhsFieldsExceptBodyAndFilingTime(X400Msg message, Map<String,
             }
         }
     }
+
+    // === RECEIPT NOTIFICATION (CTSW014-015) ===
+    String receiptMode = amhsDefaults.get("receipt-notification");
+    if (receiptMode != null && !receiptMode.trim().isEmpty()) {
+        try {
+            int notifValue;
+            if ("receipt-notification".equalsIgnoreCase(receiptMode.trim()) || "rn".equalsIgnoreCase(receiptMode.trim())) {
+                notifValue = 1; // 1 is typically RN
+            } else if ("non-receipt-notification".equalsIgnoreCase(receiptMode.trim()) || "nrn".equalsIgnoreCase(receiptMode.trim())) {
+                notifValue = 2; // 2 is typically NRN
+            } else {
+                notifValue = Integer.parseInt(receiptMode.trim());
+            }
+            message.setIntParam(X400_att.X400_N_NOTIFICATION_REQUEST, notifValue);
+        } catch (Exception e) {
+            logger.warn("Failed to set receipt-notification: {}", e.getMessage());
+        }
+    }
+
+    // === PRECEDENCE FOR ALL RECIPIENTS (CTSW020) ===
+    if (precedenceStr != null && !precedenceStr.trim().isEmpty()) {
+        try {
+            int prec = Integer.parseInt(precedenceStr.trim());
+            message.setAllRecipPrecedence(prec);
+        } catch (Exception e) {
+            logger.warn("Failed to set all-recip precedence: {}", e.getMessage());
+        }
+    }
+
+    // === CHARSET / GENERAL-TEXT CONFIGURATION (CTSW017-019) ===
+    String charsetRegNum = amhsDefaults.get("charset-reg-numbers");
+    if (charsetRegNum == null) charsetRegNum = amhsDefaults.get("charset-reg-number");
+    String charsetRepertoire = amhsDefaults.get("charset-repertoire");
+    if (charsetRegNum != null && !charsetRegNum.trim().isEmpty()) {
+        try {
+            message.setStringparam(X400_att.X400_S_GENERAL_TEXT_CHARSETS, charsetRegNum.trim());
+        } catch (Exception e) {
+            logger.warn("Failed to set charset-reg-number: {}", e.getMessage());
+        }
+    } else if (charsetRepertoire != null && !charsetRepertoire.trim().isEmpty()) {
+        try {
+            message.setStringparam(X400_att.X400_S_GENERAL_TEXT_CHARSETS, charsetRepertoire.trim());
+        } catch (Exception e) {
+            logger.warn("Failed to set charset-repertoire: {}", e.getMessage());
+        }
+    }
+
+    // === EIT CONFIGURATION (CTSW016) ===
+    String eitBuiltin = amhsDefaults.get("eit-builtin-value");
+    if (eitBuiltin == null) eitBuiltin = amhsDefaults.get("eit-builtin");
+    String eitOid    = amhsDefaults.get("eit-oid");
+    String eitAuth   = amhsDefaults.get("eit-authority");
+    if (eitBuiltin != null || eitOid != null || eitAuth != null) {
+        try {
+            StringBuilder eit = new StringBuilder();
+            if (eitBuiltin != null) eit.append("builtin:").append(eitBuiltin.trim());
+            if (eitOid != null)     { if (eit.length() > 0) eit.append(";"); eit.append("oid:").append(eitOid.trim()); }
+            if (eitAuth != null)    { if (eit.length() > 0) eit.append(";"); eit.append("authority:").append(eitAuth.trim()); }
+            if (eit.length() > 0) {
+                message.setStringparam(X400_att.X400_S_CONVERSION_EITS, eit.toString());
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to set EIT: {}", e.getMessage());
+        }
+    }
+
+    // === REPORT/NOTIFICATION CONFIGURATION ===
+    String originatorReport = amhsDefaults.get("originator-report-request");
+    if (originatorReport != null && !originatorReport.trim().isEmpty()) {
+        try {
+            int reportValue;
+            String req = originatorReport.trim().toLowerCase();
+            if (req.equals("non-delivery-report") || req.equals("ndr")) {
+                reportValue = 1; // 1 = non-delivery-report
+            } else if (req.equals("delivery-report") || req.equals("dr")) {
+                reportValue = 2; // 2 = report
+            } else if (req.equals("report") || req.equals("both")) {
+                reportValue = 2; 
+            } else {
+                reportValue = Integer.parseInt(req);
+            }
+            message.setIntParam(X400_att.X400_N_REPORT_REQUEST, reportValue);
+        } catch (Exception e) {
+            logger.warn("Failed to set originator-report-request: {}", e.getMessage());
+        }
+    }
+
+    String mtaReport = amhsDefaults.get("originating-mta-report-request");
+    if (mtaReport != null && !mtaReport.trim().isEmpty()) {
+        try {
+            int mtaReportValue;
+            String req = mtaReport.trim().toLowerCase();
+            if (req.equals("non-delivery-report") || req.equals("ndr")) {
+                mtaReportValue = 1; // 1 = non-delivery-report
+            } else if (req.equals("delivery-report") || req.equals("dr") || req.equals("report") || req.equals("both")) {
+                mtaReportValue = 2; // 2 = report
+            } else {
+                mtaReportValue = Integer.parseInt(req);
+            }
+            message.setIntParam(X400_att.X400_N_MTA_REPORT_REQUEST, mtaReportValue);
+        } catch (Exception e) {
+            logger.warn("Failed to set originating-mta-report-request: {}", e.getMessage());
+        }
+    }
 }
 
     /**
@@ -531,8 +638,9 @@ public X400Msg buildX400Message(P3BindSession session, String recipient, String 
             throw new RuntimeException("Recipient address is required and cannot be empty");
         }
         X400Msg.DR_Request drRequest = getDrRequest(normalizedDefaults);
+        int ipnRequest = getIpnRequest(normalizedDefaults);
         for (String to : toRecipients) {
-            message.setTo(to, drRequest, X400Msg.IPN_NON_RECEIPT_NOTIFICATION);
+            message.setTo(to, drRequest, ipnRequest);
         }
 
         // ── SUBJECT ──────────────────────────────────────────────────────

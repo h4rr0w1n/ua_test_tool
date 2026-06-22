@@ -15,6 +15,7 @@ public class SettingsDialog extends JDialog {
     private JCheckBox  chkAutoScrollMessages;
     private JCheckBox  chkLimitMessages;
     private JSpinner   spinMessageLimit;
+    private JCheckBox  chkClearOldLogsOnSend;
 
     // Persisted settings (static so they survive dialog re-opens)
     private static String defaultExportPath  = ".";
@@ -22,6 +23,7 @@ public class SettingsDialog extends JDialog {
     private static boolean autoScrollMessages = true;
     private static boolean limitMessages = false;
     private static int messageLimit = 100;
+    private static boolean clearOldLogsOnSend = false;
 
     public SettingsDialog(Frame parent) {
         super(parent, "Tool Settings", true);
@@ -82,6 +84,11 @@ public class SettingsDialog extends JDialog {
         chkLimitMessages.addActionListener(e -> spinMessageLimit.setEnabled(chkLimitMessages.isSelected()));
         form.add(spinMessageLimit, gbc);
 
+        // Clear Old Logs on Send
+        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 3;
+        chkClearOldLogsOnSend = new JCheckBox("Clear old sending logs when sending", clearOldLogsOnSend);
+        form.add(chkClearOldLogsOnSend, gbc);
+
         add(form, BorderLayout.CENTER);
 
         // ── Footer ────────────────────────────────────────────────────────
@@ -93,6 +100,7 @@ public class SettingsDialog extends JDialog {
             autoScrollMessages   = chkAutoScrollMessages.isSelected();
             limitMessages        = chkLimitMessages.isSelected();
             messageLimit         = (Integer) spinMessageLimit.getValue();
+            clearOldLogsOnSend   = chkClearOldLogsOnSend.isSelected();
             dispose();
         });
         JButton btnCancel = new JButton("Cancel");
@@ -109,4 +117,5 @@ public class SettingsDialog extends JDialog {
     public static boolean isAutoScrollMessages()  { return autoScrollMessages; }
     public static boolean isLimitMessages()       { return limitMessages; }
     public static int getMessageLimit()           { return messageLimit; }
+    public static boolean isClearOldLogsOnSend()  { return clearOldLogsOnSend; }
 }
