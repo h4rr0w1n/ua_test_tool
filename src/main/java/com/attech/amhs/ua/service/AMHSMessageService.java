@@ -104,10 +104,13 @@ public class AMHSMessageService {
                 session = p7Session;
             }
 <<<<<<< HEAD
+<<<<<<< HEAD
 
             session.SetSummarizeOnBind(false);
 
 =======
+=======
+>>>>>>> parent of f18e1ec (22 jun update #3)
             
             //session.SetSummarizeOnBind(false);
             // Set connection timeout before binding - use a longer timeout for initial connection
@@ -120,6 +123,9 @@ public class AMHSMessageService {
             //    System.out.println("DEBUG: Could not set timeout: " + e.getMessage());
             //}
             
+<<<<<<< HEAD
+>>>>>>> parent of f18e1ec (22 jun update #3)
+=======
 >>>>>>> parent of f18e1ec (22 jun update #3)
             System.out.println("DEBUG: Calling bind()...");
             session.bind();
