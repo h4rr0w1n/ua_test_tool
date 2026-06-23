@@ -4,42 +4,70 @@ A Java-based AMHS X.400 test tool equipped with a Swing GUI. This tool acts as a
 
 ## Prerequisites
 
-**On the Target/Deployment Machine:**
+**On the Build Machine:**
 - Java 8 or higher
 - Apache Maven
-- Isode X.400 Native Libraries & JAR files (must be placed in the `libs/` directory)
+- Isode X.400 Native Libraries & JAR files (must be placed in the `lib/` directory)
+
+**On the Target/Deployment Machine:**
+- Java 8 or higher
+- *No Maven or local `.m2` repository is required!*
 
 ---
 
-## 1. Installation & Running
+## 1. Building the Application
 
-The application's installation flow is fully automated via Maven. As long as the correct versions of Java and Maven are installed and the required libraries are placed in the `libs/` directory, the application will automatically install the local dependencies, compile, package, and run.
-
-### Running the Application
-
-To run the tool, simply execute the startup script from the project root. If the project hasn't been built yet, the script will automatically invoke Maven to compile and build it before launching.
+To build the tool, you only need to run the unified build script. This script automatically detects your Java and Maven installations, installs the custom Isode JARs from the `lib/` directory into your local Maven repository, and compiles the application.
 
 **On Windows:**
 ```bat
-run.bat
+install-and-build.bat
 ```
 
 **On Linux/macOS:**
 ```bash
+chmod +x install-and-build.sh
+./install-and-build.sh
+```
+
+### Build Output (`dist` folder)
+After a successful build, a `dist/` directory will be created in the project root. This directory contains a self-contained, deployable package:
+- `ua-test-tool.jar` (A "fat JAR" containing all Java dependencies)
+- `lib/` (Containing only your native Isode `.dll` or `.so` libraries)
+- `run.bat` & `run.sh` (Standalone launch scripts)
+
+The project root `lib/` directory is used during the build process to install JAR dependencies and collect native platform libraries. Only the native libraries are copied into `dist/lib/` for runtime.
+
+---
+
+## 2. Running the Application
+
+Because the build creates a fully self-contained `dist/` folder, you do not need Maven, source code, or the `.m2` repository to run the tool.
+
+### To Deploy to Another Machine:
+1. Copy the entire `dist/` folder to the target machine.
+2. Ensure the target machine has **Java 8 or higher** installed.
+3. Run the launch script from inside the `dist/` folder.
+
+**On Windows:**
+```bat
+dist\run.bat
+```
+
+**On Linux/macOS:**
+```bash
+cd dist
 chmod +x run.sh
 ./run.sh
 ```
 
-### What happens in the background?
-1. Maven will run the `initialize` phase to automatically install all required `com.isode.*` and `com.attech.*` JARs from the `libs/` directory into your local Maven repository.
-2. Maven will compile the source code and build a self-contained "fat JAR" in the `target/` directory.
-3. The `run` script will automatically load the Isode native libraries (`.dll` or `.so`) from the `libs/` directory and start the application.
+> Note: The preferred runtime path is always the self-contained `dist/` package. The root-level `run.bat` and `run.sh` are wrappers that forward execution into `dist/` when available.
 
 ---
 
-## 2. Configuration
+## 3. Configuration
 
-The tool connects to your X.400 Message Store via parameters that can be loaded and saved inside the GUI. The settings are saved locally to a `connection.properties` file in the root directory.
+The tool connects to your X.400 Message Store via parameters that can be loaded and saved inside the GUI. The settings are saved locally to a `connection.properties` file in the `dist/` directory.
 
 **Standard AMHS Parameters Required:**
 - `presentationAddress`: e.g., `"3001"/Internet=192.168.22.186+3001`
@@ -49,16 +77,15 @@ The tool connects to your X.400 Message Store via parameters that can be loaded 
 
 ---
 
-## 3. Troubleshooting
+## 4. Troubleshooting
 
 ### Connection Failed / UnsatisfiedLinkError
 If you see an error mentioning `UnsatisfiedLinkError` or "Native library loading error", the Isode X.400 native libraries (`.dll` or `.so`) are missing or incompatible. 
-- Ensure the native files (e.g., `pthreadvc2.dll`, `CJavaInterface.dll`) are inside the `libs/` folder.
+- Ensure the native files (e.g., `pthreadvc2.dll`, `CJavaInterface.dll`) are inside the `dist/lib/` folder.
 - Ensure your Java architecture (32-bit vs 64-bit) matches the architecture of the native libraries.
 
 ### Build Fails
-- Ensure that all required `.jar` files are correctly located in the `libs/` directory before running the scripts.
-- Make sure that `mvn` is accessible in your system's `PATH`.
+- If `install-and-build` fails because it cannot find Isode dependencies, verify that your provided `.jar` files are correctly located in the root `lib/` directory before running the script.
 
 ### Connection Issues (Timeouts or Bind Errors)
 1. Verify the `presentationAddress` format.
