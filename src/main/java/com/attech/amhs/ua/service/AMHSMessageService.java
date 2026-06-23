@@ -103,30 +103,8 @@ public class AMHSMessageService {
                 P7BindSession p7Session = new P7BindSession(addressToUse, userOrAddress, password);
                 session = p7Session;
             }
-<<<<<<< HEAD
-<<<<<<< HEAD
-
             session.SetSummarizeOnBind(false);
-
-=======
-=======
->>>>>>> parent of f18e1ec (22 jun update #3)
             
-            //session.SetSummarizeOnBind(false);
-            // Set connection timeout before binding - use a longer timeout for initial connection
-            //try {
-                // Increase timeout to 90 seconds for more reliable connections
-                //int effectiveTimeout = Math.max(connectTimeoutSeconds, 90);
-                //session.SetTimeout(effectiveTimeout);
-                //System.out.println("DEBUG: Connection timeout set to " + effectiveTimeout + " seconds");
-            //} catch (Exception e) {
-            //    System.out.println("DEBUG: Could not set timeout: " + e.getMessage());
-            //}
-            
-<<<<<<< HEAD
->>>>>>> parent of f18e1ec (22 jun update #3)
-=======
->>>>>>> parent of f18e1ec (22 jun update #3)
             System.out.println("DEBUG: Calling bind()...");
             session.bind();
             

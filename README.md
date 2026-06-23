@@ -15,34 +15,9 @@ A Java-based AMHS X.400 test tool equipped with a Swing GUI. This tool acts as a
 
 ---
 
-## 1. Building the Application
+## 1. Running the Application
 
-To build the tool, you only need to run the unified build script. This script automatically detects your Java and Maven installations, installs the custom Isode JARs from the `lib/` directory into your local Maven repository, and compiles the application.
-
-**On Windows:**
-```bat
-install-and-build.bat
-```
-
-**On Linux/macOS:**
-```bash
-chmod +x install-and-build.sh
-./install-and-build.sh
-```
-
-### Build Output (`dist` folder)
-After a successful build, a `dist/` directory will be created in the project root. This directory contains a self-contained, deployable package:
-- `ua-test-tool.jar` (A "fat JAR" containing all Java dependencies)
-- `lib/` (Containing only your native Isode `.dll` or `.so` libraries)
-- `run.bat` & `run.sh` (Standalone launch scripts)
-
-The project root `lib/` directory is used during the build process to install JAR dependencies and collect native platform libraries. Only the native libraries are copied into `dist/lib/` for runtime.
-
----
-
-## 2. Running the Application
-
-Because the build creates a fully self-contained `dist/` folder, you do not need Maven, source code, or the `.m2` repository to run the tool.
+The tool is provided as a self-contained, pre-compiled package in the `dist/` directory. You do not need Maven, source code, or the `.m2` repository to run the tool. The included `run.bat` (and `run.sh`) script is responsible for setting up the environment and running the tool.
 
 ### To Deploy to Another Machine:
 1. Copy the entire `dist/` folder to the target machine.
@@ -53,6 +28,7 @@ Because the build creates a fully self-contained `dist/` folder, you do not need
 ```bat
 dist\run.bat
 ```
+*(Or simply run `run.bat` in the project root, which will automatically forward to the `dist` directory)*
 
 **On Linux/macOS:**
 ```bash
@@ -61,11 +37,9 @@ chmod +x run.sh
 ./run.sh
 ```
 
-> Note: The preferred runtime path is always the self-contained `dist/` package. The root-level `run.bat` and `run.sh` are wrappers that forward execution into `dist/` when available.
-
 ---
 
-## 3. Configuration
+## 2. Configuration
 
 The tool connects to your X.400 Message Store via parameters that can be loaded and saved inside the GUI. The settings are saved locally to a `connection.properties` file in the `dist/` directory.
 
@@ -76,6 +50,32 @@ The tool connects to your X.400 Message Store via parameters that can be loaded 
 - `connectionType`: P7 (Message Store) or P3 (Channel)
 
 ---
+
+## 3. Using the Tool
+
+### Sending Test Messages
+
+1. **Load Test Cases**: Test cases are loaded automatically from the `src/main/resources/testcases/` directory on startup. You can browse them in the left-hand "Test Case Directory" panel.
+
+2. **Load Defaults**: Select a specific message (subcase) in the tree and click "Load defaults" to populate the message fields with the predefined values for that subcase.
+
+3. **Send a Single Message**:
+   - After loading defaults (or manually filling in the fields), click "Send Message" to send a single message.
+   - Alternatively, select a subcase and click "Send defaults" to load and send the defaults for that subcase in one action.
+
+4. **Send All Subcases**:
+   - Select a test case (not a subcase) and click "Send All Subcases" to send all messages defined under that test case.
+   - The tool will iterate through each subcase, load its defaults, and send the message.
+
+5. **Sent Messages Log**:
+   - All successfully sent messages (whether sent via "Send Message", "Send defaults", or "Send All Subcases") are automatically logged in the "Sent Messages" tab on the right-hand panel.
+   - This allows you to track what has been sent and correlate with received messages (DR/N/RN, etc.).
+
+### Receiving Messages
+
+- Click "Receive Messages" to poll for incoming messages.
+- Any received messages (including delivery reports (DR), non-delivery reports (NDR), and receipt notifications (RN)) will appear in the "Received Messages" tab.
+- The tool attempts to correlate received reports with original sent messages when possible.
 
 ## 4. Troubleshooting
 
