@@ -186,6 +186,9 @@ public class AMHSPayloadGeneratorService {
         if (!normalized.containsKey("probe") && "probe".equalsIgnoreCase(rawDefaults.get("message-type"))) {
             normalized.put("probe", rawDefaults.getOrDefault("probe", "probe"));
         }
+        if (!normalized.containsKey("rn") && "rn".equalsIgnoreCase(rawDefaults.get("message-type"))) {
+            normalized.put("rn", rawDefaults.getOrDefault("rn", "rn"));
+        }
 
         return normalized;
     }
@@ -386,6 +389,15 @@ public class AMHSPayloadGeneratorService {
      */
     private void applyAmhsFieldsExceptBodyAndFilingTime(X400Msg message, Map<String, String> amhsDefaults)
             throws X400APIException {
+
+        // Handle RN/IPN
+        if (amhsDefaults != null && amhsDefaults.containsKey("rn")) {
+            message.setIntParam(X400_att.X400_N_IS_IPN, 1);
+            String subjectIpmId = amhsDefaults.get("subject-ipm-id");
+            if (subjectIpmId != null && !subjectIpmId.trim().isEmpty()) {
+                message.setStringparam(X400_att.X400_S_SUBJECT_IPM, subjectIpmId.trim());
+            }
+        }
 
         X400Msg.DR_Request drRequest = getDrRequest(amhsDefaults);
 
