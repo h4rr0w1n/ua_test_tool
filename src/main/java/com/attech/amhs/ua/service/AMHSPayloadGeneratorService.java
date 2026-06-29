@@ -1296,7 +1296,65 @@ public class AMHSPayloadGeneratorService {
     public X400Msg buildProbeMessage(P3BindSession session, String recipient, String subject,
             String content, String priority, Map<String, String> amhsDefaults,
             String filingTime) {
-        X400Msg msg = buildX400Message(session, recipient, subject, content, priority, amhsDefaults, filingTime);
+        
+        // Use true PROBE type instead of X400_MSG_MESSAGE
+        X400Msg msg = new X400Msg(session);
+        int code = com.isode.x400api.X400ms.x400_ms_msgnew(session, com.isode.x400api.X400_att.X400_MSG_PROBE, msg);
+        if (code != com.isode.x400api.X400_att.X400_E_NOERROR) {
+            logger.error("Failed to initialize message as PROBE. Code: " + code);
+        }
+
+        // Apply normal AMHS fields
+        Map<String, String> normalizedDefaults = normalizeAmhsDefaults(amhsDefaults);
+        try {
+            List<String> toRecipients = resolveToRecipients(normalizedDefaults, recipient);
+            X400Msg.DR_Request drRequest = getDrRequest(normalizedDefaults);
+            int ipnRequest = getIpnRequest(normalizedDefaults);
+            for (String to : toRecipients) {
+                msg.setTo(to, drRequest, ipnRequest);
+            }
+
+            if (subject != null && !subject.trim().isEmpty()) {
+                msg.setSubject(subject.trim());
+            }
+
+            String effectivePriority = firstNonEmpty(normalizedDefaults,
+                    "priority", "ats-priority", "priority-indicator", "subject-message-priority");
+            if ((effectivePriority == null || effectivePriority.trim().isEmpty()) && priority != null) {
+                effectivePriority = priority;
+            }
+            msg.setPriority(getPriorityFromString(effectivePriority));
+
+            String safeContent = resolveBodyContent(normalizedDefaults, content);
+            String bodyPartTypeSpec = firstNonEmpty(normalizedDefaults, "body-part-types", "body-part-type");
+            addBodyParts(msg, bodyPartTypeSpec, safeContent, normalizedDefaults);
+
+            String ft = (filingTime != null && !filingTime.trim().isEmpty()) ? filingTime.trim() : resolveFilingTime(normalizedDefaults);
+            msg.setStringparam(AMHS_att.ATS_S_FILING_TIME, ft);
+
+            String atsPriority = firstNonEmpty(normalizedDefaults,
+                    "ats-priority", "priority-indicator", "subject-message-priority");
+            if (atsPriority == null || atsPriority.trim().isEmpty()) {
+                atsPriority = effectivePriority;
+            }
+            if (atsPriority != null && !atsPriority.trim().isEmpty()) {
+                msg.setStringparam(AMHS_att.ATS_S_PRIORITY_INDICATOR, atsPriority.trim());
+            }
+
+            String extended = normalizedDefaults != null ? normalizedDefaults.get("extended") : null;
+            msg.setIntParam(AMHS_att.ATS_N_EXTENDED, "true".equalsIgnoreCase(extended) ? 1 : 0);
+            msg.setIntParam(X400_att.X400_N_CONTENT_TYPE, 22);
+            msg.setStringparam(AMHS_att.ATS_S_TEXT, safeContent);
+
+            if (normalizedDefaults != null) {
+                applyAmhsFieldsExceptBodyAndFilingTime(msg, normalizedDefaults);
+            }
+
+        } catch (X400APIException e) {
+            logger.error("Error building Probe message: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to build Probe message", e);
+        }
+
         if (msg != null && amhsDefaults != null) {
             applyProbeFields(msg, amhsDefaults);
         }

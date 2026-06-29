@@ -48,11 +48,27 @@ echo
 # ============================================================
 
 if [ ! -f "$JAR_FILE" ]; then
-    echo "ERROR: Compiled JAR not found."
+    echo "WARNING: Compiled JAR not found."
     echo "Expected at: $JAR_FILE"
+    echo "Attempting to build project automatically using Maven..."
     echo
-    echo "Please run install-and-build.sh first."
-    exit 1
+    
+    if command -v mvn > /dev/null 2>&1; then
+        mvn clean package
+        if [ $? -ne 0 ]; then
+            echo "ERROR: Maven build failed. Please check errors."
+            exit 1
+        fi
+        cp "$SCRIPT_DIR/target/ua-test-tool-1.0.0.jar" "$JAR_FILE"
+        mkdir -p "$ISODE_LIB_DIR"
+        cp -r "$SCRIPT_DIR/target/lib/"* "$ISODE_LIB_DIR/"
+        echo "Build successful."
+        echo
+    else
+        echo "ERROR: Maven is not installed."
+        echo "Please install Maven or build manually."
+        exit 1
+    fi
 fi
 
 # ============================================================

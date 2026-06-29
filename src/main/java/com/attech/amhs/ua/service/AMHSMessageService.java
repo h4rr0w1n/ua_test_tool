@@ -449,6 +449,31 @@ public class AMHSMessageService {
                     } else if (receivedMsg.getType() == com.attech.amhs.ua.isode.enums.MessageType.IPN) {
                         summary.setReportType("IPN");
                         summary.setReportDetails("IPN receipt notification");
+                    } else if (receivedMsg.getType() == com.attech.amhs.ua.isode.enums.MessageType.PROBE) {
+                        summary.setReportType("PROBE");
+                        summary.setReportDetails("Probe message");
+                    } else if (receivedMsg.getType() == com.attech.amhs.ua.isode.enums.MessageType.IPM) {
+                        Integer ipnReq = receivedMsg.getIpnRequest();
+                        if (ipnReq != null && (ipnReq == 1 || ipnReq == 3)) { // 1=RN, 3=both
+                            logger.log(Level.INFO, "Message requests IPN. Automatically generating and sending IPN.");
+                            try {
+                                com.isode.x400api.MSMessage ipnMessage = new com.isode.x400api.MSMessage();
+                                int result = com.isode.x400api.X400ms.x400_ms_msgmakeIPN(rm, -1, ipnMessage);
+                                if (result == com.isode.x400api.X400_att.X400_E_NOERROR) {
+                                    result = com.isode.x400api.X400ms.x400_ms_msgsend(ipnMessage);
+                                    if (result == com.isode.x400api.X400_att.X400_E_NOERROR) {
+                                        logger.log(Level.INFO, "Successfully returned IPN.");
+                                        summary.setReportDetails("Automatically returned IPN to originator.");
+                                    } else {
+                                        logger.log(Level.WARNING, "Failed to send IPN: " + result);
+                                    }
+                                } else {
+                                    logger.log(Level.WARNING, "Failed to make IPN: " + result);
+                                }
+                            } catch (Exception ex) {
+                                logger.log(Level.WARNING, "Error generating IPN: " + ex.getMessage());
+                            }
+                        }
                     }
 
                     messages.add(summary);

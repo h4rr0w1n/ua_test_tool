@@ -120,13 +120,20 @@ echo.
 :: ============================================================
 
 if not exist "%JAR_FILE%" (
-    echo ERROR: Compiled JAR not found.
+    echo WARNING: Compiled JAR not found.
     echo Expected at: %JAR_FILE%
+    echo Attempting to build project automatically using Maven...
     echo.
-    echo Please run install-and-build.bat first.
+    call mvn clean package
+    if errorlevel 1 (
+        echo ERROR: Maven build failed. Please install Maven or check errors.
+        pause
+        exit /b 1
+    )
+    copy /Y "%SCRIPT_DIR%\target\ua-test-tool-1.0.0.jar" "%JAR_FILE%" >nul
+    xcopy /Y /S /I "%SCRIPT_DIR%\target\lib\*" "%ISODE_LIB_DIR%\" >nul
+    echo Build successful.
     echo.
-    pause
-    exit /b 1
 )
 
 :: ============================================================
