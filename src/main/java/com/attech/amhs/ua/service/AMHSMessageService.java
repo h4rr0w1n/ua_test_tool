@@ -443,6 +443,9 @@ public class AMHSMessageService {
                                 if (recip.getNonDeliveryDiagnosticCode() != null) {
                                     details.append(", Diagnostic: ").append(recip.getNonDeliveryDiagnosticCode());
                                 }
+                                if (recip.getSuplementInfo() != null && !recip.getSuplementInfo().isEmpty()) {
+                                    details.append(", Supp Info: ").append(recip.getSuplementInfo());
+                                }
                             }
                         }
                         summary.setReportDetails(details.toString());
@@ -463,7 +466,7 @@ public class AMHSMessageService {
                                     result = com.isode.x400api.X400ms.x400_ms_msgsend(ipnMessage);
                                     if (result == com.isode.x400api.X400_att.X400_E_NOERROR) {
                                         logger.log(Level.INFO, "Successfully returned IPN.");
-                                        summary.setReportDetails("Automatically returned IPN to originator.");
+                                        summary.setReportDetails("Automatically returned IPN. Route: " + userOrAddress + " -> " + rm.getFrom());
                                     } else {
                                         logger.log(Level.WARNING, "Failed to send IPN: " + result);
                                     }

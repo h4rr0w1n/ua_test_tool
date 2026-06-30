@@ -290,7 +290,7 @@ public class AMHSMessageUI extends JFrame {
         gbc.gridwidth = 1;
         gbc.weightx = 0.5;
         comboMsgType = new JComboBox<>(new String[] {
-                "IPM", "Probe"
+                "IPM", "Probe", "RN"
         });
         panel.add(comboMsgType, gbc);
 
@@ -846,6 +846,9 @@ public class AMHSMessageUI extends JFrame {
         String msgType = (String) comboMsgType.getSelectedItem();
         if ("Probe".equalsIgnoreCase(msgType)) {
             uiAmhsFields.put("probe", "probe");
+        } else if ("RN".equalsIgnoreCase(msgType)) {
+            uiAmhsFields.put("rn", "rn");
+            uiAmhsFields.put("message-type", "rn");
         }
         String drReq = (String) comboDrReq.getSelectedItem();
         if (drReq != null) {
