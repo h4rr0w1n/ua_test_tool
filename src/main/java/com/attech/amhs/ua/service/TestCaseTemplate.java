@@ -499,13 +499,27 @@ public class TestCaseTemplate {
     }
 
     private static TestCase createCTSW016() {
-        TestCase tc = TestCaseLoader.createTestCase("CTSW016", "Reply to Message", 1);
+        // CTSW016: Processing of the current encoded-information-types (EIT)
+        // Loads all 12 subcases from CTSW016.properties via TestCaseConfigLoader
+        List<TestCase> loaded = com.attech.amhs.ua.service.TestCaseConfigLoader.loadAllTestCases();
+        for (TestCase tc : loaded) {
+            if ("CTSW016".equals(tc.getId())) {
+                return tc;
+            }
+        }
+        // Fallback: build a minimal single-subcase in case loading fails
+        TestCase tc = TestCaseLoader.createTestCase("CTSW016",
+                "Processing of the current encoded-information-types (EIT)", 1);
         TestSubcase sub = tc.getSubcases().get(0);
-        sub.setDescription("Test reply to message");
+        sub.setDescription("EIT ia5-text(2) built-in");
         sub.setAmhsDefault("recipient", "/CN=VVTSMHSA/OU=VVTS/O=VVTS/PRMD=VIETNAM/ADMD=ICAO/C=XX/");
-        sub.setAmhsDefault("subject", "RE: CTSW016 - Reply Test");
-        sub.setAmhsDefault("priority", "NORMAL");
-        sub.setAmhsDefault("content", "Reply to message test.");
+        sub.setAmhsDefault("subject", "CTSW016.1");
+        sub.setAmhsDefault("priority", "FF");
+        sub.setAmhsDefault("content", "Test EIT ia5-text");
+        sub.setAmhsDefault("body-part-type", "ia5-text");
+        sub.setAmhsDefault("eit-type", "built-in");
+        sub.setAmhsDefault("eit-builtin-value", "2");
+        sub.setAmhsDefault("expected-result", "accepted");
         return tc;
     }
 
@@ -532,6 +546,13 @@ public class TestCaseTemplate {
     }
 
     private static TestCase createCTSW019() {
+        // CTSW019: Incoming IPM with general-text-body-part and non-ISO 646
+        List<TestCase> loaded = com.attech.amhs.ua.service.TestCaseConfigLoader.loadAllTestCases();
+        for (TestCase tc : loaded) {
+            if ("CTSW019".equals(tc.getId())) {
+                return tc;
+            }
+        }
         TestCase tc = TestCaseLoader.createTestCase("CTSW019", "Urgent Message Handling", 1);
         TestSubcase sub = tc.getSubcases().get(0);
         sub.setDescription("Test urgent message handling");

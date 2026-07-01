@@ -59,10 +59,11 @@ public class AMHSPayloadGeneratorService {
 
         // EIT (Encoded Information Types)
         EMPTY_DEFAULTS.put("eit-type", "");
-        EMPTY_DEFAULTS.put("eit-value", "");
+        EMPTY_DEFAULTS.put("eit-value", "");         // alias for built-in EIT integer value
+        EMPTY_DEFAULTS.put("eit-builtin-value", ""); // primary key used by CTSW016 properties
         EMPTY_DEFAULTS.put("eit-oid", "");
         EMPTY_DEFAULTS.put("eit-oids", "");
-        EMPTY_DEFAULTS.put("eit-builtin", "");
+        EMPTY_DEFAULTS.put("eit-builtin", "");       // legacy alias
         EMPTY_DEFAULTS.put("eit-authority", "");
 
         // FTBP (File Transfer Body Part)
@@ -88,9 +89,12 @@ public class AMHSPayloadGeneratorService {
 
         // Additional charset support
         EMPTY_DEFAULTS.put("charset-reg-numbers", "");
+        EMPTY_DEFAULTS.put("charset-reg-number", "");
+        EMPTY_DEFAULTS.put("charset-source", "");
         EMPTY_DEFAULTS.put("repertoire", "");
         EMPTY_DEFAULTS.put("content-type", "");
-
+        EMPTY_DEFAULTS.put("implicit-conversion", "");
+        
         // Header empty flag
         EMPTY_DEFAULTS.put("header-empty", "");
 
@@ -125,6 +129,61 @@ public class AMHSPayloadGeneratorService {
         ATS_PRIORITY_MAP.put("HIGH", X400_Priority.HIGH_PRIORITY);
         // URGENT doesn't exist, map to HIGH
         ATS_PRIORITY_MAP.put("URGENT", X400_Priority.HIGH_PRIORITY);
+    }
+
+    /**
+     * Symbolic EIT OID name to dotted-decimal OID mapping (CTSW016).
+     *
+     * Based on STANAG 4406 / ACP 142 id-cs-eit-authority arc:
+     *   id-cs-eit-authority = 2.16.840.1.101.2.1.22
+     * Valid leaf values: 1 (ia5-text), 2 (general-text), 6 (FTBP), 100 (proprietary)
+     * Invalid leaf values: 3, 4, 5, 7+ (not defined in EUR Doc 047 / ACP 142)
+     *
+     * id-eit-file-transfer 0 = OID for file-transfer body part EIT (same arc as authority 6)
+     */
+    private static final Map<String, String> EIT_OID_MAP = new HashMap<>();
+
+    static {
+        // id-cs-eit-authority values (STANAG 4406 / ACP 142)
+        EIT_OID_MAP.put("id-cs-eit-authority-1",   "2.16.840.1.101.2.1.22.1");  // ia5-text
+        EIT_OID_MAP.put("id-cs-eit-authority-2",   "2.16.840.1.101.2.1.22.2");  // general-text
+        EIT_OID_MAP.put("id-cs-eit-authority-6",   "2.16.840.1.101.2.1.22.6");  // FTBP
+        EIT_OID_MAP.put("id-cs-eit-authority-100", "2.16.840.1.101.2.1.22.100"); // proprietary
+        // File-transfer EIT (id-eit-file-transfer 0 per EUR Doc 047)
+        EIT_OID_MAP.put("id-eit-file-transfer-0",  "2.16.840.1.101.2.1.22.6");  // maps to FTBP
+        // Standard dotted-decimal OIDs (no mapping needed, used as-is)
+        // 2.6.3.4.2 = ia5-text extended EIT
+        // 2.6.3.4.0 = unknown extended EIT
+    }
+
+    /**
+     * Resolve a symbolic EIT OID name to its dotted-decimal form.
+     * If the name is already a dotted-decimal OID (e.g. "2.6.3.4.2"), return it unchanged.
+     * If it is a recognised symbolic name (e.g. "id-cs-eit-authority-1"), look it up.
+     * Unknown names are returned unchanged so the X.400 library can report the error.
+     */
+    private String resolveEitOid(String name) {
+        if (name == null) return null;
+        String trimmed = name.trim();
+        String mapped = EIT_OID_MAP.get(trimmed);
+        return mapped != null ? mapped : trimmed;
+    }
+
+    /**
+     * Resolve a comma-separated list of EIT OID names/values to dotted-decimal OIDs.
+     * Each token is resolved independently; returns a comma-separated list.
+     */
+    private String resolveEitOidList(String oidList) {
+        if (oidList == null || oidList.trim().isEmpty()) return null;
+        StringBuilder sb = new StringBuilder();
+        for (String token : oidList.split("[,;]")) {
+            String resolved = resolveEitOid(token.trim());
+            if (resolved != null && !resolved.isEmpty()) {
+                if (sb.length() > 0) sb.append(",");
+                sb.append(resolved);
+            }
+        }
+        return sb.length() > 0 ? sb.toString() : null;
     }
 
     /**
@@ -557,6 +616,15 @@ public class AMHSPayloadGeneratorService {
         String charsetRegNum = amhsDefaults.get("charset-reg-numbers");
         if (charsetRegNum == null)
             charsetRegNum = amhsDefaults.get("charset-reg-number");
+        String charsetSource = amhsDefaults.get("charset-source");
+        if (charsetSource != null && !charsetSource.trim().isEmpty()) {
+            // Map testcase source values to ISO registration numbers
+            if ("iso-isp-12062-2-A132-cyrillic-arabic-greek-hebrew".equals(charsetSource.trim())) {
+                charsetRegNum = "144, 127, 126, 138"; // Cyrillic (8859-5), Arabic (8859-6), Greek (8859-7), Hebrew (8859-8)
+            } else if ("iso-isp-12062-2-A132-cjk".equals(charsetSource.trim())) {
+                charsetRegNum = "58, 87, 149"; // Chinese, Japanese, Korean
+            }
+        }
         String charsetRepertoire = amhsDefaults.get("charset-repertoire");
         if (charsetRegNum != null && !charsetRegNum.trim().isEmpty()) {
             try {
@@ -573,28 +641,35 @@ public class AMHSPayloadGeneratorService {
         }
 
         // === EIT CONFIGURATION (CTSW016) ===
+        // Key aliases: "eit-builtin-value" (properties file) or "eit-value" or "eit-builtin"
         String eitBuiltin = amhsDefaults.get("eit-builtin-value");
         if (eitBuiltin == null)
+            eitBuiltin = amhsDefaults.get("eit-value");
+        if (eitBuiltin == null)
             eitBuiltin = amhsDefaults.get("eit-builtin");
-        String eitOid = amhsDefaults.get("eit-oid");
+        // Resolve OID list: supports symbolic names (id-cs-eit-authority-N) and dotted-decimal
+        String rawEitOid = amhsDefaults.get("eit-oid");
+        String eitOid = resolveEitOidList(rawEitOid);
         String eitAuth = amhsDefaults.get("eit-authority");
         if (eitBuiltin != null || eitOid != null || eitAuth != null) {
             try {
                 StringBuilder eit = new StringBuilder();
-                if (eitBuiltin != null)
+                if (eitBuiltin != null && !eitBuiltin.trim().isEmpty())
                     eit.append("builtin:").append(eitBuiltin.trim());
-                if (eitOid != null) {
+                if (eitOid != null && !eitOid.trim().isEmpty()) {
                     if (eit.length() > 0)
                         eit.append(";");
                     eit.append("oid:").append(eitOid.trim());
                 }
-                if (eitAuth != null) {
+                if (eitAuth != null && !eitAuth.trim().isEmpty()) {
                     if (eit.length() > 0)
                         eit.append(";");
                     eit.append("authority:").append(eitAuth.trim());
                 }
                 if (eit.length() > 0) {
-                    message.setStringparam(X400_att.X400_S_CONVERSION_EITS, eit.toString());
+                    // X400_S_ORIGINAL_ENCODED_INFORMATION_TYPES sets the EIT on the outgoing MTE
+                    message.setStringparam(X400_att.X400_S_ORIGINAL_ENCODED_INFORMATION_TYPES, eit.toString());
+                    logger.debug("[CTSW016] Set MTE EIT via X400_S_ORIGINAL_ENCODED_INFORMATION_TYPES: {}", eit);
                 }
             } catch (Exception e) {
                 logger.warn("Failed to set EIT: {}", e.getMessage());
@@ -949,8 +1024,23 @@ public class AMHSPayloadGeneratorService {
         // X400_S_GENERAL_TEXT_CHARSETS = 802 (confirmed via reflection)
         // Holds a semicolon-separated list of ISO charset registration numbers
         String charsetRegNum = amhsDefaults.get("charset-reg-number");
+        if (charsetRegNum == null || charsetRegNum.trim().isEmpty()) {
+            charsetRegNum = amhsDefaults.get("charset-reg-numbers");
+        }
+        
+        String charsetSource = amhsDefaults.get("charset-source");
+        if (charsetSource != null && !charsetSource.trim().isEmpty()) {
+            // Map testcase source values to ISO registration numbers
+            if ("iso-isp-12062-2-A132-cyrillic-arabic-greek-hebrew".equals(charsetSource.trim())) {
+                charsetRegNum = "144, 127, 126, 138"; // Cyrillic (8859-5), Arabic (8859-6), Greek (8859-7), Hebrew (8859-8)
+            } else if ("iso-isp-12062-2-A132-cjk".equals(charsetSource.trim())) {
+                charsetRegNum = "58, 87, 149"; // Chinese, Japanese, Korean
+            }
+        }
+        
         String charsetRepertoire = amhsDefaults.get("charset-repertoire");
         String conversionProhibited = amhsDefaults.get("conversion-with-loss-prohibited");
+        String implicitConversion = amhsDefaults.get("implicit-conversion");
 
         if (charsetRegNum != null && !charsetRegNum.trim().isEmpty()) {
             try {
@@ -967,6 +1057,19 @@ public class AMHSPayloadGeneratorService {
                 logger.warn("Failed to set charset-repertoire: {}", e.getMessage());
             }
         }
+        
+        // implicit-conversion-prohibited (CTSW019)
+        if (implicitConversion != null && !implicitConversion.trim().isEmpty()) {
+            try {
+                // "allowed" -> 0 (false), "prohibited" -> 1 (true)
+                int val = "allowed".equalsIgnoreCase(implicitConversion.trim()) ? 0 : 1;
+                message.setIntParam(X400_att.X400_N_IMPLICIT_CONVERSION_PROHIBITED, val);
+                logger.debug("Set implicit-conversion-prohibited: {}", val);
+            } catch (Exception e) {
+                logger.warn("Failed to set implicit-conversion-prohibited: {}", e.getMessage());
+            }
+        }
+
         // conversion-with-loss-prohibited: no dedicated constant; log for gateway
         if (conversionProhibited != null && !conversionProhibited.trim().isEmpty()) {
             logger.info("[CTSW017-019] conversion-with-loss-prohibited='{}' - configure at gateway level",
@@ -974,33 +1077,38 @@ public class AMHSPayloadGeneratorService {
         }
 
         // === EIT CONFIGURATION (CTSW016) ===
-        // No dedicated EIT constants exist in the installed AMHS_att or X400_att.
-        // EIT type, OID, and authority are logged for gateway-side processing.
-        String eitBuiltin = amhsDefaults.get("eit-builtin");
-        String eitOid = amhsDefaults.get("eit-oid");
+        // Key aliases: "eit-builtin-value" (properties file) or "eit-value" or "eit-builtin"
+        String eitBuiltin = amhsDefaults.get("eit-builtin-value");
+        if (eitBuiltin == null)
+            eitBuiltin = amhsDefaults.get("eit-value");
+        if (eitBuiltin == null)
+            eitBuiltin = amhsDefaults.get("eit-builtin");
+        // Resolve OID list: supports symbolic names (id-cs-eit-authority-N) and dotted-decimal
+        String rawEitOid = amhsDefaults.get("eit-oid");
+        String eitOid = resolveEitOidList(rawEitOid);
         String eitAuth = amhsDefaults.get("eit-authority");
         if (eitBuiltin != null || eitOid != null || eitAuth != null) {
             logger.info(
-                    "[CTSW016] EIT config: builtin={}, oid={}, authority={} - set at gateway via X400_S_CONVERTED_ENCODED_INFORMATION_TYPES (502)",
+                    "[CTSW016] EIT config: builtin={}, resolved-oid={}, authority={}",
                     eitBuiltin, eitOid, eitAuth);
-            // Encode combined EIT spec into X400_S_CONVERTED_ENCODED_INFORMATION_TYPES
             try {
                 StringBuilder eit = new StringBuilder();
-                if (eitBuiltin != null)
+                if (eitBuiltin != null && !eitBuiltin.trim().isEmpty())
                     eit.append("builtin:").append(eitBuiltin.trim());
-                if (eitOid != null) {
+                if (eitOid != null && !eitOid.trim().isEmpty()) {
                     if (eit.length() > 0)
                         eit.append(";");
                     eit.append("oid:").append(eitOid.trim());
                 }
-                if (eitAuth != null) {
+                if (eitAuth != null && !eitAuth.trim().isEmpty()) {
                     if (eit.length() > 0)
                         eit.append(";");
                     eit.append("authority:").append(eitAuth.trim());
                 }
                 if (eit.length() > 0) {
-                    message.setStringparam(X400_att.X400_S_CONVERSION_EITS, eit.toString());
-                    logger.debug("Set EIT via X400_S_CONVERSION_EITS: {}", eit);
+                    // X400_S_ORIGINAL_ENCODED_INFORMATION_TYPES sets the EIT on the outgoing MTE
+                    message.setStringparam(X400_att.X400_S_ORIGINAL_ENCODED_INFORMATION_TYPES, eit.toString());
+                    logger.debug("[CTSW016] Set MTE EIT via X400_S_ORIGINAL_ENCODED_INFORMATION_TYPES: {}", eit);
                 }
             } catch (Exception e) {
                 logger.warn("Failed to set EIT: {}", e.getMessage());
@@ -1169,9 +1277,20 @@ public class AMHSPayloadGeneratorService {
                 // charsetRepertoire is set via setStringParam on the bodypart object after
                 // construction
                 String charsetRegNum = amhsDefaults != null ? amhsDefaults.get("charset-reg-number") : null;
+                if (charsetRegNum == null || charsetRegNum.trim().isEmpty()) {
+                    charsetRegNum = amhsDefaults != null ? amhsDefaults.get("charset-reg-numbers") : null;
+                }
+                String charsetSource = amhsDefaults != null ? amhsDefaults.get("charset-source") : null;
+                if (charsetSource != null && !charsetSource.trim().isEmpty()) {
+                    // Map testcase source values to ISO registration numbers
+                    if ("iso-isp-12062-2-A132-cyrillic-arabic-greek-hebrew".equals(charsetSource.trim())) {
+                        charsetRegNum = "144, 127, 126, 138"; // Cyrillic (8859-5), Arabic (8859-6), Greek (8859-7), Hebrew (8859-8)
+                    } else if ("iso-isp-12062-2-A132-cjk".equals(charsetSource.trim())) {
+                        charsetRegNum = "58, 87, 149"; // Chinese, Japanese, Korean
+                    }
+                }
                 String charsetRepertoire = amhsDefaults != null ? amhsDefaults.get("charset-repertoire") : null;
-                String conversionWithLoss = amhsDefaults != null ? amhsDefaults.get("conversion-with-loss-prohibited")
-                        : null;
+                String conversionWithLoss = amhsDefaults != null ? amhsDefaults.get("conversion-with-loss-prohibited") : null;
 
                 BodypartGeneralText generalText;
                 if (charsetRegNum != null && !charsetRegNum.trim().isEmpty()) {
@@ -1179,8 +1298,7 @@ public class AMHSPayloadGeneratorService {
                     // Note: constructor signature is (content, charsetRegNumber, charsetRepertoire)
                     if (conversionWithLoss != null && !conversionWithLoss.trim().isEmpty()) {
                         // Pass conversion-with-loss as string, not boolean
-                        generalText = new BodypartGeneralText(safeContent, charsetRegNum.trim(),
-                                conversionWithLoss.trim());
+                        generalText = new BodypartGeneralText(safeContent, charsetRegNum.trim(), conversionWithLoss.trim());
                     } else {
                         generalText = new BodypartGeneralText(safeContent, charsetRegNum.trim(), null);
                     }
