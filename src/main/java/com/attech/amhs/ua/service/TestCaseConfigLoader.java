@@ -29,13 +29,16 @@ public class TestCaseConfigLoader {
         for (TestCase tc : testCases) {
             Map<String, String> props = loadDefaults(tc.getId());
             if (!props.isEmpty()) {
+                System.out.println("=== Loading " + tc.getId() + " ===");
                 for (TestSubcase subcase : tc.getSubcases()) {
                     String prefix = "subcase." + getSubcaseIndex(subcase.getId()) + ".amhs.";
+                    System.out.println("  Subcase " + subcase.getId() + ", prefix: " + prefix);
                     Map<String, String> subcaseDefaults = new HashMap<>();
                     for (Map.Entry<String, String> entry : props.entrySet()) {
                         if (entry.getKey().startsWith(prefix)) {
                             String key = entry.getKey().substring(prefix.length());
                             subcaseDefaults.put(key, entry.getValue());
+                            System.out.println("    [" + key + "] = " + entry.getValue());
                         }
                     }
                     if (!subcaseDefaults.isEmpty()) {
@@ -77,7 +80,7 @@ public class TestCaseConfigLoader {
         }
         Map<String, String> map = new HashMap<>();
         for (String name : props.stringPropertyNames()) {
-            map.put(name, props.getProperty(name));
+            map.put(name, props.getProperty(name).trim());
         }
         return map;
     }
@@ -87,5 +90,19 @@ public class TestCaseConfigLoader {
      */
     public static String get(String caseId, String key) {
         return loadDefaults(caseId).get(key);
+    }
+
+    public static void main(String[] args) {
+        System.out.println("=== Testing TestCaseConfigLoader ===");
+        List<TestCase> testCases = loadAllTestCases();
+        for (TestCase tc : testCases) {
+            if ("CTSW016".equals(tc.getId())) {
+                System.out.println("\n=== " + tc.getId() + " subcases ===");
+                for (TestSubcase subcase : tc.getSubcases()) {
+                    System.out.println("  " + subcase.getId());
+                    System.out.println("    amhs defaults: " + subcase.getAmhsDefaults());
+                }
+            }
+        }
     }
 }

@@ -142,7 +142,6 @@ public class AMHSPayloadGeneratorService {
      * id-eit-file-transfer 0 = OID for file-transfer body part EIT (same arc as authority 6)
      */
     private static final Map<String, String> EIT_OID_MAP = new HashMap<>();
-    private static final Map<String, String> BUILTIN_EIT_MAP = new HashMap<>();
 
     static {
         // id-cs-eit-authority values (STANAG 4406 / ACP 142)
@@ -152,10 +151,9 @@ public class AMHSPayloadGeneratorService {
         EIT_OID_MAP.put("id-cs-eit-authority-100", "2.16.840.1.101.2.1.22.100"); // proprietary
         // File-transfer EIT (id-eit-file-transfer 0 per EUR Doc 047)
         EIT_OID_MAP.put("id-eit-file-transfer-0",  "2.16.840.1.101.2.1.22.6");  // maps to FTBP
-        // Map known-valid built-ins to their canonical textual form (e.g. ia5-text).
-        // Leave invalid built-in values like 0 unmapped so they are emitted as numeric
-        // tokens and rejected by the IUT/gateway as intended.
-        BUILTIN_EIT_MAP.put("2", "ia5-text");
+        // Standard dotted-decimal OIDs (no mapping needed, used as-is)
+        // 2.6.3.4.2 = ia5-text extended EIT
+        // 2.6.3.4.0 = unknown extended EIT
     }
 
     /**
@@ -173,18 +171,19 @@ public class AMHSPayloadGeneratorService {
 
     /**
      * Resolve a comma-separated list of EIT OID names/values to dotted-decimal OIDs.
-     * Each token is resolved independently; returns a list of resolved OIDs.
+     * Each token is resolved independently; returns a comma-separated list.
      */
-    private List<String> resolveEitOidList(String oidList) {
-        List<String> result = new ArrayList<>();
-        if (oidList == null || oidList.trim().isEmpty()) return result;
+    private String resolveEitOidList(String oidList) {
+        if (oidList == null || oidList.trim().isEmpty()) return null;
+        StringBuilder sb = new StringBuilder();
         for (String token : oidList.split("[,;]")) {
             String resolved = resolveEitOid(token.trim());
             if (resolved != null && !resolved.isEmpty()) {
-                result.add(resolved);
+                if (sb.length() > 0) sb.append(",");
+                sb.append(resolved);
             }
         }
-        return result;
+        return sb.length() > 0 ? sb.toString() : null;
     }
 
     /**
@@ -214,17 +213,10 @@ public class AMHSPayloadGeneratorService {
     }
 
     private Map<String, String> normalizeAmhsDefaults(Map<String, String> rawDefaults) {
-        System.out.println("=== normalizeAmhsDefaults START ===");
-        System.out.println("rawDefaults: " + rawDefaults);
         if (rawDefaults == null) {
-            System.out.println("rawDefaults is null!");
             return null;
         }
-        Map<String, String> normalized = new HashMap<>();
-        // First, trim all values
-        for (Map.Entry<String, String> entry : rawDefaults.entrySet()) {
-            normalized.put(entry.getKey(), entry.getValue().trim());
-        }
+        Map<String, String> normalized = new HashMap<>(rawDefaults);
 
         if (!normalized.containsKey("priority")) {
             putIfNotEmpty(normalized, "priority", rawDefaults.get("ats-priority"));
@@ -247,10 +239,6 @@ public class AMHSPayloadGeneratorService {
         if (!normalized.containsKey("body-part-type")) {
             putIfNotEmpty(normalized, "body-part-type", rawDefaults.get("body-part-types"));
         }
-        // Support both singular and plural property names for EIT OIDs
-        if (!normalized.containsKey("eit-oid")) {
-            putIfNotEmpty(normalized, "eit-oid", rawDefaults.get("eit-oids"));
-        }
         if (!normalized.containsKey("primary-recipients")) {
             putIfNotEmpty(normalized, "primary-recipients", rawDefaults.get("recipient"));
         }
@@ -260,8 +248,7 @@ public class AMHSPayloadGeneratorService {
         if (!normalized.containsKey("rn") && "rn".equalsIgnoreCase(rawDefaults.get("message-type"))) {
             normalized.put("rn", rawDefaults.getOrDefault("rn", "rn"));
         }
-        System.out.println("normalized: " + normalized);
-        System.out.println("=== normalizeAmhsDefaults END ===");
+
         return normalized;
     }
 
@@ -654,62 +641,39 @@ public class AMHSPayloadGeneratorService {
         }
 
         // === EIT CONFIGURATION (CTSW016) ===
-        System.out.println("=== EIT CONFIGURATION START ===");
-        System.out.println("amhsDefaults: " + amhsDefaults);
         // Key aliases: "eit-builtin-value" (properties file) or "eit-value" or "eit-builtin"
         String eitBuiltin = amhsDefaults.get("eit-builtin-value");
-        System.out.println("eitBuiltin after eit-builtin-value: " + eitBuiltin);
         if (eitBuiltin == null)
             eitBuiltin = amhsDefaults.get("eit-value");
-        System.out.println("eitBuiltin after eit-value: " + eitBuiltin);
         if (eitBuiltin == null)
             eitBuiltin = amhsDefaults.get("eit-builtin");
-        System.out.println("eitBuiltin after eit-builtin: " + eitBuiltin);
         // Resolve OID list: supports symbolic names (id-cs-eit-authority-N) and dotted-decimal
         String rawEitOid = amhsDefaults.get("eit-oid");
-        System.out.println("rawEitOid: " + rawEitOid);
-        List<String> eitOidList = resolveEitOidList(rawEitOid);
-        System.out.println("eitOidList: " + eitOidList);
+        String eitOid = resolveEitOidList(rawEitOid);
         String eitAuth = amhsDefaults.get("eit-authority");
-        System.out.println("eitAuth: " + eitAuth);
-        if ((eitBuiltin != null && !eitBuiltin.trim().isEmpty()) || !eitOidList.isEmpty() || (eitAuth != null && !eitAuth.trim().isEmpty())) {
+        if (eitBuiltin != null || eitOid != null || eitAuth != null) {
             try {
-                List<String> eitTokens = new ArrayList<>();
-                // Add built-in EIT (use canonical textual form when known)
-                if (eitBuiltin != null && !eitBuiltin.trim().isEmpty()) {
-                    String builtinValue = BUILTIN_EIT_MAP.get(eitBuiltin.trim());
-                    System.out.println("builtinValue: " + builtinValue);
-                    if (builtinValue != null) {
-                        eitTokens.add(builtinValue);
-                    } else {
-                        // Leave unknown numeric built-ins as-is so gateway can reject them
-                        eitTokens.add(eitBuiltin.trim());
-                    }
+                StringBuilder eit = new StringBuilder();
+                if (eitBuiltin != null && !eitBuiltin.trim().isEmpty())
+                    eit.append("builtin:").append(eitBuiltin.trim());
+                if (eitOid != null && !eitOid.trim().isEmpty()) {
+                    if (eit.length() > 0)
+                        eit.append(";");
+                    eit.append("oid:").append(eitOid.trim());
                 }
-                // Add extended EIT OIDs
-                for (String oid : eitOidList) {
-                    eitTokens.add(oid);
-                }
-                // Add authority (if needed)
                 if (eitAuth != null && !eitAuth.trim().isEmpty()) {
-                    eitTokens.add(eitAuth.trim());
+                    if (eit.length() > 0)
+                        eit.append(";");
+                    eit.append("authority:").append(eitAuth.trim());
                 }
-                // Use space-separated tokens to match legacy UA formatting ("ia5-text 2.6.3.4.2 ...")
-                String finalEit = String.join(" ", eitTokens);
-                System.out.println("Final EIT string to set: '" + finalEit + "'");
-                if (!finalEit.isEmpty()) {
+                if (eit.length() > 0) {
                     // X400_S_ORIGINAL_ENCODED_INFORMATION_TYPES sets the EIT on the outgoing MTE
-                    message.setStringparam(X400_att.X400_S_ORIGINAL_ENCODED_INFORMATION_TYPES, finalEit);
-                    logger.debug("[CTSW016] Set MTE EIT via X400_S_ORIGINAL_ENCODED_INFORMATION_TYPES: {}", finalEit);
-                    System.out.println("=== Successfully set EIT ===");
+                    message.setStringparam(X400_att.X400_S_ORIGINAL_ENCODED_INFORMATION_TYPES, eit.toString());
+                    logger.debug("[CTSW016] Set MTE EIT via X400_S_ORIGINAL_ENCODED_INFORMATION_TYPES: {}", eit);
                 }
             } catch (Exception e) {
-                logger.warn("Failed to set EIT: {}", e.getMessage(), e);
-                System.out.println("=== Failed to set EIT: " + e.getMessage() + " ===");
-                e.printStackTrace();
+                logger.warn("Failed to set EIT: {}", e.getMessage());
             }
-        } else {
-            System.out.println("=== No EIT configuration found ===");
         }
 
         // === REPORT/NOTIFICATION CONFIGURATION ===
@@ -866,27 +830,6 @@ public class AMHSPayloadGeneratorService {
         String priority = defaults.get("priority");
 
         return buildX400Message(session, recipient, subject, content, priority, defaults);
-    }
-
-    /**
-     * Build probe X400 message from TestSubcase with all configured AMHS fields
-     * 
-     * @param session P3BindSession
-     * @param subcase TestSubcase with complete AMHS configuration
-     * @return Built X.400 probe message
-     */
-    public X400Msg buildProbeMessageFromSubcase(P3BindSession session, TestSubcase subcase) {
-        Map<String, String> defaults = getDefaults(subcase);
-
-        String recipient = defaults.get("recipient");
-        String subject = defaults.get("subject");
-        String content = defaults.get("content");
-        String priority = defaults.get("priority");
-
-        // Mark as probe
-        defaults.put("probe", "true");
-
-        return buildProbeMessage(session, recipient, subject, content, priority, defaults, null);
     }
 
     /**
@@ -1140,39 +1083,35 @@ public class AMHSPayloadGeneratorService {
             eitBuiltin = amhsDefaults.get("eit-value");
         if (eitBuiltin == null)
             eitBuiltin = amhsDefaults.get("eit-builtin");
-        // Resolve OID list: support both 'eit-oid' and 'eit-oids' keys
-        String rawEitOid = firstNonEmpty(amhsDefaults, "eit-oid", "eit-oids");
-        List<String> eitOidList = resolveEitOidList(rawEitOid);
+        // Resolve OID list: supports symbolic names (id-cs-eit-authority-N) and dotted-decimal
+        String rawEitOid = amhsDefaults.get("eit-oid");
+        String eitOid = resolveEitOidList(rawEitOid);
         String eitAuth = amhsDefaults.get("eit-authority");
-        if ((eitBuiltin != null && !eitBuiltin.trim().isEmpty()) || !eitOidList.isEmpty() || (eitAuth != null && !eitAuth.trim().isEmpty())) {
+        if (eitBuiltin != null || eitOid != null || eitAuth != null) {
             logger.info(
-                    "[CTSW016] EIT config: builtin={}, resolved-oids={}, authority={}",
-                    eitBuiltin, eitOidList, eitAuth);
+                    "[CTSW016] EIT config: builtin={}, resolved-oid={}, authority={}",
+                    eitBuiltin, eitOid, eitAuth);
             try {
-                List<String> eitTokens = new ArrayList<>();
-                if (eitBuiltin != null && !eitBuiltin.trim().isEmpty()) {
-                    String builtinValue = BUILTIN_EIT_MAP.get(eitBuiltin.trim());
-                    if (builtinValue != null) {
-                        eitTokens.add(builtinValue);
-                    } else {
-                        eitTokens.add(eitBuiltin.trim());
-                    }
-                }
-                for (String oid : eitOidList) {
-                    eitTokens.add(oid);
+                StringBuilder eit = new StringBuilder();
+                if (eitBuiltin != null && !eitBuiltin.trim().isEmpty())
+                    eit.append("builtin:").append(eitBuiltin.trim());
+                if (eitOid != null && !eitOid.trim().isEmpty()) {
+                    if (eit.length() > 0)
+                        eit.append(";");
+                    eit.append("oid:").append(eitOid.trim());
                 }
                 if (eitAuth != null && !eitAuth.trim().isEmpty()) {
-                    eitTokens.add(eitAuth.trim());
+                    if (eit.length() > 0)
+                        eit.append(";");
+                    eit.append("authority:").append(eitAuth.trim());
                 }
-                // Use space-separated tokens to match legacy UA formatting ("ia5-text 2.6.3.4.2 ...")
-                String finalEit = String.join(" ", eitTokens);
-                if (!finalEit.isEmpty()) {
+                if (eit.length() > 0) {
                     // X400_S_ORIGINAL_ENCODED_INFORMATION_TYPES sets the EIT on the outgoing MTE
-                    message.setStringparam(X400_att.X400_S_ORIGINAL_ENCODED_INFORMATION_TYPES, finalEit);
-                    logger.debug("[CTSW016] Set MTE EIT via X400_S_ORIGINAL_ENCODED_INFORMATION_TYPES: {}", finalEit);
+                    message.setStringparam(X400_att.X400_S_ORIGINAL_ENCODED_INFORMATION_TYPES, eit.toString());
+                    logger.debug("[CTSW016] Set MTE EIT via X400_S_ORIGINAL_ENCODED_INFORMATION_TYPES: {}", eit);
                 }
             } catch (Exception e) {
-                logger.warn("Failed to set EIT: {}", e.getMessage(), e);
+                logger.warn("Failed to set EIT: {}", e.getMessage());
             }
         }
 
