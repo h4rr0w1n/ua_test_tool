@@ -41,6 +41,18 @@ set "ISODE_LIB_DIR=%SCRIPT_DIR%\lib"
 :: JAVA AUTO-DETECTION
 :: ============================================================
 
+if exist "%~dp0jre\bin\java.exe" (
+    set "JAVA_HOME=%~dp0jre"
+    echo Auto-detected local JRE: !JAVA_HOME!
+    goto :java_found
+)
+
+if exist "%SCRIPT_DIR%\jre\bin\java.exe" (
+    set "JAVA_HOME=%SCRIPT_DIR%\jre"
+    echo Auto-detected local JRE: !JAVA_HOME!
+    goto :java_found
+)
+
 if not "%JAVA_HOME%"=="" (
     echo Using existing JAVA_HOME: %JAVA_HOME%
     goto :java_found

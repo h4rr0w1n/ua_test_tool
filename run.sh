@@ -33,6 +33,17 @@ ISODE_LIB_DIR="$SCRIPT_DIR/lib"
 # CHECK JAVA
 # ============================================================
 
+ORIGINAL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null 2>&1 && pwd)"
+if [ -f "$ORIGINAL_DIR/jre/bin/java" ]; then
+    export JAVA_HOME="$ORIGINAL_DIR/jre"
+    export PATH="$JAVA_HOME/bin:$PATH"
+    echo "Using local JRE: $JAVA_HOME"
+elif [ -f "$SCRIPT_DIR/jre/bin/java" ]; then
+    export JAVA_HOME="$SCRIPT_DIR/jre"
+    export PATH="$JAVA_HOME/bin:$PATH"
+    echo "Using local JRE: $JAVA_HOME"
+fi
+
 if ! command -v java > /dev/null 2>&1; then
     echo "ERROR: Java is not installed or not available in PATH."
     echo "Please install Java 8 or higher."

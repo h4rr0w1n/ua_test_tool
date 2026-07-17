@@ -1062,6 +1062,7 @@ public class AMHSMessageUI extends JFrame {
         new Thread(() -> {
             int successCount = 0;
             int failCount = 0;
+            String lastSentIpmId = null;
 
             for (TestSubcase sc : tc.getSubcases()) {
                 if (sc.getAmhsDefaults().isEmpty()) {
@@ -1091,7 +1092,20 @@ public class AMHSMessageUI extends JFrame {
                         }
                     }
 
+                    // Auto-apply last sent IPM ID for RNs if not properly configured
+                    if ("rn".equalsIgnoreCase(defaults.get("message-type"))) {
+                        String currentId = defaults.get("subject-ipm-id");
+                        if ((currentId == null || currentId.trim().isEmpty() || currentId.contains("PREVIOUSLY-SENT")) && lastSentIpmId != null) {
+                            defaults.put("subject-ipm-id", lastSentIpmId);
+                            final String appliedId = lastSentIpmId;
+                            SwingUtilities.invokeLater(() -> appendOutput("Auto-applied subject-ipm-id: " + appliedId + " for RN " + sc.getId()));
+                        }
+                    }
+
                     String msgId = messageService.sendMessage(recipient, subject, content, priority, defaults);
+                    if (msgId != null && !msgId.trim().isEmpty()) {
+                        lastSentIpmId = msgId;
+                    }
                     X400_Priority finalPriority = priority;
                     
                     SwingUtilities.invokeLater(() -> {
@@ -1358,6 +1372,39 @@ public class AMHSMessageUI extends JFrame {
     // ── Entry point ───────────────────────────────────────────────────────
 
     public static void main(String[] args) {
+        // --- Start Plug-and-Play native library fix ---
+        try {
+            java.io.File jarFile = new java.io.File(AMHSMessageUI.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            java.io.File rootDir = jarFile.getParentFile();
+            java.io.File libDir = new java.io.File(rootDir, "lib");
+            
+            if (libDir.exists() && libDir.isDirectory()) {
+                String libAbsPath = libDir.getAbsolutePath();
+                
+                // Set isode.bindir
+                if (System.getProperty("isode.bindir") == null) {
+                    System.setProperty("isode.bindir", libAbsPath);
+                }
+                
+                // Set java.library.path and force ClassLoader to reload sys_paths
+                String currentPath = System.getProperty("java.library.path");
+                if (currentPath == null || !currentPath.contains(libAbsPath)) {
+                    String newPath = currentPath == null ? libAbsPath : libAbsPath + java.io.File.pathSeparator + currentPath;
+                    System.setProperty("java.library.path", newPath);
+                    
+                    try {
+                        java.lang.reflect.Field fieldSysPath = ClassLoader.class.getDeclaredField("sys_paths");
+                        fieldSysPath.setAccessible(true);
+                        fieldSysPath.set(null, null);
+                    } catch (Exception ignore) {
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        // --- End Plug-and-Play native library fix ---
+
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception ignored) {

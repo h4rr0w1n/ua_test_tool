@@ -148,7 +148,10 @@ public class AMHSPayloadGeneratorService {
         // id-cs-eit-authority values (STANAG 4406 / ACP 142)
         EIT_OID_MAP.put("id-cs-eit-authority-1",   "2.16.840.1.101.2.1.22.1");  // ia5-text
         EIT_OID_MAP.put("id-cs-eit-authority-2",   "2.16.840.1.101.2.1.22.2");  // general-text
+        EIT_OID_MAP.put("id-cs-eit-authority-3",   "2.16.840.1.101.2.1.22.3");  // Invalid (for CTSW016)
+        EIT_OID_MAP.put("id-cs-eit-authority-4",   "2.16.840.1.101.2.1.22.4");  // Invalid (for CTSW016)
         EIT_OID_MAP.put("id-cs-eit-authority-6",   "2.16.840.1.101.2.1.22.6");  // FTBP
+        EIT_OID_MAP.put("id-cs-eit-authority-7",   "2.16.840.1.101.2.1.22.7");  // Invalid (for CTSW016)
         EIT_OID_MAP.put("id-cs-eit-authority-100", "2.16.840.1.101.2.1.22.100"); // proprietary
         // File-transfer EIT (id-eit-file-transfer 0 per EUR Doc 047)
         EIT_OID_MAP.put("id-eit-file-transfer-0",  "2.16.840.1.101.2.1.22.6");  // maps to FTBP
@@ -259,6 +262,12 @@ public class AMHSPayloadGeneratorService {
         }
         if (!normalized.containsKey("rn") && "rn".equalsIgnoreCase(rawDefaults.get("message-type"))) {
             normalized.put("rn", rawDefaults.getOrDefault("rn", "rn"));
+        }
+        if (!normalized.containsKey("conversion-with-loss-prohibited")) {
+            putIfNotEmpty(normalized, "conversion-with-loss-prohibited", rawDefaults.get("conversion-with-loss"));
+        }
+        if (!normalized.containsKey("originator")) {
+            putIfNotEmpty(normalized, "originator", rawDefaults.get("originator"));
         }
         System.out.println("normalized: " + normalized);
         System.out.println("=== normalizeAmhsDefaults END ===");
@@ -443,9 +452,9 @@ public class AMHSPayloadGeneratorService {
         if (req != null) {
             String lower = req.toLowerCase().trim();
             if (lower.equals("report") || lower.equals("delivery-report") || lower.equals("dr") || lower.equals("both")
-                    || lower.equals("3") || lower.equals("2")) {
+                    || lower.equals("3") || lower.equals("2") || lower.equals("audited-report")) {
                 return X400Msg.DR_Request.DR_DELIVERY_REPORT;
-            } else if (lower.equals("none") || lower.equals("0")) {
+            } else if (lower.equals("none") || lower.equals("0") || lower.equals("no-report")) {
                 return X400Msg.DR_Request.DR_NO_REPORT;
             } else if (lower.equals("non-delivery-report") || lower.equals("ndr") || lower.equals("1")) {
                 return X400Msg.DR_Request.DR_NON_DELIVERY_REPORT;
@@ -507,6 +516,16 @@ public class AMHSPayloadGeneratorService {
             }
         }
 
+        // Originator (CTSW013)
+        String originator = amhsDefaults.get("originator");
+        if (originator != null && !originator.trim().isEmpty()) {
+            try {
+                message.setFrom(originator.trim());
+            } catch (Exception e) {
+                logger.warn("Failed to set originator: {}", e.getMessage());
+            }
+        }
+
         // Precedence
         String precedenceStr = amhsDefaults.get("precedence");
         if (precedenceStr != null && !precedenceStr.trim().isEmpty()) {
@@ -534,7 +553,12 @@ public class AMHSPayloadGeneratorService {
         String responsibility = amhsDefaults.get("responsibility");
         if (responsibility != null && !responsibility.trim().isEmpty()) {
             try {
-                int respValue = "responsible".equalsIgnoreCase(responsibility.trim()) ? 1 : 0;
+                // If multiple values provided, use the first one and log a warning for API limitation
+                String[] respParts = responsibility.split(",");
+                if (respParts.length > 1) {
+                    logger.warn("Per-recipient responsibility not supported by high-level API. Using first value: {}", respParts[0]);
+                }
+                int respValue = "responsible".equalsIgnoreCase(respParts[0].trim()) ? 1 : 0;
                 message.setIntParam(X400_att.X400_N_RESPONSIBILITY, respValue);
             } catch (Exception e) {
                 logger.warn("Failed to set responsibility: {}", e.getMessage());
@@ -551,15 +575,9 @@ public class AMHSPayloadGeneratorService {
             }
         }
 
-        // Subject IPM ID
-        String subjectIpmId = amhsDefaults.get("subject-ipm-id");
-        if (subjectIpmId != null && !subjectIpmId.trim().isEmpty()) {
-            try {
-                message.setMessageIPMIdentifier(subjectIpmId.trim());
-            } catch (Exception e) {
-                logger.warn("Failed to set subject-ipm-id: {}", e.getMessage());
-            }
-        }
+        // Subject IPM ID handling removed from here to prevent conflicting with its proper usage in the RN block.
+        // The IPM identifier of the *current* message shouldn't blindly take the subject-ipm-id value.
+        // It's handled correctly as X400_S_SUBJECT_IPM for RNs earlier in this method.
 
         // CC Recipients
         String ccRecipients = amhsDefaults.get("copy-recipients");
@@ -722,8 +740,10 @@ public class AMHSPayloadGeneratorService {
                     reportValue = 1; // 1 = non-delivery-report
                 } else if (req.equals("delivery-report") || req.equals("dr")) {
                     reportValue = 2; // 2 = report
-                } else if (req.equals("report") || req.equals("both")) {
+                } else if (req.equals("report") || req.equals("both") || req.equals("audited-report")) {
                     reportValue = 2;
+                } else if (req.equals("no-report") || req.equals("none") || req.equals("0")) {
+                    reportValue = 0;
                 } else {
                     reportValue = Integer.parseInt(req);
                 }
@@ -743,6 +763,10 @@ public class AMHSPayloadGeneratorService {
                 } else if (req.equals("delivery-report") || req.equals("dr") || req.equals("report")
                         || req.equals("both")) {
                     mtaReportValue = 2; // 2 = report
+                } else if (req.equals("audited-report") || req.equals("3")) {
+                    mtaReportValue = 3; // 3 = audited-report
+                } else if (req.equals("no-report") || req.equals("none") || req.equals("0")) {
+                    mtaReportValue = 0;
                 } else {
                     mtaReportValue = Integer.parseInt(req);
                 }
@@ -1377,7 +1401,19 @@ public class AMHSPayloadGeneratorService {
                 message.addBodypart(new BodypartIA5Text(safeContent));
             }
         } else if (type.equals("ia5-text")) {
-            message.addBodypart(new BodypartIA5Text(safeContent));
+            BodypartIA5Text ia5 = new BodypartIA5Text(safeContent);
+            String repertoire = amhsDefaults != null ? amhsDefaults.get("repertoire") : null;
+            if (repertoire == null && amhsDefaults != null) {
+                repertoire = amhsDefaults.get("charset-repertoire");
+            }
+            if (repertoire != null && !repertoire.trim().isEmpty() && !"ia5".equalsIgnoreCase(repertoire.trim())) {
+                try {
+                    ia5.setStringParam(803, repertoire.trim());
+                } catch (Exception e) {
+                    logger.debug("Could not set repertoire on BodypartIA5Text: {}", e.getMessage());
+                }
+            }
+            message.addBodypart(ia5);
         } else if (type.contains("file-transfer") || type.equals("ftbp")) {
             // Handle File Transfer Body Part (FTBP) with proper attributes from defaults
             logger.debug("Adding file-transfer-body-part");
