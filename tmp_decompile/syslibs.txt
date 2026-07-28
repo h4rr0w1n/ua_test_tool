@@ -1,0 +1,11 @@
+# This file contains a list of DLLs to be loaded on Windows
+# Load order: dependencies before dependents
+pthreadVC2.dll
+MSVCR100.dll
+libibase.dll
+libisodejavalib.dll
+libx400common.dll
+libx400ms.dll
+libx400mt.dll
+libCJavaInterface.dll
+libCJavaMTInterface.dll

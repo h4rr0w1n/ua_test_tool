@@ -77,6 +77,9 @@ public class Connection1 {
             return false;
         }
 
+        // Ensure native Isode DLLs are self-contained and pre-loaded before binding
+        NativeLibInitializer.initialize();
+
         // this.onStatusChanged(ConnectionStatus.Connecting);
         session = new P7BindSession(presentationAddress, user, password);
         session.SetSummarizeOnBind(false);

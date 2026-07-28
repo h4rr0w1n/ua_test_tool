@@ -90,6 +90,7 @@ public class AMHSMessageUI extends JFrame {
     // ── Constructor ───────────────────────────────────────────────────────
 
     public AMHSMessageUI() {
+        com.attech.amhs.ua.isode.NativeLibInitializer.initialize();
         messageService = new AMHSMessageService();
         repository = new TestCaseRepository();
         recorder = new TestSessionRecorder();
@@ -1372,38 +1373,9 @@ public class AMHSMessageUI extends JFrame {
     // ── Entry point ───────────────────────────────────────────────────────
 
     public static void main(String[] args) {
-        // --- Start Plug-and-Play native library fix ---
-        try {
-            java.io.File jarFile = new java.io.File(AMHSMessageUI.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-            java.io.File rootDir = jarFile.getParentFile();
-            java.io.File libDir = new java.io.File(rootDir, "lib");
-            
-            if (libDir.exists() && libDir.isDirectory()) {
-                String libAbsPath = libDir.getAbsolutePath();
-                
-                // Set isode.bindir
-                if (System.getProperty("isode.bindir") == null) {
-                    System.setProperty("isode.bindir", libAbsPath);
-                }
-                
-                // Set java.library.path and force ClassLoader to reload sys_paths
-                String currentPath = System.getProperty("java.library.path");
-                if (currentPath == null || !currentPath.contains(libAbsPath)) {
-                    String newPath = currentPath == null ? libAbsPath : libAbsPath + java.io.File.pathSeparator + currentPath;
-                    System.setProperty("java.library.path", newPath);
-                    
-                    try {
-                        java.lang.reflect.Field fieldSysPath = ClassLoader.class.getDeclaredField("sys_paths");
-                        fieldSysPath.setAccessible(true);
-                        fieldSysPath.set(null, null);
-                    } catch (Exception ignore) {
-                    }
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        // --- End Plug-and-Play native library fix ---
+        // Delegate native library initialization to NativeLibInitializer
+        // Handles self-contained loading from src/main/resources/lib (classpath) or local lib folder across NetBeans, IDEs, and JAR execution.
+        com.attech.amhs.ua.isode.NativeLibInitializer.initialize();
 
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
