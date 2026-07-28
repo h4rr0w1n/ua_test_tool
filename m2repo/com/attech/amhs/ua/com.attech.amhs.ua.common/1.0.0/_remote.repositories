@@ -1,0 +1,4 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Tue Jul 28 11:06:21 ICT 2026
+com.attech.amhs.ua.common-1.0.0.jar>=
+com.attech.amhs.ua.common-1.0.0.pom>=

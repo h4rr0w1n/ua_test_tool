@@ -20,6 +20,17 @@
 
     <repositories>
         <repository>
+            <id>project-local-repo</id>
+            <name>Project Local Repository</name>
+            <url>file://${project.basedir}/m2repo</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
             <id>central</id>
             <name>Central Repository</name>
             <url>https://repo.maven.apache.org/maven2</url>

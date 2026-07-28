@@ -15,6 +15,30 @@ A Java-based AMHS X.400 test tool equipped with a Swing GUI. This tool acts as a
 
 ---
 
+## Building from Source on Any Machine
+
+If you are compiling the source code on a new machine (or behind an offline/proxy network):
+
+1. **Option A (Automated Script - Recommended)**:
+   Run the included setup script. It automatically registers all local JAR dependencies (Isode X.400, ATTech UA, 3rd party libraries) into both `m2repo/` and your local `.m2` repository, then builds the application into `dist/`:
+   - **On Windows:**
+     ```bat
+     install-and-build.bat
+     ```
+   - **On Linux/macOS:**
+     ```bash
+     chmod +x install-and-build.sh
+     ./install-and-build.sh
+     ```
+
+2. **Option B (Direct Maven Command)**:
+   Because `pom.xml` defines a project-local repository (`file://${project.basedir}/m2repo`), standard Maven commands will resolve all dependencies locally without needing internet or central repository access:
+   ```bash
+   mvn clean package
+   ```
+
+---
+
 ## 1. Running the Application
 
 The tool is provided as a self-contained, pre-compiled package in the `dist/` directory. You do not need Maven, source code, or the `.m2` repository to run the tool. The included `run.bat` (and `run.sh`) script is responsible for setting up the environment and running the tool.

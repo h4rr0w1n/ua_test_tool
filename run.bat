@@ -41,6 +41,17 @@ set "ISODE_LIB_DIR=%SCRIPT_DIR%\lib"
 :: JAVA AUTO-DETECTION
 :: ============================================================
 
+if defined JAVA_HOME (
+    if exist "!JAVA_HOME!\bin\java.exe" (
+        echo Using valid JAVA_HOME: !JAVA_HOME!
+        goto :java_found
+    ) else (
+        echo WARNING: Existing JAVA_HOME points to missing path: !JAVA_HOME!
+        echo Searching for valid Java installation...
+        set "JAVA_HOME="
+    )
+)
+
 if exist "%~dp0jre\bin\java.exe" (
     set "JAVA_HOME=%~dp0jre"
     echo Auto-detected local JRE: !JAVA_HOME!
@@ -53,20 +64,10 @@ if exist "%SCRIPT_DIR%\jre\bin\java.exe" (
     goto :java_found
 )
 
-if not "%JAVA_HOME%"=="" (
-    echo Using existing JAVA_HOME: %JAVA_HOME%
-    goto :java_found
-)
-
-for /f "delims=" %%i in ('where java 2^>nul') do (
-    set "JAVA_PATH=%%i"
-    for %%j in ("%%i") do set "JAVA_BIN_DIR=%%~dpj"
-    for %%k in ("!JAVA_BIN_DIR!..") do set "JAVA_HOME=%%~fk"
-    echo Auto-detected JAVA_HOME from PATH: !JAVA_HOME!
-    goto :java_found
-)
-
 for %%B in (
+    "%USERPROFILE%\.antigravity-ide\extensions"
+    "%USERPROFILE%\.antigravity\extensions"
+    "%USERPROFILE%\.vscode\extensions"
     "C:\Program Files\Java"
     "C:\Program Files (x86)\Java"
     "C:\Program Files\Eclipse Adoptium"
@@ -78,13 +79,23 @@ for %%B in (
     "C:\Program Files (x86)\ojdkbuild"
 ) do (
     if exist "%%~B" (
-        for /d %%d in ("%%~B\jdk*" "%%~B\jre*" "%%~B\java-*" "%%~B\openjdk*") do (
+        for /d %%d in ("%%~B\redhat.java-*\jre\*" "%%~B\jdk*" "%%~B\jre*" "%%~B\java-*" "%%~B\openjdk*") do (
             if exist "%%~fd\bin\java.exe" (
                 set "JAVA_HOME=%%~fd"
                 echo Auto-detected JAVA_HOME: !JAVA_HOME!
                 goto :java_found
             )
         )
+    )
+)
+
+for /f "delims=" %%i in ('where java 2^>nul') do (
+    set "JAVA_PATH=%%i"
+    for %%j in ("%%i") do set "JAVA_BIN_DIR=%%~dpj"
+    for %%k in ("!JAVA_BIN_DIR!..") do set "JAVA_HOME=%%~fk"
+    if exist "!JAVA_HOME!\bin\java.exe" (
+        echo Auto-detected JAVA_HOME from PATH: !JAVA_HOME!
+        goto :java_found
     )
 )
 
